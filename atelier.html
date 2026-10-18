@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFF5E8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DuDu">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/v4/icon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="icons/v4/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/v4/apple-touch-icon.png">
+<title>DuDu — atelier d'écriture</title>
+<script src="content/meta.js"></script>
+<script>
+/* Thème avant le premier affichage : le même réglage que les autres pages (store.theme = 'light' | 'dark',
+   absent = automatique, c'est alors le système qui décide). */
+(function () {
+  try {
+    var st = JSON.parse(localStorage.getItem('dudu-a1-u1') || '{}') || {};
+    if (st.theme === 'light' || st.theme === 'dark') document.documentElement.setAttribute('data-theme', st.theme);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="troupe.css">
+<style>
+/* =====================================================================
+   atelier.html — l'atelier d'écriture. Tout est page-local ; les composants viennent de troupe.css
+   (t-card, t-btn, t-pill, t-chip, t-progress, t-bubble, t-input, t-confetti…) et les couleurs sont les --t-*.
+   Les classes at-* sont à cette page ; .pop / .anno / .others / .pc / mark.err / .enx / .busy sont des crochets du JS.
+   ===================================================================== */
+[hidden]{display:none !important}
+.at-main{max-width:640px;margin:0 auto;padding:6px 16px 28px;display:grid;gap:16px;min-width:0}
+.at-view{display:grid;gap:14px;min-width:0}
+.at-view > *{min-width:0}
+.at-sub{margin:0}
+
+/* ---------- Léa, la coach ---------- */
+.at-host{display:flex;align-items:center;gap:16px;padding-top:4px}
+.at-lea{width:104px;height:96px;flex:none;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;border-radius:18px}
+.at-lea:focus-visible{outline:3px solid var(--t-focus);outline-offset:2px}
+.at-bubble{flex:1;font:800 17px/1.25 var(--t-font-d)}
+.at-bubble p{margin:0}
+
+/* ---------- la liste ---------- */
+.at-intro{display:grid;gap:6px}
+.at-units{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+.at-unit{min-height:56px;min-width:44px;padding:6px 2px;border-radius:16px;border:2px solid var(--t-line);background:var(--t-paper);box-shadow:0 4px 0 var(--t-line);
+  color:var(--t-ink);font:800 17px/1 var(--t-font-d);display:grid;place-items:center;align-content:center;gap:4px;cursor:pointer;margin:0 0 4px;
+  transition:transform .09s,box-shadow .09s,background .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.at-unit small{font:800 11.5px/1 var(--t-font-d);color:var(--t-ink-2);font-variant-numeric:tabular-nums}
+.at-unit:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-line)}
+.at-unit[aria-pressed="true"]{background:var(--t-unit);border-color:var(--t-unit-d);box-shadow:0 4px 0 var(--t-unit-d);color:#2B2230}
+.at-unit[aria-pressed="true"] small{color:#2B2230}
+.at-unit[aria-pressed="true"]:active{box-shadow:0 1px 0 var(--t-unit-d)}
+.at-unit.is-locked{background:transparent;border-style:dashed;box-shadow:none;color:var(--t-ink-2);cursor:not-allowed;margin-bottom:4px}
+.at-unit.is-locked:active{transform:none;box-shadow:none}
+.at-unit.is-locked .ul-ico{font-size:17px}
+.at-unitline{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.at-unitline h2{min-width:0;overflow-wrap:anywhere}
+.at-tasks{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.at-task{display:grid;grid-template-columns:48px minmax(0,1fr);gap:4px 12px;align-items:center}
+.at-task__ic{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font-size:24px;line-height:1;background:var(--t-unit-l);border:2px solid var(--t-unit)}
+.at-task__tx{display:grid;gap:2px;min-width:0}
+.at-task__tx b{font:800 18px/1.2 var(--t-font-d);color:var(--t-ink);overflow-wrap:anywhere}
+.at-task__st{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
+.at-task__go{font:800 15px/1 var(--t-font-d);color:var(--t-teal-ink);white-space:nowrap}
+.at-task.t-card--done .at-task__ic{background:var(--t-paper);border-color:var(--t-teal)}
+
+/* ---------- un devoir ---------- */
+.at-crumb{margin-left:-6px}
+.at-thead{display:flex;gap:12px;align-items:flex-start}
+.at-thead .at-task__ic{margin-top:2px}
+.at-thead h2{overflow-wrap:anywhere}
+.at-box{display:grid;gap:8px}
+.at-box--prompt{border-left-width:8px}
+.at-box--rewrite{border-left:8px solid var(--t-tomato)}
+.at-box--model{border-left:8px solid var(--t-teal)}
+.at-box--well{border-left:8px solid var(--t-teal)}
+.at-box--focus{border-left:8px solid var(--t-tomato)}
+.at-boxhead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px}
+.at-h{margin:0;font:800 17px/1.2 var(--t-font-d);color:var(--t-ink);min-width:0;overflow-wrap:anywhere}
+.at-tools{display:flex;align-items:center;gap:6px;flex:none}
+.at-box p{margin:0}
+.at-hint{font:600 13.5px/1.4 var(--t-font-b);color:var(--t-ink-2);margin:0}
+.enx{display:block;margin:0;padding:8px 12px;border-radius:12px;background:var(--t-cream);color:var(--t-ink-2);font:italic 600 14px/1.4 var(--t-font-b)}
+.at-en{min-width:44px;min-height:44px;padding:0;border:0;background:none;cursor:pointer;display:grid;place-items:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.at-en span{display:block;padding:6px 10px;border-radius:99px;border:2px solid var(--t-line);background:var(--t-paper);color:var(--t-ink-2);font:800 12.5px/1 var(--t-font-d);letter-spacing:.06em}
+.at-en[aria-expanded="true"] span{background:var(--t-teal);border-color:var(--t-teal-d);color:#fff}
+.at-say{color:var(--t-teal-ink)}
+.at-say.busy{background:var(--t-mustard-l);border-color:var(--t-mustard)}
+.at-say--in{margin:-8px 0 -8px 6px;vertical-align:middle;display:inline-grid}
+.at-say--end{justify-self:start}
+
+.at-checks{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.at-checks label{display:flex;gap:12px;align-items:flex-start;min-height:44px;padding:8px 0;cursor:pointer;font:600 16px/1.35 var(--t-font-b)}
+.at-checks input{-webkit-appearance:none;appearance:none;flex:none;width:28px;height:28px;margin:0;border-radius:10px;border:2px solid var(--t-rim);background:var(--t-surface);
+  display:grid;place-items:center;cursor:pointer;transition:background .15s}
+.at-checks input:checked{background:var(--t-teal);border-color:var(--t-teal-d)}
+.at-checks input:checked::after{content:"";width:13px;height:7px;border-left:3.5px solid #fff;border-bottom:3.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.at-checks input:checked + span{color:var(--t-ink-2);text-decoration:line-through;text-decoration-thickness:1.5px}
+
+.at-phr{display:flex;flex-wrap:wrap;gap:10px}
+.pc{display:flex;align-items:stretch;border:2px solid var(--t-line);border-radius:16px;background:var(--t-surface);max-width:100%;overflow:hidden;box-shadow:0 3px 0 var(--t-line);margin-bottom:3px}
+.pc .ins{background:none;border:0;padding:6px 12px;text-align:left;cursor:pointer;min-height:48px;min-width:0;flex:1 1 auto;color:var(--t-ink);font:inherit;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pc .ins:active{background:var(--t-teal-l)}
+.pc .ins b{display:block;font:800 15px/1.25 var(--t-font-d);overflow-wrap:anywhere}
+.pc .ins span{display:block;font:600 12.5px/1.3 var(--t-font-b);color:var(--t-ink-2);margin-top:1px}
+.pc .snd{background:none;border:0;border-left:2px solid var(--t-line);padding:0;min-width:44px;cursor:pointer;color:var(--t-teal-ink);display:grid;place-items:center;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pc .snd svg{width:20px;height:20px}
+.pc .snd:active{background:var(--t-teal-l)}
+.pc .snd.busy{background:var(--t-mustard-l)}
+
+/* l'éditeur */
+.at-editor{display:grid;gap:10px}
+.at-txt{font:600 17px/1.55 var(--t-font-b);min-height:13rem;resize:vertical;border-radius:20px 20px 20px 6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.at-txt:focus-visible{outline:none}
+.at-counter{display:flex;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;font:700 13.5px/1.3 var(--t-font-b);color:var(--t-ink-2);font-variant-numeric:tabular-nums}
+.at-counter b{font:800 16px/1 var(--t-font-d);color:var(--t-ink)}
+.at-counter .ok{color:var(--t-teal-ink);font-weight:800}
+.at-counter .warn{color:var(--t-mustard-ink);font-weight:800}
+.at-acts{display:grid;gap:8px}
+.at-acts .t-btn{white-space:nowrap}
+.at-acts .t-btn--block{padding-left:14px;padding-right:14px}
+
+/* état : lecture, erreur, confirmation */
+.at-status{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:20px;border:2px dashed var(--t-line);background:var(--t-paper);font:700 16px/1.35 var(--t-font-b);color:var(--t-ink)}
+.at-status > div{min-width:0}
+.at-status .t-small{display:block;margin-top:2px}
+.at-status.err{display:grid;gap:6px;border-style:solid;border-color:var(--t-tomato);background:var(--t-bad-bg);color:var(--t-bad-fg)}
+.at-status.err .t-small{color:inherit;opacity:.9}
+.at-status.err .at-acts{margin-top:6px}
+.at-spin{width:26px;height:26px;flex:none;border-radius:50%;border:3px solid var(--t-track);border-top-color:var(--t-teal);animation:at-sp .8s linear infinite}
+@keyframes at-sp{to{transform:rotate(360deg)}}
+.at-confirm{display:grid;gap:6px;padding:14px 16px;border-radius:20px;border:2px solid var(--t-mustard-d);background:var(--t-mustard-l);color:var(--t-mustard-ink)}
+.at-confirm p{margin:0;font:800 17px/1.25 var(--t-font-d)}
+.at-confirm .t-small{color:inherit;opacity:.9;font-family:var(--t-font-b)}
+.at-confirm .at-acts{margin-top:8px}
+#statusBox:empty,#modelBox:empty{display:none}
+
+/* ---------- la correction ---------- */
+.at-score{position:relative;overflow:hidden;display:grid;gap:14px}
+.at-score > *:not(.t-confetti){position:relative}
+.at-score__top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.at-score__big{font:800 60px/1 var(--t-font-d);letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--t-ink)}
+.at-score__big small{font-size:24px;color:var(--t-ink-2);font-weight:800;letter-spacing:0}
+.at-score.good .at-score__big{color:var(--t-teal-ink)}
+.at-bars{display:grid;gap:12px}
+.at-bar__top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:700 15px/1.2 var(--t-font-b);margin-bottom:5px}
+.at-bar__top b{font:800 14px/1 var(--t-font-d);font-variant-numeric:tabular-nums;color:var(--t-ink-2)}
+.at-hist{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;font:700 14px/1.2 var(--t-font-d);color:var(--t-ink-2)}
+.at-hist .t-chip{padding:5px 10px}
+.at-hist .arr{color:var(--t-ink-3)}
+.fixlist{list-style:none;margin:0;padding:0;display:grid;gap:6px;font:600 15px/1.35 var(--t-font-b)}
+.fixlist li{display:flex;gap:8px;align-items:flex-start;min-width:0;overflow-wrap:anywhere}
+.fixlist .y{color:var(--t-teal-ink);font-weight:800;flex:none}
+.fixlist .n{color:var(--t-mustard-ink);font-weight:800;flex:none}
+.at-fixed__t{font:800 18px/1.25 var(--t-font-d);margin:0}
+.anno{white-space:pre-wrap;overflow-wrap:anywhere;font:600 17px/1.9 var(--t-font-b)}
+mark.err{background:var(--t-tomato-l);color:inherit;border-radius:8px;padding:.1em .25em;border-bottom:3px solid var(--t-tomato);cursor:pointer;touch-action:manipulation;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone}
+mark.err.sel{background:var(--t-mustard-l);border-bottom-color:var(--t-mustard-d)}
+.pop{margin-top:16px;font:600 15px/1.45 var(--t-font-b)}
+.pop .bt{font:700 17px/1.4 var(--t-font-b)}
+.pop .bt b{font-family:var(--t-font-d);font-weight:800;color:var(--t-teal-ink)}
+.pop .tp{display:inline-block;margin-top:6px;padding:4px 9px;border-radius:99px;background:var(--t-cream);color:var(--t-ink-2);font:800 11.5px/1 var(--t-font-d);letter-spacing:.04em;text-transform:uppercase}
+.at-others-h{margin:14px 0 2px}
+.others{list-style:none;margin:0;padding:0;display:grid;gap:10px;font:600 15px/1.4 var(--t-font-b)}
+.others li{padding-bottom:10px;border-bottom:2px solid var(--t-line);overflow-wrap:anywhere}
+.others li:last-child{border-bottom:0;padding-bottom:0}
+.others s{color:var(--t-ink-2)}
+.others b{font-weight:800}
+.others .why{display:block;margin-top:2px;color:var(--t-ink-2);font-size:14px}
+.corr{white-space:pre-wrap;overflow-wrap:anywhere;font:600 17px/1.6 var(--t-font-b)}
+.at-after{display:grid;gap:10px;justify-items:center}
+.at-after .t-btn{margin:0}
+.at-after .t-btn--ghost{padding-left:12px;padding-right:12px}
+.at-more{display:flex;flex-wrap:wrap;gap:4px 8px;justify-content:center}
+
+@media (max-width:359px){
+  .at-host{gap:10px}
+  .at-lea{width:84px;height:78px}
+  .at-bubble{font-size:15.5px}
+  .at-score__big{font-size:52px}
+  .at-acts .t-btn{font-size:16.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  .at-spin{animation:none;border-top-color:var(--t-teal);border-right-color:var(--t-teal)}
+  .at-unit{transition:none}
+}
+</style>
+</head>
+<body class="t-page">
+
+<main class="at-main" id="main">
+
+  <!-- Léa, la coach d'écriture : toujours là, sa bulle change selon la page -->
+  <section class="at-host" aria-label="Léa, ta coach d'écriture">
+    <div class="at-lea" id="lea" role="button" tabindex="0" data-react aria-label="Léa — touchez pour une réaction"></div>
+    <div class="t-bubble t-bubble--l at-bubble" id="leaSay" aria-live="polite"><p>Écris, je t'aide à corriger !</p></div>
+  </section>
+
+  <div id="fatal" class="t-card t-card--flat" role="alert" hidden style="background:var(--t-bad-bg);border-color:var(--t-tomato);color:var(--t-bad-fg)">
+    <b class="t-h3" style="color:inherit">Impossible de charger les devoirs.</b>
+    <p class="t-small" style="color:inherit">Couldn't load the writing tasks — check your connection and reload the page.</p>
+  </div>
+
+  <!-- 1. liste des devoirs -->
+  <section id="listView" class="at-view" aria-labelledby="listH" hidden>
+    <div class="at-intro">
+      <h1 class="t-h1" id="listH">Écrire en français</h1>
+      <p class="t-small">Writing workshop — write a short text, get it corrected by the tutor, then rewrite it. Like homework in class.</p>
+    </div>
+    <div class="at-units" id="unitChips" role="group" aria-label="Unité"></div>
+    <div id="lockLine" hidden></div>
+    <div class="at-unitline"><h2 class="t-h2" id="unitLine"></h2><span class="t-pill t-pill--unit" id="unitCount"></span></div>
+    <ol class="at-tasks" id="taskList" aria-label="Les devoirs de l'unité"></ol>
+  </section>
+
+  <!-- 2. un devoir : écrire / correction -->
+  <section id="taskView" class="at-view" hidden></section>
+</main>
+
+<script src="content/ateliers.js"></script>
+<script src="unlock.js"></script>
+<script src="content/tests.js" onerror="void 0"></script>
+<script src="sync.js"></script>
+<script src="cast.js"></script>
+<script src="sfx.js"></script>
+<script src="mistakes.js"></script>
+<script src="nav.js"></script>
+<script>
+/* ============================================================
+   ATELIER D'ÉCRITURE — un petit devoir par thème : on écrit, le tuteur
+   corrige (POST /api/atelier), on réécrit. C'est un devoir, pas un examen :
+   brouillon sauvegardé, modèle à la demande, autant de versions qu'on veut.
+
+   Progression (store 'dudu-a1-u1', synchronisé avec le compte) :
+     store.atelier[taskId]  = {drafts:[{at, text, score, n, res}] (6 dernières), best:{score, at}, done}
+        res (seulement sur la dernière version) = {sub, well, focus, corrected, mistakes:[{said,better,why,topic,inline}], fixed:[…], prevN}
+        done = meilleure note ≥ 14/20, ou au moins 2 versions envoyées
+     store.atelierDraft[taskId] = texte en cours (effacé quand il est envoyé)
+   Les erreurs vont dans le carnet (mistakes.js, src 'write').
+
+   « La Troupe » : Léa est la coach (bulle + réactions), le thème et la déconnexion sont dans nav.js (Moi).
+   ============================================================ */
+const LS = 'dudu-a1-u1';
+const readStore = () => { try { return JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch (e) { return {}; } };
+let store = readStore();
+addEventListener('dudu:ttsvoice', e => { store.ttsVoice = e.detail; });   // voix choisie dans « Moi » (nav.js)
+const save = () => {
+  try { localStorage.setItem(LS, JSON.stringify(store)); } catch (e) {}
+  try { DuduSync.schedulePush(store); } catch (e) {}
+};
+
+/* ------------------------------ utilitaires ------------------------------ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PASS = 14;                          // 14/20 : devoir « réussi »
+const UNIT_TITLES = Object.fromEntries(Object.values(COURSE.units).map(u => [u.n, u.titre]));   // content/meta.js
+const unitTitle = n => UNIT_TITLES[n] || `Unité ${n}`;
+const KIND = {message: ['💬', 'Message'], mail: ['✉️', 'Mail'], formulaire: ['📋', 'Formulaire'], description: ['📝', 'Description'], post: ['🗨️', 'Post']};
+/* mots : lettres seulement (comme le serveur) */
+const WORD_RE = /\p{L}+(?:['’-]\p{L}+)*/gu;
+const wordsOf = s => (String(s || '').match(WORD_RE) || []).length;
+const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’‘`]/g, "'").replace(/[^a-z0-9]+/g, ' ').trim();
+
+const qs = new URLSearchParams(location.search);
+/* « #u4w-3 » ou, comme l'écrit le plan, « #u4w-3&from=plan » */
+function parseHash() {
+  const parts = decodeURIComponent((location.hash || '').replace(/^#/, '')).split('&');
+  const out = {id: parts[0] || '', from: ''};
+  parts.slice(1).forEach(p => { const m = /^from=(.*)$/.exec(p); if (m) out.from = m[1]; });
+  return out;
+}
+const FROM = qs.get('from') || parseHash().from;
+
+/* ------------------------------ le shell : barre du haut + onglets ------------------------------ */
+try {
+  DuduNav.mount({active: null, title: "Atelier d'écriture", topbar: 'page', tabbar: true,
+    back: FROM === 'plan' ? 'plan' : FROM === 'faibles' ? 'faibles' : 'app'});
+  const nb = $('navBack');
+  if (nb && FROM === 'plan') { nb.setAttribute('aria-label', 'Retour au plan du jour'); nb.title = 'Plan du jour'; }
+  if (nb && FROM === 'faibles') { nb.setAttribute('aria-label', 'Retour aux points faibles'); nb.title = 'Points faibles'; }
+} catch (e) {}
+
+/* ------------------------------ sons ------------------------------ */
+const sfx = (name, opts) => { try { if (window.Sfx) window.Sfx.play(name, opts); } catch (e) {} };
+
+/* ------------------------------ Léa, la coach ------------------------------ */
+const leaEl = $('lea');
+let leaT = null, noHopUntil = 0;
+const nowMs = () => (window.performance && performance.now) ? performance.now() : 0;
+try { Cast.mount(leaEl, {char: 'lea', mood: 'idle', prop: 'notebook', label: ''}); } catch (e) {}
+const leaG = () => leaEl.querySelector('g[data-char]');
+function leaMood(mood, ms) {                       // ms : retour au calme après ce délai
+  const g = leaG(); if (!g) return;
+  clearTimeout(leaT);
+  try { Cast.setMood(g, mood); } catch (e) {}
+  if (ms && mood !== 'idle') leaT = setTimeout(() => { try { Cast.setMood(g, 'idle'); } catch (e) {} }, ms);
+}
+const DEFAULT_SAY = "Écris, je t'aide à corriger !";
+const setBubble = text => { $('leaSay').innerHTML = `<p>${esc(text)}</p>`; };
+function pokeLea() {
+  sfx('mascot', {char: 'lea'});
+  const g = leaG(); if (!g || g.dataset.mood !== 'idle') return;
+  leaMood('happy', 900);
+}
+leaEl.addEventListener('click', pokeLea);
+leaEl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pokeLea(); } });
+/* elle saute quand elle parle (voix du son « complete », « mascot »…) — sauf juste après une note à retravailler :
+   « Bien essayé ! » se dit calmement */
+window.addEventListener('dudu:speak', e => {
+  const d = e.detail || {};
+  if ((d.char === 'mamie' ? 'jo' : d.char) !== 'lea') return;
+  if (nowMs() < noHopUntil) return;
+  const g = leaG(); if (!g) return;
+  leaMood('happy', Math.max(300, (d.duration || 1) * 1000 + 200));
+});
+/* la réaction à une correction : seulement quand elle vient d'arriver (jamais au chargement de la page) */
+function reactResult(score, fresh) {
+  const good = score >= PASS;
+  setBubble(good ? 'Bravo ! Quel beau texte !' : 'Bien essayé ! Corrige et renvoie.');
+  if (!fresh) { leaMood('idle'); return; }
+  if (good) {
+    sfx('complete', {char: 'lea'});
+    const c = $('confetti');
+    if (c) { try { Cast.confetti(c); } catch (e) {} setTimeout(() => { if (c.isConnected) c.innerHTML = ''; }, 4500); }
+    leaMood('happy', 2600);
+  } else {
+    noHopUntil = nowMs() + 4000;
+    sfx('wrong', {char: 'lea', near: true});         // « Presque ! / Courage ! » : un texte à retravailler, pas une faute
+    leaMood('idle');
+  }
+}
+
+/* ------------------------------ synthèse vocale ------------------------------ */
+const TTS_OK = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+let busyBtn = null;
+function say(text, btn) {
+  if (!TTS_OK || !text) return;
+  try {
+    speechSynthesis.cancel();
+    if (busyBtn) busyBtn.classList.remove('busy');
+    const u = new SpeechSynthesisUtterance(String(text).replace(/\s+/g, ' ').trim().slice(0, 600));
+    const vs = speechSynthesis.getVoices().filter(x => (x.lang || '').toLowerCase().startsWith('fr'));
+    const v = vs.find(x => x.voiceURI === (store.ttsVoice || '')) ||
+      vs.sort((a, b) => ((b.lang || '').toLowerCase() === 'fr-fr') - ((a.lang || '').toLowerCase() === 'fr-fr'))[0];
+    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'fr-FR';
+    u.rate = parseFloat(store.ttsRate) || 0.7;
+    busyBtn = btn || null;
+    if (btn) { btn.classList.add('busy'); u.onend = u.onerror = () => btn.classList.remove('busy'); }
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+const ICON_SPK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.2v5.6h3.8l5.2 4.2V5L7.3 9.2z" fill="currentColor"/><path d="M16 8.6a5 5 0 0 1 0 6.8M18.6 5.8a9 9 0 0 1 0 12.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+/* mod : '' | 'in' (dans une ligne de texte) | 'end' (seul, sous un texte) */
+const speakBtn = (text, mod) => TTS_OK ? `<button type="button" class="t-iconbtn t-iconbtn--round at-say${mod ? ' at-say--' + mod : ''}" data-act="say" data-say="${esc(text)}" aria-label="Écouter" title="Écouter">${ICON_SPK}</button>` : '';
+/* « EN » : le bouton et sa traduction sont dans la même boîte (.at-box) ; le clic cherche .enx dans sa boîte */
+const enBtn = en => en ? `<button type="button" class="at-en" data-act="en" aria-expanded="false" title="English"><span>EN</span></button>` : '';
+const enBox = en => en ? `<p class="enx" hidden>${esc(en)}</p>` : '';
+const boxHead = (title, tools) => `<div class="at-boxhead"><h3 class="at-h">${title}</h3><span class="at-tools">${tools || ''}</span></div>`;
+
+/* ------------------------------ données ------------------------------ */
+const DATA_OK = typeof ATELIERS !== 'undefined' && ATELIERS && typeof ATELIERS === 'object';
+const UNITS_OK = DATA_OK ? Object.keys(ATELIERS).map(Number).filter(n => Array.isArray(ATELIERS[n]) && ATELIERS[n].length).sort((a, b) => a - b) : [];
+const TOPICS = (typeof TEST_TOPICS !== 'undefined' && TEST_TOPICS) ? TEST_TOPICS : {};
+const taskById = id => { for (const u of UNITS_OK) { const t = ATELIERS[u].find(x => x.id === id); if (t) return {t, unit: u}; } return null; };
+const rec = id => (store.atelier && store.atelier[id]) || null;
+const lastDraft = id => { const r = rec(id); return r && r.drafts && r.drafts.length ? r.drafts[r.drafts.length - 1] : null; };
+const bestOf = id => { const r = rec(id); return r && r.best ? r.best.score : null; };
+const isDone = id => !!(rec(id) && rec(id).done);
+
+/* les rubriques envoyées au tuteur : celles de la tâche, alignées sur TEST_TOPICS[unité] quand tests.js les connaît
+   (« 1 · Le futur proche » et « Le futur proche » sont la même rubrique) */
+function topicsFor(unit, t) {
+  const official = Array.isArray(TOPICS[unit]) ? TOPICS[unit] : [];
+  const strip = s => fold(String(s).replace(/^\s*\d+\s*·\s*/, ''));
+  const out = [];
+  (t.focus || []).forEach(l => {
+    const o = official.find(x => strip(x) === strip(l));
+    const v = o || l;
+    if (!out.includes(v)) out.push(v);
+  });
+  return out;
+}
+
+/* ------------------------------ surlignage des erreurs ------------------------------ */
+/* Même règle que le serveur (find_said) : majuscules ignorées, espaces et retours à la ligne équivalents,
+   apostrophe droite ou courbe équivalentes. */
+const APOS = "'’‘`";
+function saidRegex(said) {
+  const toks = String(said || '').split(/\s+/).filter(Boolean);
+  if (!toks.length) return null;
+  const pat = toks.map(t => Array.from(t).map(c => APOS.includes(c) ? "['’‘`]" : c.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&')).join('')).join('\\s+');
+  try { return new RegExp(pat, 'gi'); } catch (e) { return null; }
+}
+/* → {html, others:[indices des erreurs sans passage à surligner]} */
+function annotate(text, mistakes) {
+  const taken = [], others = [];
+  (mistakes || []).forEach((m, i) => {
+    if (!m.inline) { others.push(i); return; }
+    const re = saidRegex(m.said);
+    let hit = null, x;
+    while (re && (x = re.exec(text))) {
+      const s = x.index, e = s + x[0].length;
+      if (!x[0].length) { re.lastIndex++; continue; }
+      if (!taken.some(r => s < r.e && e > r.s)) { hit = {s, e, i}; break; }
+    }
+    if (hit) taken.push(hit); else others.push(i);
+  });
+  taken.sort((a, b) => a.s - b.s);
+  let html = '', pos = 0;
+  taken.forEach(r => {
+    html += esc(text.slice(pos, r.s)) +
+      `<mark class="err" data-i="${r.i}" tabindex="0" role="button" aria-expanded="false">${esc(text.slice(r.s, r.e))}</mark>`;
+    pos = r.e;
+  });
+  html += esc(text.slice(pos));
+  return {html, others: others.sort((a, b) => a - b), n: taken.length};
+}
+const popHTML = m => `<span class="bt">mieux : <b>${esc(m.better)}</b>${speakBtn(m.better, 'in')}</span>
+  ${m.why ? `<br><span>${esc(m.why)}</span>` : ''}${m.topic && m.topic !== 'Autre' ? `<br><span class="tp">${esc(m.topic.replace(/^\s*\d+\s*·\s*/, ''))}</span>` : ''}`;
+/* un bloc de texte annoté + sa fenêtre « mieux : … » ; les clics sont gérés par délégation (voir plus bas) */
+function annotatedBlock(text, mistakes, opts) {
+  opts = opts || {};
+  const a = annotate(text, mistakes);
+  const others = a.others.map(i => mistakes[i]);
+  return `<div class="anno-wrap" data-mistakes="${esc(JSON.stringify(mistakes.map(m => ({better: m.better, why: m.why, topic: m.topic}))))}">
+    <div class="anno">${a.html}</div>
+    ${a.n ? `<p class="at-hint" style="margin-top:6px">${opts.hint || 'Touchez un passage surligné pour voir la correction.'}</p>` : ''}
+    <div class="pop t-bubble t-bubble--t" hidden aria-live="polite"></div>
+    ${others.length && !opts.noOthers ? `<h4 class="t-label at-others-h">Autres remarques</h4>
+      <ul class="others">${others.map(m => `<li>${m.said ? `<s>${esc(m.said)}</s> → ` : ''}<b>${esc(m.better)}</b>${speakBtn(m.better, 'in')}
+        ${m.why ? `<span class="why">${esc(m.why)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+  </div>`;
+}
+function selectMark(wrap, mark) {
+  wrap.querySelectorAll('mark.err').forEach(x => { x.classList.remove('sel'); x.setAttribute('aria-expanded', 'false'); });
+  const pop = wrap.querySelector('.pop');
+  if (!mark) { pop.hidden = true; return; }
+  let list = []; try { list = JSON.parse(wrap.dataset.mistakes || '[]'); } catch (e) {}
+  const m = list[+mark.dataset.i];
+  if (!m) return;
+  mark.classList.add('sel'); mark.setAttribute('aria-expanded', 'true');
+  pop.innerHTML = popHTML(m); pop.hidden = false;
+}
+
+/* ------------------------------ vue : la liste ------------------------------ */
+const ui = {unit: 1, id: '', rewriting: false, pending: false, modelOpen: false};
+/* Les unités ouvertes (unlock.js). LK est rempli avant le premier affichage ; lk() relit toujours la progression. */
+let LK = null;
+const lk = () => Unlock.state(store) || LK;
+/* une unité qu'on a le droit d'ouvrir : celle demandée (?u=, store.unit) si elle est ouverte, sinon l'unité en cours */
+function pickUnit() {
+  const q = parseInt(qs.get('u'), 10), s = parseInt(store.unit, 10), L = lk();
+  const ok = n => UNITS_OK.includes(n) && !L.locked(n);
+  if (ok(q)) return q;
+  if (ok(s)) return s;
+  if (ok(L.frontier)) return L.frontier;
+  return UNITS_OK.filter(n => !L.locked(n)).pop() || UNITS_OK[0] || 1;
+}
+function statusOf(t) {
+  const r = rec(t.id), best = bestOf(t.id);
+  if (!r || !r.drafts || !r.drafts.length) return {cls: '', pill: 't-pill--unit', st: 'à faire', go: 'Écrire →'};
+  if (r.done) return {cls: 't-card--done', pill: 't-pill--teal', st: `${best}/20 ✓`, go: 'Revoir →'};
+  return {cls: '', pill: 't-pill--mustard', st: `à réécrire · ${best}/20`, go: 'Réécrire →'};
+}
+function renderList() {
+  $('taskView').hidden = true; $('listView').hidden = false;
+  $('listView').className = `at-view t-u${ui.unit}`;
+  const done = u => ATELIERS[u].filter(t => isDone(t.id)).length;
+  const L = lk();
+  $('unitChips').innerHTML = UNITS_OK.map(u => L.locked(u)
+    ? `<button class="at-unit t-u${u} is-locked" type="button" data-lock-unit="${u}" aria-label="Unité ${u} — verrouillée : ${esc(Unlock.lockText(u).fr.replace(/^Verrouillée · /, ''))}">U${u}<small>${Unlock.lockIcon()}</small></button>`
+    : `<button class="at-unit t-u${u}" type="button" data-u="${u}" aria-pressed="${u === ui.unit}" aria-label="Unité ${u}, ${done(u)} sur ${ATELIERS[u].length}">U${u}<small>${done(u)}/${ATELIERS[u].length}</small></button>`).join('');
+  $('unitChips').querySelectorAll('[data-lock-unit]').forEach(b => Unlock.lockControl(b, +b.dataset.lockUnit));
+  const lh = Unlock.hint(L); $('lockLine').innerHTML = lh; $('lockLine').hidden = !lh;
+  $('unitLine').textContent = `Unité ${ui.unit} — ${unitTitle(ui.unit)}`;
+  $('unitCount').textContent = `${done(ui.unit)}/${ATELIERS[ui.unit].length} terminés`;
+  $('taskList').innerHTML = ATELIERS[ui.unit].map(t => {
+    const s = statusOf(t), k = KIND[t.kind] || ['✍️', ''];
+    return `<li><a class="t-card t-card--tap t-card--unit at-task ${s.cls}" href="#${esc(t.id)}" data-id="${esc(t.id)}">
+      <span class="at-task__ic" aria-hidden="true">${k[0]}</span>
+      <span class="at-task__tx"><b>${esc(t.title)}</b><span class="t-small">${esc(t.titleEn || '')}</span></span>
+      <span class="at-task__st"><span class="t-pill ${s.pill}">${esc(s.st)}</span><span class="at-task__go">${s.go}</span></span></a></li>`;
+  }).join('');
+  document.title = "DuDu — atelier d'écriture";
+  setBubble(DEFAULT_SAY); leaMood('idle');
+}
+
+/* ------------------------------ vue : écrire ------------------------------ */
+let autosaveTimer = null;
+function saveDraftText(id, text) {
+  store.atelierDraft = store.atelierDraft || {};
+  const last = lastDraft(id);
+  if (!text.trim() || (last && text === last.text)) delete store.atelierDraft[id];
+  else store.atelierDraft[id] = text;
+  save();
+}
+function header(t, unit) {
+  const k = KIND[t.kind] || ['✍️', ''];
+  return `<div class="at-crumb"><button class="t-btn t-btn--ghost t-btn--sm" type="button" data-act="list">← Les devoirs de l'unité ${unit}</button></div>
+    <div class="at-thead"><span class="at-task__ic" aria-hidden="true">${k[0]}</span>
+      <div><h2 class="t-h2">${esc(t.title)}</h2><p class="t-small">${esc(t.titleEn || '')}</p></div></div>`;
+}
+function showWrite(id, rewriting) {
+  const f = taskById(id); if (!f) return renderList();
+  const {t, unit} = f;
+  ui.id = id; ui.unit = unit; ui.rewriting = !!rewriting; ui.pending = false; ui.modelOpen = false;
+  const last = lastDraft(id);
+  const saved = store.atelierDraft && store.atelierDraft[id];
+  const start = saved != null && saved !== '' ? saved : (rewriting && last ? last.text : '');
+  const prev = rewriting && last && last.res ? last : null;
+  $('listView').hidden = true; $('taskView').hidden = false;
+  $('taskView').className = `at-view t-u${unit}`;
+  document.title = `DuDu — ${t.title}`;
+  $('taskView').innerHTML = `
+    ${header(t, unit)}
+    ${prev ? `<div class="t-card t-card--flat at-box at-box--rewrite">
+        ${boxHead('✏️ Réécriture — corrigez ces passages')}
+        <p class="t-small">Rewrite — fix the highlighted parts (your previous version, ${prev.score}/20).</p>
+        ${annotatedBlock(prev.text, prev.res.mistakes || [], {noOthers: false, hint: 'Touchez un passage surligné pour revoir la correction.'})}
+      </div>` : ''}
+    <div class="t-card t-card--unit at-box at-box--prompt">
+      ${boxHead('La consigne', speakBtn(t.prompt) + enBtn(t.promptEn))}
+      ${enBox(t.promptEn)}
+      <p class="t-body">${esc(t.prompt)}</p>
+    </div>
+    <div class="t-card t-card--flat at-box">
+      ${boxHead('Dans votre texte, il faut…')}<p class="t-small" style="margin-top:-4px">Your text should…</p>
+      <ul class="at-checks">${(t.criteria || []).map((c, i) => `<li><label><input type="checkbox" data-crit="${i}"><span>${esc(c)}</span></label></li>`).join('')}</ul>
+    </div>
+    <div class="t-card t-card--flat at-box">
+      ${boxHead('Phrases utiles')}<p class="t-small" style="margin:-4px 0 4px">Useful phrases — tap one to put it in your text; the speaker button plays it.</p>
+      <div class="at-phr phr">${(t.phrases || []).map((p, i) => `<span class="pc"><button type="button" class="ins" data-act="ins" data-i="${i}"><b>${esc(p.fr)}</b><span>${esc(p.en)}</span></button>${TTS_OK ? `<button type="button" class="snd" data-act="say" data-say="${esc(p.fr)}" aria-label="Écouter" title="Écouter">${ICON_SPK}</button>` : ''}</span>`).join('')}</div>
+    </div>
+    <div class="t-card at-editor">
+      <textarea class="t-input at-txt txt" id="txt" lang="fr" autocapitalize="sentences" autocorrect="off" spellcheck="false"
+        placeholder="Écrivez ici…" aria-label="Votre texte">${esc(start)}</textarea>
+      <div class="t-progress t-progress--sm" id="wcBar" style="--v:0%" aria-hidden="true"><i></i></div>
+      <div class="at-counter counter"><span><b id="wc">0</b> mot<span id="wcS"></span> · demandé : ${t.minWords}–${t.maxWords}</span><span id="wcMsg"></span></div>
+    </div>
+    <div id="statusBox"></div>
+    <div class="at-acts">
+      <button class="t-btn t-btn--block" type="button" data-act="correct" id="corrBtn">${rewriting ? 'Corriger ma réécriture →' : 'Corriger →'}</button>
+      <button class="t-btn t-btn--secondary t-btn--sm t-btn--block" type="button" data-act="model-ask" id="modelBtn">👀 Voir un modèle</button>
+    </div>
+    <div id="modelBox"></div>
+    <p class="at-hint" id="draftNote" style="text-align:center">Votre brouillon est sauvegardé automatiquement.</p>`;
+  updateCounter();
+  setBubble(prev ? 'Corrige les passages marqués, puis renvoie !' : DEFAULT_SAY); leaMood('idle');
+  window.scrollTo(0, 0);
+}
+function updateCounter() {
+  const ta = $('txt'); if (!ta) return;
+  const f = taskById(ui.id); if (!f) return;
+  const n = wordsOf(ta.value), t = f.t;
+  $('wc').textContent = n; $('wcS').textContent = n > 1 ? 's' : '';
+  const m = $('wcMsg');
+  if (!n) { m.textContent = ''; m.className = ''; }
+  else if (n < t.minWords) { m.textContent = `encore ${t.minWords - n} mot${t.minWords - n > 1 ? 's' : ''}`; m.className = ''; }
+  else if (n > t.maxWords) { m.textContent = 'un peu long — pas grave'; m.className = 'warn'; }
+  else { m.textContent = '✓ bonne longueur'; m.className = 'ok'; }
+  const bar = $('wcBar');
+  if (bar) {
+    bar.style.setProperty('--v', Math.min(100, Math.round(100 * n / Math.max(1, t.minWords))) + '%');
+    bar.className = 't-progress t-progress--sm' + (n > t.maxWords ? ' t-progress--mustard' : n >= t.minWords ? ' t-progress--teal' : '');
+  }
+}
+function insertPhrase(i) {
+  const f = taskById(ui.id), ta = $('txt'); if (!f || !ta) return;
+  const p = (f.t.phrases || [])[i]; if (!p) return;
+  const s = ta.selectionStart == null ? ta.value.length : ta.selectionStart;
+  const e = ta.selectionEnd == null ? s : ta.selectionEnd;
+  let ins = p.fr;
+  const before = ta.value.slice(0, s);
+  if (before && !/\s$/.test(before)) ins = ' ' + ins;
+  ta.setRangeText(ins, s, e, 'end');
+  ta.dispatchEvent(new Event('input', {bubbles: true}));
+  ta.focus();
+}
+
+/* le modèle, derrière une confirmation */
+function modelAsk() {
+  const box = $('modelBox'); if (!box) return;
+  const f = taskById(ui.id); if (!f) return;
+  if (ui.modelOpen) { ui.modelOpen = false; box.innerHTML = ''; return; }
+  const n = wordsOf($('txt').value);
+  if (n >= 8) { showModel(); return; }                     // il a déjà essayé : pas besoin de le freiner
+  box.innerHTML = `<div class="at-confirm" role="alertdialog" aria-label="Essayez d'abord">
+      <p>Essayez d'abord ! 💪</p>
+      <p class="t-small">Have a go first — the model is far more useful after your own attempt.</p>
+      <div class="at-acts"><button class="t-btn t-btn--secondary t-btn--sm t-btn--block" type="button" data-act="model-no">Je continue d'écrire</button>
+      <button class="t-btn t-btn--mustard t-btn--sm t-btn--block" type="button" data-act="model-yes">Voir le modèle quand même</button></div></div>`;
+}
+function showModel() {
+  const f = taskById(ui.id); if (!f) return;
+  const m = f.t.model || {};
+  ui.modelOpen = true;
+  $('modelBox').innerHTML = `<div class="t-card t-card--flat at-box at-box--model">${boxHead('Un modèle', speakBtn(m.fr) + enBtn(m.en))}
+    ${enBox(m.en)}
+    <p class="t-body fr" style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(m.fr)}</p>
+    <p class="at-hint">Ce n'est pas la seule réponse possible : écrivez avec vos propres mots.</p></div>`;
+  $('modelBox').scrollIntoView({block: 'nearest', behavior: 'smooth'});
+}
+
+/* ------------------------------ le tuteur ------------------------------ */
+async function callTutor(body) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 120000);
+  try {
+    const res = await fetch(location.origin + '/api/atelier', {method: 'POST', credentials: 'same-origin', signal: ctl.signal,
+      headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+    let j = {}; try { j = await res.json(); } catch (e) {}
+    if (res.status === 401) throw new Error('Votre session a expiré : reconnectez-vous (dans un autre onglet), puis réessayez. Votre texte est gardé.');
+    if (!res.ok || j.error || typeof j.score !== 'number' || !j.sub) throw new Error(j.error || 'Correction indisponible.');
+    return j;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Le tuteur met trop de temps à répondre. Réessayez.');
+    if (e instanceof TypeError) throw new Error('Pas de connexion. Vérifiez votre réseau — votre texte est gardé.');
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+async function correct() {
+  if (ui.pending) return;
+  const f = taskById(ui.id), ta = $('txt'); if (!f || !ta) return;
+  const {t, unit} = f;
+  const text = ta.value.replace(/\r/g, '').trim();
+  const status = $('statusBox');
+  if (wordsOf(text) < 5) {
+    status.innerHTML = `<div class="at-status err" role="alert"><b>Écrivez quelques phrases d'abord.</b><p class="t-small">Write a few full sentences first — at least 5 words.</p></div>`;
+    return;
+  }
+  const last = lastDraft(ui.id);
+  const previous = ui.rewriting && last && last.res
+    ? {text: last.text, mistakes: (last.res.mistakes || []).slice(0, 10).map(m => ({said: m.said, better: m.better}))} : null;
+  ui.pending = true;
+  const btn = $('corrBtn'); btn.disabled = true;
+  status.innerHTML = `<div class="at-status" role="status"><span class="at-spin" aria-hidden="true"></span><div>Le tuteur lit votre texte…<span class="t-small">The tutor is reading your text…</span></div></div>`;
+  setBubble('Je lis ton texte…');
+  try {
+    const j = await callTutor({unit, taskId: t.id, task: {prompt: t.prompt, criteria: t.criteria || []}, text, topics: topicsFor(unit, t), previous});
+    record(t, unit, text, j, previous);
+    ui.pending = false;
+    showResult(t.id, true);
+  } catch (e) {
+    ui.pending = false;
+    if ($('corrBtn')) $('corrBtn').disabled = false;
+    setBubble(DEFAULT_SAY);
+    if ($('statusBox')) $('statusBox').innerHTML = `<div class="at-status err" role="alert"><b>${esc(e.message || e)}</b>
+      <div class="at-acts"><button class="t-btn t-btn--sm t-btn--block" type="button" data-act="correct">Réessayer</button></div></div>`;
+  }
+}
+/* enregistre la version, la progression et les erreurs du carnet */
+function record(t, unit, text, j, previous) {
+  store = readStore();                      // une autre page a pu écrire depuis
+  store.atelier = store.atelier || {};
+  const r = store.atelier[t.id] || {drafts: [], best: null, done: false};
+  const mistakes = (j.mistakes || []).filter(m => m && m.better).map(m => ({
+    said: m.said || '', better: m.better, why: m.why_en || '', topic: m.topic || 'Autre', inline: !!m.inline}));
+  const fixed = (j.fixed || []).filter(k => previous && previous.mistakes[k]);
+  const n = (r.drafts.length ? r.drafts[r.drafts.length - 1].n || r.drafts.length : 0) + 1;
+  r.drafts.forEach(d => { delete d.res; });                  // le détail ne reste que sur la dernière version
+  const now = Date.now();
+  try{ DuduSync.markActive(store); }catch(e){}   // série 🔥
+  r.drafts.push({at: now, text, score: j.score, n, res: {
+    sub: j.sub, well: j.well_en || '', focus: j.focus_en || '', corrected: j.corrected || '',
+    mistakes, fixed, prevN: previous ? previous.mistakes.length : 0,
+    prevList: previous ? previous.mistakes.map(m => ({said: m.said, better: m.better})) : []}});
+  r.drafts = r.drafts.slice(-6);
+  if (!r.best || j.score >= r.best.score) r.best = {score: j.score, at: now};
+  r.done = !!r.done || r.best.score >= PASS || n >= 2;
+  store.atelier[t.id] = r;
+  if (store.atelierDraft) delete store.atelierDraft[t.id];
+
+  /* carnet d'erreurs */
+  const M = window.DuduMistakes;
+  if (M) {
+    try {
+      const key = b => M.keyOf('write', b);
+      const fixedKeys = new Set(fixed.map(k => key(previous.mistakes[k].better)));
+      fixedKeys.forEach(k => M.fix(store, k));
+      const stillOpen = new Set((previous ? previous.mistakes : []).map(m => key(m.better)));
+      fixedKeys.forEach(k => stillOpen.delete(k));
+      mistakes.forEach(m => {
+        const k = key(m.better);
+        if (!k || stillOpen.has(k)) return;                  // déjà au carnet et pas encore corrigée : on ne la recompte pas
+        M.log(store, {key: k, unit, src: 'write', ref: 'atelier?u=' + unit + '#' + t.id, tab: '', topic: m.topic,
+          q: t.title, said: m.inline ? m.said : '', better: m.better, why: m.why});
+      });
+    } catch (e) { /* le carnet ne doit jamais empêcher d'enregistrer le devoir */ }
+  }
+  save();
+}
+
+/* ------------------------------ vue : la correction ------------------------------ */
+const SUBS = [['task', 'Consigne', 'Task', 6], ['vocab', 'Vocabulaire', 'Vocabulary', 5], ['grammar', 'Grammaire', 'Grammar', 6], ['coherence', 'Cohérence', 'Coherence', 3]];
+function showResult(id, fresh) {
+  const f = taskById(id); if (!f) return renderList();
+  const {t, unit} = f;
+  const r = rec(id), d = lastDraft(id);
+  if (!d) return showWrite(id, false);
+  ui.id = id; ui.unit = unit; ui.rewriting = false; ui.pending = false;
+  const res = d.res;
+  $('listView').hidden = true; $('taskView').hidden = false;
+  $('taskView').className = `at-view t-u${unit}`;
+  document.title = `DuDu — ${t.title}`;
+  const hist = r.drafts.map(x => `<span class="t-chip">V${x.n || '?'} <b>${x.score}</b></span>`).join('<span class="arr">→</span>');
+  const good = d.score >= PASS;
+  const prevN = res ? res.prevN : 0;
+  let fixedHtml = '';
+  if (res && prevN > 0) {
+    const nf = (res.fixed || []).length;
+    fixedHtml = `<div class="t-card t-card--done at-box">
+      <p class="at-fixed__t">${nf === prevN ? '🎉' : '✅'} ${nf}/${prevN} erreur${prevN > 1 ? 's' : ''} corrigée${nf > 1 ? 's' : ''}</p>
+      <p class="t-small" style="color:var(--t-ok-fg)">${nf} of ${prevN} earlier mistake${prevN > 1 ? 's are' : ' is'} now fixed${nf === prevN ? ' — well done!' : '.'}</p>
+      ${res.prevList && res.prevList.length ? `<ul class="fixlist">${res.prevList.map((m, i) => `<li><span class="${(res.fixed || []).includes(i) ? 'y' : 'n'}">${(res.fixed || []).includes(i) ? '✓' : '○'}</span><span>${esc(m.said || m.better)} → <b>${esc(m.better)}</b></span></li>`).join('')}</ul>` : ''}
+    </div>`;
+  }
+  $('taskView').innerHTML = `
+    ${header(t, unit)}
+    <div class="t-card t-card--unit at-score${good ? ' good' : ''}">
+      <div class="t-confetti" id="confetti" aria-hidden="true"></div>
+      <div class="at-score__top"><span class="at-score__big">${d.score}<small>/20</small></span>
+        <span class="t-pill ${r.done ? 't-pill--teal' : (good ? 't-pill--teal' : 't-pill--mustard')}">${r.done ? '✓ devoir terminé' : (good ? 'bien joué' : 'à réécrire')}</span></div>
+      ${res ? `<div class="at-bars">${SUBS.map(([k, fr, en, max]) => {
+        const v = res.sub && res.sub[k] != null ? res.sub[k] : 0, p = Math.round(100 * v / max);
+        return `<div class="at-bar"><div class="at-bar__top"><span>${fr} <span class="t-small" style="display:inline">· ${en}</span></span><b>${v}/${max}</b></div>
+          <div class="t-progress t-progress--sm ${p < 60 ? 't-progress--mustard' : 't-progress--teal'}" style="--v:${p}%"><i></i></div></div>`; }).join('')}</div>` : ''}
+      ${r.drafts.length > 1 ? `<div class="at-hist"><span class="t-label">Versions</span>${hist}${r.best ? `<span class="t-pill t-pill--teal">meilleure ${r.best.score}/20</span>` : ''}</div>` : ''}
+    </div>
+    ${fixedHtml}
+    ${res && res.well ? `<div class="t-card t-card--flat at-box at-box--well">${boxHead('👍 Bien')}<p class="t-body">${esc(res.well)}</p></div>` : ''}
+    ${res && res.focus ? `<div class="t-card t-card--flat at-box at-box--focus">${boxHead('🎯 À travailler')}<p class="t-body">${esc(res.focus)}</p></div>` : ''}
+    <div class="t-card t-card--flat at-box">
+      ${boxHead('Votre texte', speakBtn(d.text))}
+      ${res ? annotatedBlock(d.text, res.mistakes || []) : `<div class="anno">${esc(d.text)}</div>`}
+      ${res && !(res.mistakes || []).length ? '<p class="at-hint">Aucune erreur trouvée : bravo ! 🎉</p>' : ''}
+    </div>
+    ${res && res.corrected ? `<div class="t-card t-card--flat at-box">
+      <button class="t-btn t-btn--secondary t-btn--sm t-btn--block" type="button" data-act="corr-toggle" aria-expanded="false" style="margin:0">Voir la version corrigée</button>
+      <div id="corrBox" hidden class="at-box">
+        <p class="at-hint">💡 Mieux vaut réécrire d'abord avec vos propres mots, puis comparer.</p>
+        <p class="corr">${esc(res.corrected)}</p>${speakBtn(res.corrected, 'end')}
+      </div></div>` : ''}
+    <div class="at-acts">
+      <button class="t-btn t-btn--block" type="button" data-act="rewrite">✏️ Réécrire</button>
+      <button class="t-btn t-btn--secondary t-btn--sm t-btn--block" type="button" data-act="list">Autres devoirs</button>
+    </div>
+    <div id="modelBox"></div>
+    <div class="at-more">
+      <button class="t-btn t-btn--ghost t-btn--sm" type="button" data-act="fresh">Écrire un tout nouveau texte</button>
+      <button class="t-btn t-btn--ghost t-btn--sm" type="button" data-act="model-result">Voir le modèle</button>
+    </div>`;
+  window.scrollTo(0, 0);
+  reactResult(d.score, !!fresh);
+}
+
+/* ------------------------------ interactions ------------------------------ */
+document.addEventListener('click', e => {
+  const mark = e.target.closest('mark.err');
+  if (mark) {
+    const wrap = mark.closest('.anno-wrap');
+    selectMark(wrap, mark.classList.contains('sel') ? null : mark);
+    sfx('tap');
+    return;
+  }
+  const chip = e.target.closest('.at-unit[data-u]');
+  if (chip) { sfx('tap'); ui.unit = +chip.dataset.u; renderList(); return; }
+  const card = e.target.closest('a.at-task');
+  if (card) { sfx('select'); return; }                    // le lien #id déclenche hashchange
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'say') say(b.dataset.say, b);
+  else if (act === 'en') {
+    const box = b.closest('.at-box'), x = box && box.querySelector('.enx'); if (!x) return;
+    const open = x.hidden;
+    x.hidden = !open; b.setAttribute('aria-expanded', String(open));
+    sfx('tap');
+  }
+  else if (act === 'ins') { sfx('select'); insertPhrase(+b.dataset.i); }
+  else if (act === 'list') { sfx('tap'); if (location.hash) history.pushState(null, '', location.pathname + location.search); onRoute(); }
+  else if (act === 'correct') correct();
+  else if (act === 'model-ask') { sfx('tap'); modelAsk(); }
+  else if (act === 'model-no') { $('modelBox').innerHTML = ''; $('txt').focus(); }
+  else if (act === 'model-yes') showModel();
+  else if (act === 'model-result') {
+    sfx('tap');
+    if (ui.modelOpen) { ui.modelOpen = false; $('modelBox').innerHTML = ''; } else showModel();
+  }
+  else if (act === 'rewrite') { sfx('tap'); showWrite(ui.id, true); }
+  else if (act === 'fresh') {                              // page blanche : les versions précédentes restent enregistrées
+    sfx('tap');
+    store = readStore(); if (store.atelierDraft) delete store.atelierDraft[ui.id]; save();
+    showWrite(ui.id, false);
+  }
+  else if (act === 'corr-toggle') {
+    const box = $('corrBox'), open = box.hidden;
+    box.hidden = !open; b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Cacher la version corrigée' : 'Voir la version corrigée';
+    sfx('tap');
+  }
+});
+document.addEventListener('keydown', e => {
+  const mark = e.target.closest && e.target.closest('mark.err');
+  if (mark && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); mark.click(); }
+});
+document.addEventListener('input', e => {
+  if (e.target.id !== 'txt') return;
+  updateCounter();
+  clearTimeout(autosaveTimer);
+  const id = ui.id, v = e.target.value;
+  autosaveTimer = setTimeout(() => { store = readStore(); saveDraftText(id, v); }, 400);
+});
+/* on quitte la page : le dernier mot tapé est gardé */
+window.addEventListener('pagehide', () => {
+  const ta = $('txt');
+  if (ta && ui.id && !ui.pending) { clearTimeout(autosaveTimer); store = readStore(); saveDraftText(ui.id, ta.value); }
+});
+
+/* ------------------------------ navigation ------------------------------ */
+function onRoute() {
+  store = readStore();
+  const id = parseHash().id;
+  let f = id ? taskById(id) : null;
+  if (f && lk().locked(f.unit)) {                          // #devoir d'une unité verrouillée : pas de devoir, la liste de l'unité en cours
+    const n = f.unit;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    f = null; ui.unit = pickUnit();
+    setTimeout(() => Unlock.notice(n), 250);
+  }
+  if (!f) { ui.id = ''; if (!UNITS_OK.includes(ui.unit) || lk().locked(ui.unit)) ui.unit = pickUnit(); renderList(); window.scrollTo(0, 0); return; }
+  ui.unit = f.unit;
+  const saved = store.atelierDraft && store.atelierDraft[id];
+  if (saved && saved.trim()) showWrite(id, !!lastDraft(id));
+  else if (lastDraft(id)) showResult(id);
+  else showWrite(id, false);
+}
+window.addEventListener('hashchange', onRoute);
+window.addEventListener('pageshow', e => { if (e.persisted && !ui.pending) onRoute(); });
+
+if (!UNITS_OK.length) { $('fatal').hidden = false; }
+else Unlock.ready(store).then(st => {
+  LK = st;
+  const q = parseInt(qs.get('u'), 10);
+  ui.unit = pickUnit();
+  if (UNITS_OK.includes(q) && st.locked(q)) setTimeout(() => Unlock.notice(q), 250);      // ?u=5 d'une unité verrouillée
+  onRoute();
+});
+</script>
+</body>
+</html>

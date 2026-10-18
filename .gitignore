@@ -1,0 +1,17 @@
+# Your course content and its media: never in this repository (see README.md).
+content/
+docker-compose.override.yml
+deploy.local
+/*_assets/
+/*_Audio/
+*.pdf
+# Recorded character voices and sound effects: not published (sfx.js falls back to synthesised sounds).
+voices/
+
+# Secrets
+.env
+
+# Runtime / local-only
+tuteur.log
+.DS_Store
+__pycache__/

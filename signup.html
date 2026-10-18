@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFF5E8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DuDu">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/v4/icon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="icons/v4/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/v4/apple-touch-icon.png">
+<title>Inscription — DuDu</title>
+<script>
+/* Thème : appliqué tout de suite (avant le premier rendu) pour éviter un flash clair. */
+(function () {
+  try {
+    var store = JSON.parse(localStorage.getItem('dudu-a1-u1') || '{}');
+    if (store.theme) document.documentElement.setAttribute('data-theme', store.theme);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="troupe.css">
+<style>
+/* Page publique : seuls troupe.css et cast.js sont chargés. Tout le reste est ici (jetons --t-*). */
+.lg-page{display:flex;flex-direction:column}
+
+/* Auvent de café : rayures tomate / papier, bord en festons (masque sur <i>), contour + ombre dure (filtre sur le parent :
+   le filtre s'applique avant le masque, donc il doit être sur l'enveloppe) */
+.lg-awning{flex:none;filter:drop-shadow(1.5px 0 0 var(--t-rim)) drop-shadow(-1.5px 0 0 var(--t-rim)) drop-shadow(0 1.5px 0 var(--t-rim)) drop-shadow(0 -1.5px 0 var(--t-rim)) drop-shadow(0 4px 0 var(--t-edge))}
+.lg-awning i{display:block;height:52px;
+  background:repeating-linear-gradient(90deg,var(--t-tomato) 0 28px,var(--t-surface) 28px 56px);
+  -webkit-mask:linear-gradient(#000,#000) 0 0/100% 38px no-repeat,radial-gradient(circle at 14px 0,#000 13.5px,transparent 14.5px) 0 38px/28px 14px repeat-x;
+          mask:linear-gradient(#000,#000) 0 0/100% 38px no-repeat,radial-gradient(circle at 14px 0,#000 13.5px,transparent 14.5px) 0 38px/28px 14px repeat-x}
+
+.lg-main{flex:1;width:100%;max-width:440px;margin:0 auto;padding:6px 16px calc(24px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:18px}
+@media (min-width:700px) and (min-height:760px){.lg-main{justify-content:center}}
+.lg-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;min-height:58px}
+.lg-top .t-label{min-width:0}
+
+/* Léa + bulle */
+.lg-hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 18px;align-items:start}
+.lg-lea{width:128px;height:118px;padding:0;margin:0;border:0;background:none;cursor:pointer;border-radius:24px;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none;position:relative}
+.lg-lea:empty{display:none}
+.lg-lea svg{width:100%;height:100%}
+.lg-hero .t-bubble{padding:12px 16px 14px}
+.lg-hero .t-bubble::before{top:30px}
+.lg-hero .t-h1{font-size:clamp(28px,8.4vw,36px);margin:0 0 4px}
+.lg-hero .lg-h1-sm{font-size:clamp(24px,6.8vw,28px)}
+.lg-hero .t-body{font-size:15.5px;line-height:1.4}
+
+/* Carte + formulaire */
+.lg-card{padding:20px 18px 18px}
+.lg-form{margin:0}
+.lg-form .t-btn{margin-bottom:5px}
+.lg-hint{font:600 13px/1.35 var(--t-font-b);color:var(--t-ink-2)}
+.lg-card .t-input:focus-visible{outline:none}  /* le liseré teal + halo de .t-input:focus suffit (sinon double anneau) */
+.t-input.err{border-color:var(--t-tomato);box-shadow:0 0 0 4px var(--t-tomato-l)}
+
+.lg-error{display:none;gap:10px;align-items:flex-start;margin:0;padding:11px 14px;border-radius:16px;
+  background:var(--t-bad-bg);color:var(--t-bad-fg);border:2px solid var(--t-tomato);font:700 14.5px/1.35 var(--t-font-b)}
+.lg-error.show{display:flex}
+.lg-error::before{content:"!";flex:none;width:22px;height:22px;border-radius:50%;background:var(--t-tomato);color:var(--t-on-accent);
+  font:800 14px/22px var(--t-font-d);text-align:center}
+
+.lg-spin{display:none;width:20px;height:20px;border-radius:50%;flex:none;
+  border:3px solid color-mix(in srgb,currentColor 28%,transparent);border-top-color:currentColor;animation:lg-spin .7s linear infinite}
+.t-btn.loading .lg-spin{display:inline-block}
+@keyframes lg-spin{to{transform:rotate(360deg)}}
+
+.lg-alt{margin:2px 0 0;text-align:center}
+.lg-alt a{display:inline-block;padding:10px 6px;font-weight:800}
+.lg-foot{margin:0;text-align:center;font-size:12.5px;color:var(--t-ink-3)}
+
+@media (max-width:340px){
+  .lg-hero{gap:12px 12px}
+  .lg-lea{width:96px;height:89px}
+  .lg-card{padding:18px 14px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .lg-page *,.lg-page *::before,.lg-page *::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body class="t-page lg-page">
+
+<div class="lg-awning" aria-hidden="true"><i></i></div>
+
+<main class="lg-main">
+  <div class="lg-top">
+    <span class="t-label">DuDu · mes révisions</span>
+    <button class="t-iconbtn t-iconbtn--round" id="themeBtn" type="button" title="Thème clair ou sombre" aria-label="Thème clair ou sombre">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17" /><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/></svg>
+    </button>
+  </div>
+
+  <section class="lg-hero">
+    <button class="lg-lea" id="leaBtn" type="button" aria-label="Léa, votre guide"></button>
+    <div class="t-bubble t-bubble--l">
+      <h1 class="t-h1 lg-h1-sm">Créer un compte</h1>
+      <p class="t-body" id="introText">Bienvenue ! Ce site est privé — il vous faut le code d'invitation qu'on vous a donné.</p>
+    </div>
+  </section>
+
+  <form class="t-card lg-card lg-form" id="signupForm" autocomplete="on" novalidate>
+    <div class="t-stack" style="--g:16px">
+      <p class="lg-error" id="errorBox" role="alert"></p>
+
+      <div class="t-field" id="codeField">
+        <label for="code">Code d'invitation</label>
+        <input class="t-input" type="text" id="code" name="code" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      </div>
+
+      <div class="t-field">
+        <label for="username">Identifiant</label>
+        <input class="t-input" type="text" id="username" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" aria-describedby="usernameHint" required>
+        <span class="lg-hint" id="usernameHint">Lettres, chiffres, « . », « _ » ou « - ».</span>
+      </div>
+
+      <div class="t-field">
+        <label for="password">Mot de passe</label>
+        <input class="t-input" type="password" id="password" name="password" autocomplete="new-password" minlength="8" aria-describedby="passwordHint" required>
+        <span class="lg-hint" id="passwordHint">8 caractères minimum.</span>
+      </div>
+
+      <div class="t-field">
+        <label for="password2">Confirmer le mot de passe</label>
+        <input class="t-input" type="password" id="password2" name="password2" autocomplete="new-password" required>
+      </div>
+
+      <button class="t-btn t-btn--block" id="submitBtn" type="submit">
+        <span class="lg-spin" aria-hidden="true"></span>
+        <span class="label">Créer mon compte</span>
+      </button>
+
+      <p class="t-small lg-alt">Déjà un compte ? <a class="t-link" id="loginLink" href="/login">Se connecter</a></p>
+    </div>
+  </form>
+
+  <p class="t-small lg-foot">site privé · accès protégé par mot de passe</p>
+</main>
+
+<script src="cast.js"></script>
+<script>
+const LS = 'dudu-a1-u1';
+
+/* ---- Léa (la guide) : salue en attendant ; triste si erreur ; saute si on la touche ---- */
+let leaMood = 'idle', leaTimer = 0;
+const leaBtn = document.getElementById('leaBtn');
+try { if (window.Cast) Cast.mount(leaBtn, { char: 'lea', mood: 'idle', label: '' }); } catch (e) {}
+function setLea(m) {
+  leaMood = m;
+  try { if (window.Cast) Cast.setMood(leaBtn, m); } catch (e) {}
+}
+leaBtn.addEventListener('click', () => {
+  clearTimeout(leaTimer);
+  try { if (window.Cast) Cast.setMood(leaBtn, 'happy'); } catch (e) {}
+  leaTimer = setTimeout(() => { try { if (window.Cast) Cast.setMood(leaBtn, leaMood); } catch (e) {} }, 1500);
+});
+
+/* ---- Thème : la page suit le système, ou store.theme s'il existe (posé par le bouton ◐ ou l'appli) ---- */
+const mqDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+function isDark() {
+  const t = document.documentElement.getAttribute('data-theme');
+  return t === 'dark' || (t !== 'light' && !!(mqDark && mqDark.matches));
+}
+function paintThemeColor() {
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute('content', isDark() ? '#171219' : '#FFF5E8');
+}
+paintThemeColor();
+if (mqDark && mqDark.addEventListener) mqDark.addEventListener('change', paintThemeColor);
+document.getElementById('themeBtn').onclick = () => {
+  const t = isDark() ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  paintThemeColor();
+  try {
+    const store = JSON.parse(localStorage.getItem(LS) || '{}');
+    store.theme = t;
+    localStorage.setItem(LS, JSON.stringify(store));
+  } catch(e){}
+};
+
+function safeNext() {
+  const raw = new URLSearchParams(location.search).get('next') || '/';
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/';
+  return raw;
+}
+
+const params = new URLSearchParams(location.search);
+if (params.get('next')) {
+  document.getElementById('loginLink').href = '/login?next=' + encodeURIComponent(safeNext());
+}
+
+const form = document.getElementById('signupForm');
+const codeInput = document.getElementById('code');
+const userInput = document.getElementById('username');
+const input = document.getElementById('password');
+const input2 = document.getElementById('password2');
+const btn = document.getElementById('submitBtn');
+const errorBox = document.getElementById('errorBox');
+const fields = { code: codeInput, username: userInput, password: input };
+
+// Un lien du type /signup?code=XXXX pré-remplit le code.
+if (params.get('code')) {
+  codeInput.value = params.get('code');
+  userInput.focus();
+} else {
+  codeInput.focus();
+}
+
+// Inscriptions ouvertes à tous (SIGNUP_OPEN côté serveur) : plus de case « Code d'invitation ».
+let signupOpen = false;
+fetch('/api/signup', { credentials: 'same-origin' })
+  .then(r => r.ok ? r.json() : null)
+  .then(d => {
+    if (!d || !d.open) return;
+    signupOpen = true;
+    document.getElementById('codeField').style.display = 'none';
+    codeInput.required = false;
+    document.getElementById('introText').textContent = 'Bienvenue ! Créez votre compte gratuit pour commencer à apprendre le français.';
+    if (document.activeElement === codeInput || document.activeElement === document.body) userInput.focus();
+  })
+  .catch(() => {});
+
+function showError(msg, el) {
+  errorBox.textContent = msg;
+  errorBox.classList.add('show');
+  setLea('sad');
+  if (el) { el.classList.add('err'); el.focus(); }
+}
+function clearError() {
+  errorBox.classList.remove('show');
+  form.querySelectorAll('input.err').forEach(el => el.classList.remove('err'));
+  setLea('idle');
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearError();
+  const code = codeInput.value.trim();
+  const username = userInput.value.trim().toLowerCase();
+  const password = input.value;
+  if (!code && !signupOpen) { showError("Entrez le code d'invitation.", codeInput); return; }
+  if (!/^[a-z0-9][a-z0-9._-]{1,31}$/.test(username)) {
+    showError('Identifiant : 2 à 32 caractères, lettres, chiffres, « . », « _ » ou « - ».', userInput); return;
+  }
+  if (password.length < 8) { showError('Mot de passe trop court (8 caractères minimum).', input); return; }
+  if (password !== input2.value) { showError('Les deux mots de passe ne correspondent pas.', input2); return; }
+
+  btn.disabled = true;
+  btn.classList.add('loading');
+  try {
+    const res = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ code, username, password }),
+    });
+    let data = {};
+    try { data = await res.json(); } catch(e){}
+    if (res.ok && data.ok) {
+      setLea('happy');
+      location.href = safeNext();
+      return;
+    }
+    showError(data.error || 'Inscription impossible. Réessayez.', fields[data.field]);
+  } catch (err) {
+    showError('Impossible de joindre le serveur. Réessayez.');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+});
+</script>
+</body>
+</html>

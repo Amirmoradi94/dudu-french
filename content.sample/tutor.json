@@ -1,0 +1,7 @@
+{
+ "_doc": "Ce que le tuteur sait du cours. « course » complète la phrase « an adult beginner who is working through … » des consignes de correction ; « units » = une description (en anglais) de chaque unité, insérée telle quelle dans les consignes du tuteur.",
+ "course": "a short sample French course for beginners",
+ "units": {
+  "1": "The student is revising Unit 1 of a sample beginner French course, \"Au café\". That unit covers: greeting (bonjour, au revoir, merci, s'il vous plaît); ordering politely with je voudrais + noun or + infinitive; the indefinite articles un / une / des and noun gender; café vocabulary (un café, un thé, un jus d'orange, une limonade, un croissant, le serveur, la carte, l'addition); asking the price (c'est combien ?); numbers 1 to 10 with prices in euros; and the vowels [u] (vous) and [y] (tu)."
+ }
+}

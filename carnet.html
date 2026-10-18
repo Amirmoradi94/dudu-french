@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFF5E8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DuDu">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/v4/icon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="icons/v4/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/v4/apple-touch-icon.png">
+<title>DuDu — mon carnet</title>
+<script src="content/meta.js"></script>
+<script>
+/* Thème avant le premier affichage : store.theme = 'light' | 'dark' ; absent = automatique (le système décide). */
+(function () {
+  try {
+    var st = JSON.parse(localStorage.getItem('dudu-a1-u1') || '{}') || {};
+    if (st.theme === 'light' || st.theme === 'dark') document.documentElement.setAttribute('data-theme', st.theme);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="troupe.css">
+<style>
+/* =====================================================================
+   carnet.html — « Mon carnet » (règles, verbes, drill). Tout est local à la page ;
+   les composants et les couleurs (--t-*) viennent de troupe.css.
+   ===================================================================== */
+[hidden]{display:none!important}
+.t-page{--cj-h:var(--t-teal)}
+@media (prefers-color-scheme:dark){html:not([data-theme="light"]) .t-page{--cj-h:var(--t-teal-d)}}
+html[data-theme="dark"] .t-page{--cj-h:var(--t-teal-d)}
+.pg{max-width:640px;margin:0 auto;padding:6px 16px 28px}
+.en{margin:2px 0 0;font:600 13px/1.4 var(--t-font-b);color:var(--t-ink-2)}
+.ico{width:1.2em;height:1.2em;flex:none}
+
+/* ---- M. Dubois + sa bulle ---- */
+.host{display:flex;align-items:center;gap:14px;margin:2px 0 12px}
+.host__who{flex:none;width:80px;height:80px;cursor:pointer;border-radius:50%;border:2px solid var(--t-rim);background:var(--t-mustard-l);box-shadow:0 4px 0 var(--t-edge);overflow:hidden;-webkit-tap-highlight-color:transparent}
+.host__who svg{display:block;width:100%;height:100%}
+.host__bubble{flex:1;min-width:0;font:800 18px/1.2 var(--t-font-d);letter-spacing:-.005em;padding:11px 14px}
+.host__bubble small{display:block;margin-top:3px;font:600 13px/1.35 var(--t-font-b);color:var(--t-ink-2);letter-spacing:0}
+.host__bubble.t-bubble--l::before{top:auto;bottom:18px}
+
+/* ---- onglets Règles / Verbes / Drill (segmenté, collant sous la barre du haut) ---- */
+.seg{position:sticky;top:var(--nav-h,66px);z-index:20;margin:0 -16px;padding:6px 16px 8px;
+  background-color:var(--t-cream);background-image:radial-gradient(circle at 1px 1px,var(--t-dots) 1.2px,transparent 1.6px);background-size:26px 26px}
+.seg [role="tablist"]{display:flex;gap:8px}
+.chip{min-height:44px;justify-content:center;padding:6px 10px;cursor:pointer;font-size:15px;font-variant-numeric:tabular-nums;border-color:var(--t-line);
+  box-shadow:0 3px 0 var(--t-line);margin:0 0 3px;transition:transform .09s,box-shadow .09s,background .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.chip:active:not([disabled]){transform:translateY(2px);box-shadow:0 1px 0 var(--t-line)}
+.chip[aria-pressed="true"],.chip[aria-selected="true"]{background:var(--t-teal);color:var(--t-on-accent);border-color:var(--t-rim);box-shadow:0 3px 0 var(--t-teal-d)}
+.chip[disabled]{opacity:.45;cursor:default}
+.chip.is-locked{background:transparent;border-style:dashed;box-shadow:none;color:var(--t-ink-2);cursor:not-allowed}
+.chip.is-locked:active{transform:none}
+.chip.is-locked .ul-ico{font-size:15px;margin-left:4px}
+.seg .chip{flex:1 1 0;min-width:0;font-size:16px}
+.seg .chip small{font:700 12px/1 var(--t-font-d);opacity:.85;margin-left:4px}
+
+/* ---- recherche + filtres ---- */
+.controls{margin-top:8px;display:grid;gap:10px}
+.srow{display:flex;gap:8px;align-items:center}
+.search{flex:1 1 auto;min-width:0;position:relative}
+.search input{padding:12px 46px 12px 16px;min-height:48px;border-radius:24px}
+.search input::-webkit-search-cancel-button{display:none}
+.search .clr{position:absolute;right:2px;top:2px;width:44px;height:44px;border:0;background:none;color:var(--t-ink-2);cursor:pointer;display:grid;place-items:center;border-radius:50%}
+.search .clr svg{width:18px;height:18px}
+.sbtn{margin:0 0 4px;font:800 14px/1 var(--t-font-d);letter-spacing:.02em}
+.sbtn svg{width:22px;height:22px}
+.sbtn[aria-pressed="true"]{background:var(--t-mustard);border-color:var(--t-rim);color:#2B2230;box-shadow:0 3px 0 var(--t-mustard-d)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips .chip{flex:1 1 0;min-width:46px}
+#unitChips .chip:first-child{flex:1.8 1 0;min-width:78px}
+.chips.wrapchips .chip{flex:1 1 auto}
+.hits{margin:2px 0 0;font:600 14px/1.45 var(--t-font-b);color:var(--t-ink-2)}
+.hits button{background:none;border:0;padding:10px 2px;min-height:44px;cursor:pointer;color:var(--t-teal-ink);font:800 14px/1.2 var(--t-font-b);text-decoration:underline;text-underline-offset:3px}
+
+/* ---- boutons utilitaires ---- */
+.spk{flex:0 0 auto;width:44px;height:44px;border:0;background:transparent;cursor:pointer;color:var(--t-teal-ink);border-radius:50%;display:inline-grid;place-items:center;padding:0;
+  -webkit-appearance:none;appearance:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.spk svg{width:22px;height:22px}
+.spk:active{background:var(--t-teal-l)}
+.spk.busy{background:var(--t-teal-l);color:var(--t-teal-ink)}
+.textbtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px 6px 4px;border:0;background:none;cursor:pointer;color:var(--t-teal-ink);font:800 14px/1.2 var(--t-font-b);text-decoration:underline;text-underline-offset:3px}
+.textbtn svg{width:20px;height:20px}
+.state{margin-top:22px;padding:22px 16px;text-align:center;color:var(--t-ink-2);border:2px dashed var(--t-line);border-radius:22px;font-weight:600}
+.state b{color:var(--t-ink)}
+.state .t-btn{margin-top:12px}
+.spin{display:inline-block;width:18px;height:18px;border-radius:50%;vertical-align:-3px;margin-right:8px;border:3px solid var(--t-line);border-top-color:var(--t-tomato);animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---- groupes + fiches repliables ---- */
+.grp{margin-top:26px}
+.grp>h2{font:800 clamp(20px,5vw,24px)/1.15 var(--t-font-d);letter-spacing:-.01em;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0;color:var(--t-ink);overflow-wrap:anywhere}
+.grp>h2 small{font:800 12px/1.2 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase;color:var(--t-ink-2)}
+.grp>p.en{margin-bottom:6px}
+.stack{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:12px}
+details.rule,details.verb{padding:0;border-radius:22px;border-color:var(--t-unit-d,var(--t-rim))}
+details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 14px;min-height:56px;border-radius:20px;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"";margin-left:auto;flex:none;width:10px;height:10px;border-right:3px solid var(--t-ink-2);border-bottom:3px solid var(--t-ink-2);transform:rotate(-45deg);transition:transform .15s}
+details[open]>summary::after{transform:rotate(45deg) translate(-2px,-2px)}
+details>summary:focus-visible{outline:3px solid var(--t-focus);outline-offset:2px}
+.utag{flex:none}
+.rt{font:800 17px/1.2 var(--t-font-d);letter-spacing:-.005em;min-width:0;overflow-wrap:anywhere;color:var(--t-ink)}
+.rbody{padding:0 16px 16px}
+.rsub{margin:0 0 10px;font:600 13.5px/1.45 var(--t-font-b);color:var(--t-ink-2)}
+.rgo{margin-top:12px}
+
+/* contenu repris de la page de révision, remis aux couleurs de la troupe (même rendu que le mode leçon) */
+.rbody p{margin:.5em 0}
+.rbody .lesson,.rbody .howto,.rbody .recap,.rbody .box{border:2px solid var(--t-line);border-radius:18px;background:var(--t-cream);padding:12px 14px;margin:12px 0;color:var(--t-ink)}
+.rbody .lesson>h4,.rbody .howto>h4,.rbody .recap>h4,.rbody .box>h4{display:inline-block;margin:0 0 10px;padding:6px 10px;border-radius:99px;font:800 12px/1.2 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase;background:var(--t-teal-l);color:var(--t-teal-ink)}
+.rbody .box.tip{background:var(--t-mustard-l);border-color:var(--t-mustard-d)}
+.rbody .box.warn{background:var(--t-tomato-l);border-color:var(--t-tomato)}
+.rbody .box.tip>h4{background:var(--t-paper);color:var(--t-mustard-ink)}
+.rbody .box.warn>h4{background:var(--t-paper);color:var(--t-tomato-ink)}
+.rbody .recap{background:var(--t-teal-l);border-color:var(--t-teal)}
+.rbody .recap>h4{background:var(--t-paper)}
+.rbody .kp{display:block;margin:10px 0;padding:10px 12px;background:var(--t-surface);border:2px solid var(--t-line);border-radius:14px;font-size:16px}
+.rbody .kp b,.rbody .conj b{color:var(--t-tomato-ink)}
+.rbody ul,.rbody ol{padding-left:22px}
+.rbody .recap ul{margin:0}
+.rbody .recap li{margin:.3rem 0}
+.rbody .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rbody table.t{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
+.rbody table.t th,.rbody table.t td{border:2px solid var(--t-line);padding:6px 9px;text-align:left;vertical-align:top}
+.rbody table.t th{background:var(--cj-h);color:#fff;font:800 12.5px/1.3 var(--t-font-d);letter-spacing:.03em}
+.rbody table.t td.hl{background:var(--t-teal-l);font-weight:800}
+.rbody .conj{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.6rem,1fr));gap:10px;margin:12px 0}
+.rbody .conj .c{border:2px solid var(--t-line);border-radius:14px;overflow:hidden;background:var(--t-surface)}
+.rbody .conj .c h5{margin:0;padding:6px 10px;background:var(--cj-h);color:#fff;font:800 14px/1.3 var(--t-font-d)}
+.rbody .conj .c ul{list-style:none;margin:0;padding:8px 10px;font-size:15px}
+.rbody .conj .c li{padding:1px 0}
+.rbody .grid{display:grid;gap:10px}
+.rbody .note{font-size:14px;color:var(--t-ink-2);font-style:italic}
+.rbody .speak{border:0;background:transparent;cursor:pointer;font-size:1.05rem;padding:0 6px;min-width:44px;min-height:44px;border-radius:50%;vertical-align:middle;color:var(--t-ink-2)}
+.rbody .speak:active,.rbody .speak.busy{background:var(--t-teal-l);color:var(--t-ink)}
+.rbody [data-en-done],.vbody [data-en-done]{position:relative}
+
+/* traductions (bouton EN sur chaque phrase, ou tout d'un coup) */
+.enbtn{border:2px solid var(--t-line);background:var(--t-paper);color:var(--t-ink-2);border-radius:8px;font:800 10.5px/1.5 var(--t-font-d);letter-spacing:.06em;padding:1px 7px;
+  margin-left:6px;cursor:pointer;vertical-align:2px;position:relative}
+.enbtn::after{content:"";position:absolute;inset:-12px -6px}                      /* zone de toucher élargie */
+.enbtn.on{background:var(--t-mustard);border-color:var(--t-rim);color:#2B2230}
+.xen{display:none;margin:5px 0 3px;padding:3px 0 3px 10px;border-left:3px solid var(--t-mustard);color:var(--t-ink-2);font:600 14px/1.4 var(--t-font-b);font-style:italic}
+.xen::before{content:"EN ";font-style:normal;font-weight:800;font-size:10.5px;letter-spacing:.08em;opacity:.75}
+.xen.show,body.show-en .xen{display:block}
+
+/* ---- verbes ---- */
+.legend{margin:12px 0 0;font:600 14px/1.45 var(--t-font-b);color:var(--t-ink-2)}
+.legend b.irr,td b.irr,.irr{color:var(--t-tomato-ink);font-weight:800}
+details.verb>summary{align-items:flex-start;padding-top:12px;padding-bottom:12px}
+details.verb>summary::after{margin-top:6px}
+details.verb>summary .utag{margin-top:3px}
+.vhead{min-width:0;flex:1 1 auto}
+.vname{font:800 21px/1.15 var(--t-font-d);letter-spacing:-.01em;color:var(--t-ink);overflow-wrap:anywhere}
+.vname small{font:600 14px/1.3 var(--t-font-b);color:var(--t-ink-2);letter-spacing:0;margin-left:8px}
+.vline{display:block;margin:3px 0 0;font:600 13px/1.4 var(--t-font-b);color:var(--t-ink-2);overflow-wrap:anywhere}
+.vbody{padding:0 14px 14px}
+/* la fiche de conjugaison : en-tête teal comme « La conjugaison » du mode leçon */
+.cjc{border:2px solid var(--t-line);border-radius:16px;overflow:hidden;background:var(--t-surface)}
+.cjc>h5{margin:0;padding:7px 12px;background:var(--cj-h);color:#fff;font:800 14px/1.3 var(--t-font-d);letter-spacing:.01em}
+table.conj6{width:100%;border-collapse:collapse;margin:0}
+table.conj6 td{border-top:2px solid var(--t-line);padding:0 0 0 12px;vertical-align:middle}
+table.conj6 tr:first-child td{border-top:0}
+table.conj6 td.f{font:600 17px/1.3 var(--t-font-b);padding-block:4px;overflow-wrap:anywhere}
+table.conj6 td.f .pn{color:var(--t-ink-2)}
+table.conj6 td.f b{font-weight:800;color:var(--t-ink)}
+table.conj6 td.s{width:52px;text-align:right;padding-right:4px}
+.vbody .textbtn.sayall{margin-top:4px}
+.imp{display:flex;flex-wrap:wrap;gap:2px 14px;align-items:center;margin:8px 0;padding:6px 12px;background:var(--t-teal-l);border-radius:14px;border:2px solid var(--t-line)}
+.imp>span.lab{font:800 12px/1 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase;color:var(--t-teal-ink)}
+.imp .it{display:inline-flex;align-items:center}
+.imp .it small{color:var(--t-ink-2);margin-right:5px;font:600 13px/1 var(--t-font-b)}
+.imp .it b{font:800 17px/1.2 var(--t-font-d)}
+.vex{margin:10px 0 0;display:grid;gap:2px}
+.vex .row{display:flex;align-items:center;gap:2px}
+.vex .row>div{flex:1 1 auto;min-width:0;font:600 16px/1.4 var(--t-font-b)}
+.vex .lab{display:block;font:800 11px/1.4 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase;color:var(--t-ink-2)}
+.vnote{margin:8px 0 0;font:600 14px/1.45 var(--t-font-b);color:var(--t-ink-2)}
+.exprs{margin-top:26px;padding:14px 16px;border:2px solid var(--t-line);border-radius:22px;background:var(--t-paper)}
+.exprs h3{font:800 17px/1.2 var(--t-font-d);margin:0}
+.exprs ul{margin:10px 0 0;padding-left:20px}
+.exprs li{margin:8px 0;font-size:15.5px}
+.exprs li b{color:var(--t-tomato-ink)}
+
+/* ---- drill ---- */
+.panel{padding:16px;margin-top:12px}
+.panel>h2{font:800 22px/1.15 var(--t-font-d);margin:0;color:var(--t-ink)}
+.lab{display:block;margin:18px 0 8px}
+.drill-go{margin-top:20px;width:100%}
+.dq{padding:16px}
+.dprog{display:flex;justify-content:space-between;font:800 12px/1 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase;color:var(--t-ink-2);margin-bottom:8px}
+.dprompt{margin:18px 0 2px;font:800 clamp(28px,8vw,38px)/1.1 var(--t-font-d);letter-spacing:-.02em;color:var(--t-ink);overflow-wrap:anywhere}
+.dprompt .arrow{color:var(--t-ink-3);font-weight:700}
+.dmode{display:inline-block;margin-top:8px}
+.dq .en{font-size:13.5px}
+.dans{margin-top:14px;min-height:56px;font-size:20px;border-radius:20px 20px 20px 6px}
+.dans[disabled]{opacity:.7}
+.accents{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.acc{flex:1 1 44px;min-width:44px;min-height:44px;border-radius:12px;cursor:pointer;border:2px solid var(--t-line);background:var(--t-paper);color:var(--t-ink);font:800 18px/1 var(--t-font-d);
+  box-shadow:0 3px 0 var(--t-line);margin:0 0 3px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.acc:active{transform:translateY(2px);box-shadow:0 1px 0 var(--t-line)}
+.drow{display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap}
+.drow .t-btn{flex:1 1 140px}
+.fb{margin-top:16px;padding:12px 14px;border-radius:20px;border:2px solid var(--c,var(--t-line));background:var(--bg,var(--t-cream));color:var(--fg,var(--t-ink))}
+.fb.ok{--c:var(--t-teal);--bg:var(--t-ok-bg);--fg:var(--t-ok-fg)}
+.fb.acc-only{--c:var(--t-mustard-d);--bg:var(--t-mustard-l);--fg:var(--t-mustard-ink)}
+.fb.bad{--c:var(--t-tomato);--bg:var(--t-bad-bg);--fg:var(--t-bad-fg)}
+.fb__top{display:flex;align-items:center;gap:12px}
+.fb__char{flex:none;width:56px;height:56px;border-radius:50%;border:2px solid var(--t-rim);background:var(--t-paper);overflow:hidden}
+.fb__char svg{display:block;width:100%;height:100%}
+.fb .ans{flex:1;min-width:0;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.fb b.big{font:800 21px/1.1 var(--t-font-d);letter-spacing:-.01em}
+.fb .ans span{font:800 17px/1.25 var(--t-font-d);min-width:0;overflow-wrap:anywhere}
+.fb .spk{color:inherit;margin-left:auto}
+.fb p{margin:8px 0 0;font:700 15px/1.4 var(--t-font-b);overflow-wrap:anywhere}
+.fb p b{font-family:var(--t-font-d);font-weight:800;padding:0 4px;border-radius:6px;background:rgba(255,255,255,.7);color:#2B2230}
+.fb .conj6w{margin-top:10px;color:var(--t-ink)}
+.fb table.conj6 td.f{font-size:16px;padding-block:2px}
+.fb tr.me td{background:var(--t-mustard-l);font-weight:800}
+.fb .streak{margin-top:10px}
+.fb p.imp-line{color:var(--t-ink);font-weight:600;background:var(--t-surface);border-radius:12px;padding:8px 10px}
+.sc{font:800 52px/1 var(--t-font-d);margin:10px 0;color:var(--t-teal-ink)}
+.errs{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.errs li{padding:10px 12px;border:2px solid var(--t-line);border-left:6px solid var(--t-tomato);border-radius:14px;background:var(--t-cream);font:600 15px/1.4 var(--t-font-b);overflow-wrap:anywhere}
+.errs li .q{color:var(--t-ink-2)}
+.errs li s{color:var(--t-tomato-ink)}
+.errs li b{color:var(--t-teal-ink)}
+.drill-end__msg{margin:0;font:800 18px/1.3 var(--t-font-d)}
+.drow--end{margin-top:18px}
+
+@media (prefers-reduced-motion:reduce){
+  .chip,.acc,details>summary::after{transition:none}
+  .spin{animation:none}
+}
+
+/* ---- impression : toutes les fiches ouvertes, sans la barre du haut ni les outils ---- */
+@page{margin:14mm}
+@media print{
+  html .t-page{--cj-h:#ddd;--t-cream:#fff;--t-paper:#fff;--t-surface:#fff;--t-ink:#000;--t-ink-2:#333;--t-line:#999;--t-rim:#999;--t-edge:#999;--t-tomato-ink:#a01e38;background:#fff!important}
+  body{font-size:10.5pt}
+  .t-topbar,.t-tabbar,.t-sheet,.host,.seg,.controls,.hits,.spk,.rbody .speak,.enbtn,.xen,.rgo,.state,#pane-drill,noscript,.sayall,.vex,.vnote,.imp .lab{display:none!important}
+  .pg{padding:0;max-width:none}
+  #pane-regles,#pane-verbes{display:block!important}
+  details.rule,details.verb{break-inside:avoid;box-shadow:none!important;margin:0 0 6pt}
+  details>summary{padding:4pt 8pt;min-height:0}
+  details>summary::after{display:none}
+  .grp{margin-top:12pt;break-after:avoid}
+  .stack{gap:6pt}
+  .rbody .conj{grid-template-columns:repeat(4,1fr)}
+  .rbody table.t th,.rbody .conj .c h5,.cjc>h5{color:#000!important}
+  .vline{display:none}
+  table.conj6{break-inside:avoid}
+  table.conj6 td.f{font-size:10pt;padding-block:0}
+  #vList .stack{grid-template-columns:repeat(3,minmax(0,1fr));gap:6pt}
+  .exprs{break-inside:avoid}
+  a{text-decoration:none}
+}
+</style>
+</head>
+<body class="t-page">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="c-speak" viewBox="0 0 24 24"><path d="M3.5 9.2v5.6h3.8l5.2 4.2V5L7.3 9.2z" fill="currentColor"/><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M16 8.6a5 5 0 0 1 0 6.8"/><path d="M18.6 5.8a9 9 0 0 1 0 12.4"/></g></symbol>
+  <symbol id="c-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="c-expand" viewBox="0 0 24 24"><path d="M7 9l5-5 5 5M7 15l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="c-flame" viewBox="0 0 24 24"><path d="M12 1.5c1.1 3.8 5.6 6 5.6 11.6A5.6 5.6 0 0 1 12 22.5a5.6 5.6 0 0 1-5.6-9.4c0-2.2 1-3.8 2.2-5 .1 2.2 1 3.3 2 3.5C10.4 8 10.2 5 12 1.5z" fill="#E04A2F"/><path d="M12 22.5a3.3 3.3 0 0 1-3.3-3.3c0-1.8 1.5-2.7 2.1-4.4 1.2 1 4.5 2.3 4.5 4.4a3.3 3.3 0 0 1-3.3 3.3z" fill="#F3B534"/></symbol>
+</defs></svg>
+
+<div id="app">
+<main class="pg" id="main">
+  <noscript><p class="state">Cette page a besoin de JavaScript. <span class="en">This page needs JavaScript.</span></p></noscript>
+  <h1 class="t-sr">Mon carnet : règles et verbes</h1>
+
+  <section class="host" id="host" aria-label="M. Dubois">
+    <div class="host__who" id="hostWho" role="button" tabindex="0" data-react aria-label="M. Dubois — touchez pour une réaction"></div>
+    <div class="t-bubble t-bubble--l host__bubble" id="hostBubble">Mes règles, mes verbes : tout est ici !<small>My rules, my verbs: everything is here!</small></div>
+  </section>
+
+  <nav class="seg" aria-label="Sections du carnet" id="seg">
+    <div role="tablist">
+      <button class="t-chip chip" role="tab" id="tab-regles" aria-controls="pane-regles" aria-selected="true" type="button">Règles<small id="nRegles"></small></button>
+      <button class="t-chip chip" role="tab" id="tab-verbes" aria-controls="pane-verbes" aria-selected="false" type="button">Verbes<small id="nVerbes"></small></button>
+      <button class="t-chip chip" role="tab" id="tab-drill" aria-controls="pane-drill" aria-selected="false" type="button">Drill</button>
+    </div>
+  </nav>
+
+  <!-- recherche + filtre d'unité : partagés par Règles et Verbes -->
+  <section class="controls" id="controls" aria-label="Recherche et filtres">
+    <div class="srow">
+      <div class="search">
+        <input class="t-input" id="q" type="search" placeholder="Chercher : être, vont…" aria-label="Chercher une règle ou un verbe"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+        <button class="clr" id="qClear" type="button" aria-label="Effacer la recherche" hidden><svg aria-hidden="true"><use href="#c-x"/></svg></button>
+      </div>
+      <button class="t-iconbtn sbtn" id="enBtn" type="button" aria-pressed="false" title="Afficher toutes les traductions anglaises" aria-label="Afficher toutes les traductions anglaises">EN</button>
+      <button class="t-iconbtn sbtn" id="openBtn" type="button" title="Tout ouvrir / tout fermer" aria-label="Tout ouvrir ou tout fermer"><svg aria-hidden="true"><use href="#c-expand"/></svg></button>
+    </div>
+    <div class="chips" id="unitChips" role="group" aria-label="Filtrer par unité"></div>
+    <div id="lockLine" hidden></div>
+    <p class="hits" id="hits" hidden></p>
+  </section>
+
+  <!-- RÈGLES -->
+  <section id="pane-regles" role="tabpanel" aria-labelledby="tab-regles">
+    <div id="rLoading" class="state" role="status"><span class="spin" aria-hidden="true"></span>Lecture des leçons de grammaire…
+      <p class="en">Reading the grammar lessons…</p></div>
+    <div id="rError" class="state" role="alert" hidden>
+      <b>Impossible de charger les règles.</b>
+      <p class="en" style="margin-bottom:0">Couldn't load the grammar rules — check your connection.</p>
+      <button class="t-btn t-btn--sm" id="rRetry" type="button">Réessayer</button>
+    </div>
+    <div id="rList"></div>
+  </section>
+
+  <!-- VERBES -->
+  <section id="pane-verbes" role="tabpanel" aria-labelledby="tab-verbes" hidden>
+    <p class="legend">Présent de l'indicatif, et l'impératif de l'unité 4. <b class="irr">En couleur</b> = forme irrégulière ou changement d'orthographe à retenir. Touchez le haut-parleur pour écouter.
+      <span class="en">Present tense (and the unit-4 imperative). Coloured = irregular form or spelling change. Tap the speaker to listen.</span></p>
+    <div id="vList"></div>
+  </section>
+
+  <!-- DRILL -->
+  <section id="pane-drill" role="tabpanel" aria-labelledby="tab-drill" hidden>
+    <div id="drillBox"></div>
+  </section>
+</main>
+</div>
+
+<script src="sync.js"></script>
+<script src="unlock.js"></script>
+<script src="cast.js"></script>
+<script src="sfx.js"></script>
+<script src="mistakes.js"></script>
+<script src="nav.js"></script>
+<script src="content/verbs.js"></script>
+<script>
+/* ============================================================
+   MON CARNET — une page de référence :
+   · Règles  : les leçons de grammaire lues EN DIRECT dans Unite1_Revision.html
+               (rien n'est recopié : si une leçon change, le carnet la suit) ;
+   · Verbes  : tableaux de conjugaison écrits ici (VERBS), vérifiés à la main ;
+   · Drill   : conjugaison à l'écrit, pondérée vers les formes ratées.
+   Même store que les autres pages : localStorage 'dudu-a1-u1'.
+   ============================================================ */
+const LS = 'dudu-a1-u1';
+const readStore = () => { try { return JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch(e){ return {}; } };
+let store = readStore();
+addEventListener('dudu:ttsvoice', e => { store.ttsVoice = e.detail; });   // voix choisie dans « Moi » (nav.js)
+const save = () => { try { localStorage.setItem(LS, JSON.stringify(store)); } catch(e){} DuduSync.schedulePush(store); };
+/* thème, son et voix sont écrits par nav.js / sfx.js : on relit le store juste avant chaque modification,
+   sinon cette page ré-écrirait un thème ou un réglage de son périmé. */
+const fresh = () => { store = readStore(); };
+DuduNav.mount({active: 'carnet', title: 'Mon carnet', back: 'app', topbar: 'page', tabbar: true});
+/* la barre d'onglets Règles / Verbes / Drill se colle juste sous la barre du haut */
+(function () {
+  const setNav = () => { const h = document.querySelector('.n-top'); if (h) document.documentElement.style.setProperty('--nav-h', h.offsetHeight + 'px'); };
+  setNav(); window.addEventListener('resize', setNav); window.addEventListener('load', setNav);
+})();
+const sfx = (n, o) => { try { window.Sfx && Sfx.play(n, o); } catch (e) {} };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const UNIT_TITLES = Object.fromEntries(Object.values(COURSE.units).map(u => [u.n, u.titre]));   // content/meta.js
+const UNITS = Object.keys(COURSE.units).map(Number);   // content/meta.js
+/* VERROUILLAGE (unlock.js) : les règles, les verbes et le drill des unités verrouillées n'apparaissent pas (ni recherche, ni lien d'exercices).
+   LK est rempli avant le premier affichage (voir init). */
+let LK = null;
+const lockedU = n => !!LK && LK.locked(+n);
+
+/* ------------------------------ M. Dubois (hôte) ------------------------------ */
+const who = $('hostWho');
+who.innerHTML = Cast.svg('dubois', {label: '', crop: 'face'});
+const hostG = () => who.querySelector('g[data-char]');
+let moodT = null, moodLock = false;
+function hostMood(mood, ms) {                       // humeur passagère, puis retour à « idle »
+  const g = hostG(); if (!g) return;
+  clearTimeout(moodT); g._was = undefined; clearTimeout(g._st); Cast.setMood(g, mood);   // et on oublie un retour différé de dudu:speak
+  moodLock = mood === 'sad';                        // pendant qu'il est triste, sa propre voix ne le fait pas sauter de joie
+  moodT = setTimeout(() => { moodLock = false; g._was = undefined; clearTimeout(g._st); Cast.setMood(g, 'idle'); }, ms);
+}
+const poke = () => {
+  sfx('mascot', {char: 'dubois'});
+  const g = hostG(); if (g && g.dataset.mood === 'idle') hostMood('happy', 900);
+};
+who.addEventListener('click', poke);
+who.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); poke(); } });
+/* quand une voix de la troupe parle, le personnage concerné saute pendant la phrase */
+window.addEventListener('dudu:speak', e => {
+  if (moodLock) return;
+  const d = e.detail || {}, c = ({mamie: 'jo'})[d.char] || d.char;
+  const gs = Array.from(document.querySelectorAll('g[data-char="' + c + '"]')).filter(g => g.closest('[data-react]'));
+  if (!gs.length) return;
+  const ms = Math.max(300, (d.duration || 1) * 1000);
+  gs.forEach(g => { if (g._was === undefined) g._was = g.dataset.mood; Cast.setMood(g, 'happy'); clearTimeout(g._st); g._st = setTimeout(() => { Cast.setMood(g, g._was || 'idle'); g._was = undefined; }, ms + 200); });
+});
+const icon = id => `<svg class="ico" aria-hidden="true"><use href="#c-${id}"/></svg>`;
+
+/* ------------------------------ comparaison de réponses (copié de Unite1_Revision.html) ------------------------------ */
+const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+const norm = s => (s || '').toLowerCase().trim().replace(/[’`]/g, "'").replace(/[.!?;]+$/, '')
+  .replace(/\s*[-–—]\s*/g, '-').replace(/\s+/g, ' ');
+const loose = s => strip(norm(s)).replace(/[-']/g, ' ').replace(/\s+/g, ' ').trim();
+function judge(val, answers) {
+  const v = norm(val); if (!v) return 0;
+  const list = answers.split('|').map(a => a.trim());
+  if (list.some(a => norm(a) === v)) return 2;      // exact
+  if (list.some(a => loose(a) === loose(v))) return 1;   // seulement les accents / l'apostrophe
+  return 0;
+}
+/* pour la recherche : sans accents, sans casse, apostrophes unifiées */
+const fold = s => strip(String(s).toLowerCase()).replace(/[’‘`]/g, "'").replace(/œ/g, 'oe').replace(/æ/g, 'ae');
+/* mots d'un texte, pour la recherche : « j'achète » → j, achete ; « nous mangeons » → nous, mangeons */
+const words = s => fold(s).split(/[^a-z0-9]+/).filter(Boolean);
+
+/* ------------------------------ voix (comme Memoire.html) ------------------------------ */
+const TTS_OK = 'speechSynthesis' in window;
+let VOICES = [];
+function loadVoices() { if (TTS_OK) VOICES = speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().startsWith('fr')); }
+if (TTS_OK) { loadVoices(); speechSynthesis.addEventListener('voiceschanged', loadVoices); }
+let busyEl = null;
+function say(text, el) {
+  if (!TTS_OK || !text) return;
+  speechSynthesis.cancel();
+  if (busyEl) busyEl.classList.remove('busy');
+  const u = new SpeechSynthesisUtterance(String(text).replace(/\s+/g, ' ').trim().slice(0, 600));
+  const v = VOICES.find(x => x.voiceURI === (store.ttsVoice || '')) || VOICES[0];
+  if (v) { u.voice = v; u.lang = v.lang || 'fr-FR'; } else u.lang = 'fr-FR';
+  u.rate = parseFloat(store.ttsRate || 0.6);
+  busyEl = el || null;
+  if (busyEl) { busyEl.classList.add('busy'); u.onend = u.onerror = () => busyEl && busyEl.classList.remove('busy'); }
+  speechSynthesis.speak(u);
+}
+/* toute la page : 🔈 des tableaux (data-say-*) et des leçons (.speak[data-say]) */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.spk[data-say], .speak[data-say], .sayall[data-say]');
+  if (b) { e.preventDefault(); say(b.dataset.say, b); }
+});
+
+/* ------------------------------ traductions (même principe que buildEN de la page de révision) ------------------------------ */
+function buildEN(root) {
+  (root || document).querySelectorAll('[data-en]:not([data-en-done])').forEach(el => {
+    el.setAttribute('data-en-done', '1');
+    const b = document.createElement('button'); b.className = 'enbtn'; b.type = 'button';
+    b.textContent = 'EN'; b.title = 'Traduction anglaise';
+    const g = document.createElement('span'); g.className = 'xen'; g.textContent = el.dataset.en;
+    el.appendChild(b); el.appendChild(g);
+    b.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); g.classList.toggle('show'); b.classList.toggle('on'); });
+  });
+}
+const enBtn = $('enBtn');
+const setEN = on => { document.body.classList.toggle('show-en', on); enBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+enBtn.onclick = () => { const on = !document.body.classList.contains('show-en'); setEN(on); sfx('tap'); fresh(); store.showEn = on; save(); };
+if (store.showEn) setEN(true);
+
+const GROUPS = [
+  {id: 'ind', label: 'Les indispensables', en: 'The must-knows',
+   desc: "Les verbes indispensables : ils servent dans presque toutes les phrases."},
+  {id: 'er', label: 'Verbes en -er', en: '-er verbs — one recipe for thousands of verbs',
+   desc: 'Une seule recette : racine + -e, -es, -e, -ons, -ez, -ent. Attention à acheter, payer, nager, manger…'},
+  {id: 'ir', label: 'Verbes en -ir', en: '-ir verbs (2nd group)',
+   desc: 'Deuxième famille régulière : -is, -is, -it, -issons, -issez, -issent.'},
+  {id: 'irr', label: 'Irréguliers', en: 'Irregular verbs — learn by heart',
+   desc: "À apprendre par cœur. Apprendre et comprendre se conjuguent comme prendre."},
+];
+const PR = ['je', 'tu', 'il', 'nous', 'vous', 'ils'];
+const PN = ['je', 'tu', 'il / elle / on', 'nous', 'vous', 'ils / elles'];        // colonne de gauche des tableaux
+const IMP = ['tu', 'nous', 'vous'];
+const vowelStart = f => /^[aeiouyàâäéèêëîïôöûùüœæh]/i.test(f);
+const pref = (i, f) => i === 0 ? (vowelStart(f) ? "j'" : 'je ') : ['', 'tu ', 'il ', 'nous ', 'vous ', 'ils '][i];
+const pnShort = (i, f) => i === 0 ? (vowelStart(f) ? "j'" : 'je ') : ['', 'tu ', 'il/elle/on ', 'nous ', 'vous ', 'ils/elles '][i];
+const alt = s => s.split('|');
+const fullForm = (v, i) => alt(v.forms[i]).map(f => pref(i, f) + f);              // ["j'aime"], ["je paie", "je paye"]
+const verbKey = v => v.inf;                                                       // clé dans store.conj et dans les erreurs
+const verbByInf = {};
+VERBS.forEach(v => { verbByInf[v.inf] = v; });
+
+/* ============================================================
+   RÈGLES — lues dans Unite1_Revision.html (panneaux « Grammaire »)
+   ============================================================ */
+let rules = null;      // [{unit, title, sub, html, text, go}]
+const cleanText = el => {
+  const c = el.cloneNode(true);
+  c.querySelectorAll('button, .en, .note').forEach(x => x.remove());
+  return c.textContent.replace(/\s+/g, ' ').trim();
+};
+/* ce qu'on garde d'une carte : la leçon, les tableaux, les astuces, le récap — pas les exercices */
+const DROP = '.ex, .howto, .box.comm, .audio, .tr, .exbar, .hint, .imgbox, img, script, style, iframe, audio, video, h3, .letter, .sub, .cap';
+function makeRule(unit, title, cards) {
+  const go = (cards.map(c => c.querySelector('.ex[data-id]')).find(Boolean) || {}).dataset;
+  const sub = cards.map(c => c.querySelector(':scope > .sub')).filter(Boolean).map(cleanText)[0] || '';
+  const wrap = document.createElement('div');
+  cards.forEach(c => {
+    const k = c.cloneNode(true);
+    k.querySelectorAll(DROP).forEach(x => x.remove());
+    k.querySelectorAll('*').forEach(x => {
+      x.removeAttribute('id');
+      Array.from(x.attributes).forEach(a => { if (/^on/i.test(a.name)) x.removeAttribute(a.name); });
+      if (x.tagName === 'BUTTON' && !x.classList.contains('speak')) x.remove();
+      if (x.classList.contains('speak')) { x.setAttribute('type', 'button'); x.setAttribute('aria-label', 'Écouter'); }
+    });
+    while (k.firstChild) wrap.appendChild(k.firstChild);
+  });
+  wrap.querySelectorAll('.grid').forEach(g => { if (!g.textContent.trim()) g.remove(); });
+  /* une leçon sans contenu (rien que des exercices) n'a rien à faire dans un carnet */
+  if (!wrap.textContent.replace(/\s+/g, '').length) return null;
+  const ens = Array.from(wrap.querySelectorAll('[data-en]')).map(x => x.dataset.en).join(' ');
+  return {
+    unit, title: title.replace(/^\s*\d+\s*·\s*/, ''), sub, html: wrap.innerHTML,
+    words: Array.from(new Set(words(title + ' ' + wrap.textContent + ' ' + ens))), go: go ? go.id : '',
+  };
+}
+function extractRules(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  Unlock.rememberFromDoc(doc);          // au passage : la carte exercice → unité, pour les pages qui ne chargent pas la révision
+  const out = [];
+  doc.querySelectorAll('.unit[data-u]').forEach(u => {
+    const n = +u.dataset.u;
+    const p = u.querySelector('section.panel[data-p="gram"]');        // surtout pas les autres panneaux (phonétique, vocabulaire…)
+    if (!p) return;
+    const kids = Array.from(p.children);
+    if (kids.some(k => k.matches('h2.sec'))) {
+      /* unité 1 : chaque h2.sec ouvre une règle, qui court jusqu'au h2.sec suivant */
+      let cur = null;
+      const flush = () => { if (cur) { const r = makeRule(n, cur.title, cur.cards); if (r) out.push(r); } };
+      kids.forEach(k => {
+        if (k.matches('h2.sec')) { flush(); cur = {title: cleanText(k).replace(/\s*\(p\.\s*\d+\)\s*$/, ''), cards: []}; }
+        else if (cur && k.classList.contains('card')) cur.cards.push(k);
+      });
+      flush();
+    } else {
+      /* unités 2–4 : une carte avec h3 = une règle */
+      kids.filter(k => k.classList.contains('card') && k.querySelector('h3')).forEach(c => {
+        const r = makeRule(n, cleanText(c.querySelector('h3')), [c]);
+        if (r) out.push(r);
+      });
+    }
+  });
+  return out;
+}
+async function loadRules() {
+  $('rLoading').hidden = false; $('rError').hidden = true;
+  try {
+    const res = await fetch('Unite1_Revision.html', {cache: 'no-cache'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    rules = extractRules(await res.text());
+    if (!rules.length) throw new Error('aucune règle trouvée');
+    $('rLoading').hidden = true;
+    renderAll();
+  } catch (e) {
+    $('rLoading').hidden = true; $('rError').hidden = false;
+  }
+}
+$('rRetry').onclick = loadRules;
+
+/* ============================================================
+   ÉTAT DE L'INTERFACE : onglet, unité, recherche
+   ============================================================ */
+const ui = {tab: 'regles', unit: 0, q: ''};
+const TABS = ['regles', 'verbes', 'drill'];
+
+function renderUnitChips() {
+  const box = $('unitChips');
+  box.innerHTML = '';
+  [0].concat(UNITS).forEach(n => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    if (lockedU(n)) {
+      b.className = 't-chip chip is-locked';
+      b.innerHTML = `U${n}${Unlock.lockIcon()}`;
+      b.setAttribute('aria-label', `Unité ${n} — verrouillée : ${Unlock.lockText(n).fr.replace(/^Verrouillée · /, '')}`);
+      Unlock.lockControl(b, n);
+      box.appendChild(b);
+      return;
+    }
+    b.className = 't-chip chip'; b.setAttribute('aria-pressed', String(ui.unit === n));
+    b.textContent = n ? 'U' + n : 'Toutes';
+    b.title = n ? `Unité ${n} — ${UNIT_TITLES[n]}` : 'Toutes les unités';
+    b.onclick = () => { sfx('tap'); ui.unit = n; renderUnitChips(); renderAll(); };
+    box.appendChild(b);
+  });
+  const lh = LK ? Unlock.hint(LK) : '';
+  $('lockLine').innerHTML = lh; $('lockLine').hidden = !lh;
+}
+
+/* ---------- Règles ---------- */
+function renderRules() {
+  const box = $('rList');
+  box.innerHTML = '';
+  if (!rules) return 0;
+  const terms = words(ui.q);
+  const list = rules.filter(r => !lockedU(r.unit) && (!ui.unit || r.unit === ui.unit) && terms.every(t => r.words.some(w => w.startsWith(t))));
+  const open = terms.length > 0 && list.length <= 6;
+  UNITS.forEach(n => {
+    const rs = list.filter(r => r.unit === n);
+    if (!rs.length) return;
+    const g = document.createElement('div'); g.className = 'grp';
+    g.innerHTML = `<h2>Unité ${n} <small>${esc(UNIT_TITLES[n])}</small></h2>
+      <p class="en">${rs.length} point${rs.length > 1 ? 's' : ''} de grammaire</p><div class="stack"></div>`;
+    const stack = g.querySelector('.stack');
+    rs.forEach(r => {
+      const d = document.createElement('details');
+      d.className = 't-card t-card--unit t-u' + r.unit + ' rule'; d.dataset.u = r.unit; d.open = open;
+      const link = r.go ? `<a class="t-btn t-btn--sm t-btn--secondary rgo" href="revision?u=${r.unit}&tab=gram&go=${encodeURIComponent(r.go)}">Faire les exercices →</a>` : '';
+      d.innerHTML = `<summary><span class="t-pill t-pill--unit utag">U${r.unit}</span><span class="rt">${esc(r.title)}</span></summary>
+        <div class="rbody">${r.sub ? `<p class="rsub">${esc(r.sub)}</p>` : ''}${r.html}${link}</div>`;
+      buildEN(d);
+      stack.appendChild(d);
+    });
+    box.appendChild(g);
+  });
+  return list.length;
+}
+
+/* ---------- Verbes ---------- */
+/* mots de recherche d'un verbe : infinitif, sens, formes (seules ET avec leur pronom), impératif */
+function verbIndex(v) {
+  if (v._ix) return v._ix;
+  const ws = [];
+  const add = s => words(s).forEach(w => ws.push(w));
+  add(v.inf); add(v.en); add(GROUPS.find(g => g.id === v.group).label);
+  v.forms.forEach((f, i) => alt(f).forEach(x => { add(x); add(pref(i, x) + x); }));
+  if (v.imp) v.imp.forEach(f => alt(f).forEach(x => add(x)));
+  return (v._ix = {words: ws, inf: fold(v.inf)});
+}
+const verbMatches = (v, terms) => {
+  const ix = verbIndex(v);
+  return terms.every(t => ix.words.some(w => w.startsWith(t)) || (t.length >= 3 && ix.inf.includes(t)));
+};
+function verbHtml(v) {
+  const rows = PR.map((p, i) => {
+    const forms = alt(v.forms[i]);
+    const shown = forms.map(f => `<span class="pn">${esc(pnShort(i, f))}</span><b class="${v.hl.includes(i) ? 'irr' : ''}">${esc(f)}</b>`).join(' / ');
+    const say1 = pref(i, forms[0]).replace('il/elle/on ', 'il ') + forms[0];
+    return `<tr><td class="f">${shown}</td><td class="s"><button class="spk" type="button" data-say="${esc(say1)}" aria-label="Écouter ${esc(say1)}">${icon('speak')}</button></td></tr>`;
+  }).join('');
+  const sayAll = PR.map((p, i) => pref(i, alt(v.forms[i])[0]) + alt(v.forms[i])[0]).join(', ');
+  const imp = v.imp ? `<div class="imp"><span class="lab">Impératif</span>${IMP.map((p, i) => {
+    const f = alt(v.imp[i]);
+    return `<span class="it"><small>${p}</small><b class="${v.hl.length === 6 ? 'irr' : ''}">${esc(f.join(' / '))}</b>
+      <button class="spk" type="button" data-say="${esc(f[0])}" aria-label="Écouter ${esc(f[0])}">${icon('speak')}</button></span>`;
+  }).join('')}</div>` : '';
+  const neg = v.neg, ex = v.ex;
+  const sent = (lab, s) => `<div class="row"><div data-en="${esc(s[1])}"><span class="lab">${lab}</span>${esc(s[0])}</div>
+      <button class="spk" type="button" data-say="${esc(s[0])}" aria-label="Écouter la phrase">${icon('speak')}</button></div>`;
+  return `<div class="cjc"><h5>Présent de l'indicatif</h5><table class="conj6">${rows}</table></div>
+    <button class="textbtn sayall" type="button" data-say="${esc(sayAll)}">${icon('speak')} Écouter tout le tableau</button>
+    ${imp}
+    <div class="vex">${sent('Exemple', ex)}${sent('Négation', neg)}</div>
+    ${v.note ? `<p class="vnote">${esc(v.note)}</p>` : ''}`;
+}
+const summaryLine = v => v.forms.map((f, i) => alt(f)[0]).join(' · ');
+function renderVerbs() {
+  const box = $('vList');
+  box.innerHTML = '';
+  const terms = words(ui.q);
+  const list = VERBS.filter(v => !lockedU(v.unit) && (!ui.unit || v.unit === ui.unit) && verbMatches(v, terms));
+  const open = terms.length > 0 && list.length <= 4;
+  GROUPS.forEach(gr => {
+    const vs = list.filter(v => v.group === gr.id);
+    if (!vs.length) return;
+    const g = document.createElement('div'); g.className = 'grp';
+    g.innerHTML = `<h2>${esc(gr.label)}</h2><p class="en">${esc(gr.en)}</p><p class="legend" style="margin-top:6px">${esc(gr.desc)}</p><div class="stack"></div>`;
+    const stack = g.querySelector('.stack');
+    vs.forEach(v => {
+      const d = document.createElement('details');
+      d.className = 't-card t-card--unit t-u' + v.unit + ' verb'; d.dataset.u = v.unit; d.dataset.inf = v.inf;
+      d.open = open || (gr.id === 'ind' && !terms.length && !ui.unit);
+      d.innerHTML = `<summary><span class="t-pill t-pill--unit utag">U${v.unit}</span><span class="vhead"><span class="vname">${esc(v.inf)}<small>${esc(v.en)}</small></span>
+        <span class="vline">${esc(summaryLine(v))}</span></span></summary><div class="vbody">${verbHtml(v)}</div>`;
+      buildEN(d);
+      stack.appendChild(d);
+    });
+    box.appendChild(g);
+  });
+  /* les expressions « à retenir sans conjuguer » : VERB_EXPRS de content/verbs.js (facultatif), chacune avec son unité */
+  const exprs = (typeof VERB_EXPRS === 'undefined' ? [] : VERB_EXPRS).filter(x => !lockedU(x.unit));
+  if (!terms.length && !ui.unit && exprs.length) {
+    const e = document.createElement('div');
+    e.className = 'exprs';
+    e.innerHTML = `<h3>À retenir sans conjuguer (pour l'instant)</h3><ul>
+      ${exprs.map(x => `<li data-en="${esc(x.en)}">${x.html}${x.say ? ` <button class="spk" type="button" data-say="${esc(x.say)}" aria-label="Écouter">${icon('speak')}</button>` : ''}</li>`).join('\n      ')}</ul>`;
+    buildEN(e);
+    box.appendChild(e);
+  }
+  return list.length;
+}
+
+/* ---------- affichage global ---------- */
+function renderAll() {
+  const nr = rules ? renderRules() : 0;
+  const nv = renderVerbs();
+  const searching = words(ui.q).length > 0;
+  $('nRegles').textContent = rules && (searching || ui.unit) ? `(${nr})` : '';
+  $('nVerbes').textContent = searching || ui.unit ? `(${nv})` : '';
+  const h = $('hits');
+  if (!searching) { h.hidden = true; }
+  else {
+    const here = ui.tab === 'regles' ? nr : nv, other = ui.tab === 'regles' ? nv : nr;
+    const otherName = ui.tab === 'regles' ? 'verbe' : 'règle', otherTab = ui.tab === 'regles' ? 'verbes' : 'regles';
+    const here1 = ui.tab === 'regles' ? 'règle' : 'verbe';
+    h.hidden = false;
+    h.innerHTML = `${here} ${here1}${here > 1 ? 's' : ''} pour « ${esc(ui.q.trim())} »` +
+      (other ? ` · <button type="button" data-goto="${otherTab}">voir ${other} ${otherName}${other > 1 ? 's' : ''}</button>` : '') +
+      (!here && !other ? ' — essayez un autre mot (sans accent, c\'est bon aussi).' : '');
+  }
+}
+$('hits').addEventListener('click', e => { const b = e.target.closest('[data-goto]'); if (b) showTab(b.dataset.goto); });
+
+const q = $('q'), qClear = $('qClear');
+let qTimer = null;
+q.addEventListener('input', () => {
+  qClear.hidden = !q.value;
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => { ui.q = q.value; renderAll(); }, 120);
+});
+qClear.onclick = () => { q.value = ''; ui.q = ''; qClear.hidden = true; renderAll(); q.focus(); };
+
+/* tout ouvrir / tout fermer (sur l'onglet visible) */
+let allOpen = false;
+$('openBtn').onclick = () => {
+  allOpen = !allOpen;
+  document.querySelectorAll(`#pane-${ui.tab} details`).forEach(d => { d.open = allOpen; });
+};
+
+/* ---------- onglets ---------- */
+function showTab(t, noHash) {
+  if (!TABS.includes(t)) t = 'regles';
+  ui.tab = t;
+  TABS.forEach(x => {
+    const on = x === t;
+    $('tab-' + x).setAttribute('aria-selected', String(on));
+    $('pane-' + x).hidden = !on;
+  });
+  $('controls').hidden = t === 'drill';
+  allOpen = false;
+  if (t === 'drill') { if (!$('drillBox').firstChild) drawSetup(); }
+  else renderAll();
+  if (!noHash && location.hash !== '#' + t) history.replaceState(null, '', location.pathname + location.search + '#' + t);
+  if (t === 'drill' && !noHash) window.scrollTo(0, 0);
+}
+TABS.forEach(t => { $('tab-' + t).onclick = () => showTab(t); });
+window.addEventListener('hashchange', () => showTab(location.hash.slice(1), true));
+
+/* ============================================================
+   DRILL — « nous · prendre → ___ »
+   ============================================================ */
+const dr = {phase: 'setup', sel: {groups: new Set(['ind', 'er', 'ir', 'irr']), weak: false, maxU: 5, mode: 'pres'}, queue: [], i: 0, res: [], tries: 0};
+const DRILL_N = 10;
+let streak = 0;                    // bonnes réponses de suite (toute la visite) : 5, 10… → « unlock »
+const stat = (inf, key) => (store.conj && store.conj[inf] && store.conj[inf][key]) || null;
+
+/* verbes faibles : une forme ratée plus d'une fois sur trois, ou une erreur « conj: » encore ouverte */
+function weakVerbs() {
+  const set = new Set();
+  if (store.conj) Object.keys(store.conj).forEach(inf => {
+    const m = store.conj[inf] || {};
+    if (verbByInf[inf] && !lockedU(verbByInf[inf].unit) && Object.keys(m).some(k => m[k] && m[k].tot > 0 && m[k].ok / m[k].tot < 0.67)) set.add(inf);
+  });
+  if (store.mistakes) Object.keys(store.mistakes).forEach(k => {
+    const mm = k.match(/^conj:(.+):(je|tu|il|nous|vous|ils|imp-tu|imp-nous|imp-vous)$/);
+    if (mm && !store.mistakes[k].fixed && verbByInf[mm[1]] && !lockedU(verbByInf[mm[1]].unit)) set.add(mm[1]);
+  });
+  return set;
+}
+function drillPool() {
+  const s = dr.sel;
+  let vs = VERBS.filter(v => v.unit <= s.maxU && !lockedU(v.unit));
+  if (s.weak) { const w = weakVerbs(); vs = vs.filter(v => w.has(v.inf)); }
+  else vs = vs.filter(v => s.groups.has(v.group) || (v.inf === 'parler' && s.groups.has('er')));
+  const pairs = [];
+  vs.forEach(v => {
+    if (s.mode !== 'imp') PR.forEach(p => pairs.push({inf: v.inf, key: p}));
+    if (s.mode !== 'pres' && v.imp) IMP.forEach(p => pairs.push({inf: v.inf, key: 'imp-' + p}));
+  });
+  return pairs;
+}
+/* poids : forme jamais vue = 1,5 ; plus elle est ratée, plus elle sort ; une forme sûre (3 bonnes) sort rarement */
+function weight(p) {
+  const st = stat(p.inf, p.key);
+  let w = st && st.tot ? 0.45 + 4 * (1 - st.ok / st.tot) : 1.5;
+  if (st && st.tot >= 3 && st.ok === st.tot) w = 0.35;
+  const m = store.mistakes && store.mistakes['conj:' + p.inf + ':' + p.key];
+  if (m && !m.fixed) w += 2.5;
+  return w;
+}
+function pick(pairs, n) {
+  const pool = pairs.slice(), out = [];
+  while (out.length < n && pool.length) {
+    /* on évite deux fois le même verbe de suite quand c'est possible */
+    const last = out.length ? out[out.length - 1].inf : null;
+    let cands = pool.filter(p => p.inf !== last);
+    if (!cands.length) cands = pool;
+    let tot = cands.reduce((a, p) => a + weight(p), 0), r = Math.random() * tot, chosen = cands[cands.length - 1];
+    for (const p of cands) { r -= weight(p); if (r <= 0) { chosen = p; break; } }
+    out.push(chosen);
+    pool.splice(pool.indexOf(chosen), 1);
+  }
+  return out;
+}
+const pronChoices = {je: ['je'], tu: ['tu'], il: ['il', 'elle', 'on'], nous: ['nous'], vous: ['vous'], ils: ['ils', 'elles']};
+function promptLabel(item) {
+  if (item.key.startsWith('imp-')) return item.key.slice(4);
+  const c = pronChoices[item.key];
+  return c[Math.floor(Math.random() * c.length)];
+}
+function expectedOf(item) {
+  const v = verbByInf[item.inf];
+  return item.key.startsWith('imp-') ? v.imp[IMP.indexOf(item.key.slice(4))] : v.forms[PR.indexOf(item.key)];
+}
+function answerShown(item) {
+  const v = verbByInf[item.inf], ex = expectedOf(item);
+  if (item.key.startsWith('imp-')) return alt(ex).join(' / ');
+  const i = PR.indexOf(item.key);
+  return alt(ex).map(f => (i === 2 || i === 5 ? (item.label || PR[i]) + ' ' : pref(i, f)) + f).join(' / ');   // elle / on / elles, comme dans la question
+}
+function sayOf(item) {
+  const ex = alt(expectedOf(item))[0];
+  if (item.key.startsWith('imp-')) return ex;
+  const i = PR.indexOf(item.key);
+  return pref(i, ex) + ex;
+}
+/* 2 = exact · 1 = juste, accents près · 0 = faux ;  elision = « je aime » */
+function gradeAnswer(item, typed) {
+  const ans0 = expectedOf(item);
+  const ans = ans0.includes("'") ? ans0 + '|' + ans0.replace(/'/g, '') : ans0;          // « sappelle » (sans apostrophe) passe aussi, comme ailleurs sur le site
+  let r = judge(typed, ans), elision = false;
+  if (!r && !item.key.startsWith('imp-')) {
+    const t = norm(typed);
+    const rx = {je: /^(je |j')/, tu: /^tu /, il: /^(il|elle|on) /, nous: /^nous /, vous: /^vous /, ils: /^(ils|elles) /}[item.key];
+    if (rx && rx.test(t)) {
+      const rest = t.replace(rx, '');
+      if (item.key === 'je' && /^je /.test(t) && vowelStart(rest)) elision = true;
+      else if (item.key === 'je' && /^j'/.test(t) && !vowelStart(rest)) r = 0;
+      else r = judge(rest, ans);
+    }
+  }
+  return {r, elision};
+}
+
+function drawSetup() {
+  dr.phase = 'setup';
+  const s = dr.sel, box = $('drillBox'), weak = weakVerbs();
+  if (s.weak && !weak.size) s.weak = false;
+  const pool = drillPool();
+  const n = Math.min(DRILL_N, pool.length);
+  const modeBtn = (id, lab) => `<button class="t-chip chip" type="button" data-mode="${id}" aria-pressed="${s.mode === id}">${lab}</button>`;
+  box.innerHTML = `<div class="t-card panel">
+    <h2>Drill de conjugaison</h2>
+    <p class="en">Type the right form — ${DRILL_N} prompts per round, weighted toward the forms you miss.</p>
+    <span class="t-label lab">Quels verbes ?</span>
+    <div class="chips wrapchips" id="dGroups">
+      ${GROUPS.map(g => `<button class="t-chip chip" type="button" data-g="${g.id}" aria-pressed="${!s.weak && s.groups.has(g.id)}">${esc(g.label)}</button>`).join('')}
+      <button class="t-chip chip" type="button" data-weak="1" aria-pressed="${s.weak}" ${weak.size ? '' : 'disabled'}>Mes verbes faibles (${weak.size})</button>
+    </div>
+    <span class="t-label lab">Tous les verbes jusqu'à l'unité…</span>
+    <div class="chips" id="dUnits">${UNITS.map(u => lockedU(u)
+      ? `<button class="t-chip chip is-locked" type="button" data-lock-unit="${u}" aria-label="Unité ${u} — verrouillée : ${esc(Unlock.lockText(u).fr.replace(/^Verrouillée · /, ''))}">${u}${Unlock.lockIcon()}</button>`
+      : `<button class="t-chip chip" type="button" data-u="${u}" aria-pressed="${s.maxU === u}">${u}</button>`).join('')}</div>
+    <span class="t-label lab">Quoi conjuguer ?</span>
+    <div class="chips wrapchips">${modeBtn('pres', 'Présent')}${modeBtn('imp', 'Impératif')}${modeBtn('both', 'Les deux')}</div>
+    <button class="t-btn t-btn--teal t-btn--block drill-go" id="dGo" type="button" ${n ? '' : 'disabled'}>${n ? `Commencer · ${n} question${n > 1 ? 's' : ''} →` : 'Aucune forme dans ce choix'}</button>
+    <p class="en" style="text-align:center;margin-top:10px">${pool.length} forme${pool.length > 1 ? 's' : ''} possible${pool.length > 1 ? 's' : ''} (${[...new Set(pool.map(p => p.inf))].length} verbes).</p>
+  </div>`;
+  box.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
+    s.weak = false;
+    const id = b.dataset.g;
+    if (s.groups.has(id)) { if (s.groups.size > 1) s.groups.delete(id); } else s.groups.add(id);
+    drawSetup();
+  });
+  const wb = box.querySelector('[data-weak]'); wb.onclick = () => { s.weak = !s.weak; drawSetup(); };
+  box.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { s.maxU = +b.dataset.u; drawSetup(); });
+  box.querySelectorAll('[data-lock-unit]').forEach(b => Unlock.lockControl(b, +b.dataset.lockUnit));
+  box.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { s.mode = b.dataset.mode; drawSetup(); });
+  $('dGo').onclick = () => startRound(pick(pool, DRILL_N));
+}
+function startRound(items) {
+  dr.queue = items.map(it => Object.assign({}, it, {label: promptLabel(it)}));
+  dr.i = 0; dr.res = []; dr.phase = 'run';
+  try { if (window.Sfx && Sfx.resetStreak) Sfx.resetStreak(); } catch (e) {}
+  drawQuestion();
+}
+function drawQuestion() {
+  const box = $('drillBox'), item = dr.queue[dr.i], v = verbByInf[item.inf];
+  const isImp = item.key.startsWith('imp-');
+  const pct = Math.round(dr.i / dr.queue.length * 100);
+  box.innerHTML = `<div class="t-card panel dq">
+    <div class="dprog"><span>Question ${dr.i + 1} / ${dr.queue.length}</span><span>U${v.unit}</span></div>
+    <span class="t-progress t-progress--sm t-progress--teal" role="progressbar" aria-label="Progression de la série" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="--v:${pct}%"></i></span>
+    ${isImp ? '<span class="t-pill t-pill--teal dmode">impératif</span>' : ''}
+    <p class="dprompt">${esc(item.label)} · ${esc(v.inf)} <span class="arrow">→ ___</span></p>
+    <p class="en">${esc(v.en)}${isImp ? ' — imperative: no subject pronoun is said' : ''}</p>
+    ${v.inf === "s'appeler" ? '<p class="en">Écrivez aussi le petit mot : m\'appelle, t\'appelles, s\'appelle, nous appelons…</p>' : ''}
+    <input class="t-input dans" id="dAns" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Votre réponse" placeholder="${isImp ? 'ex. : prends' : 'ex. : nous prenons'}">
+    <div class="accents" aria-label="Lettres accentuées">${['é', 'è', 'ê', 'à', 'â', 'ç', 'î', 'ï', 'ô', 'û', 'ù', 'œ', '’'].map(c => `<button class="acc" type="button" data-c="${c}" aria-label="Insérer ${c}">${c}</button>`).join('')}</div>
+    <div class="drow"><button class="t-btn t-btn--teal" id="dOk" type="button">Valider</button>
+      <button class="t-btn t-btn--secondary" id="dSkip" type="button">Je ne sais pas</button></div>
+    <div id="dFb"></div>
+  </div>`;
+  const inp = $('dAns');
+  box.querySelectorAll('.acc').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
+  box.querySelectorAll('.acc').forEach(b => b.onclick = () => {
+    if (inp.disabled) return;
+    inp.setRangeText(b.dataset.c, inp.selectionStart, inp.selectionEnd, 'end'); inp.focus();
+  });
+  const go = skip => answer(skip ? null : inp.value);
+  $('dOk').onclick = () => go(false);
+  $('dSkip').onclick = () => go(true);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(false); } });
+  inp.focus({preventScroll: true});
+}
+function tableFor(item) {
+  const v = verbByInf[item.inf], isImp = item.key.startsWith('imp-');
+  const rows = PR.map((p, i) => {
+    const me = !isImp && item.key === p;
+    const f = alt(v.forms[i]).map(x => `<span class="pn">${esc(pnShort(i, x))}</span><b class="${v.hl.includes(i) ? 'irr' : ''}">${esc(x)}</b>`).join(' / ');
+    return `<tr class="${me ? 'me' : ''}"><td class="f">${f}</td></tr>`;
+  }).join('');
+  let imp = '';
+  if (v.imp) imp = `<p class="imp-line"><span class="t-label" style="display:inline;margin:0">Impératif</span> ` + IMP.map((p, i) => {
+    const me = isImp && item.key === 'imp-' + p;
+    return `<span class="${me ? 'irr' : ''}">${p} : <b>${esc(alt(v.imp[i]).join(' / '))}</b></span>`;
+  }).join(' · ') + '</p>';
+  return `<div class="conj6w"><div class="cjc"><h5>Présent de l'indicatif</h5><table class="conj6">${rows}</table></div>${imp}</div>`;
+}
+function answer(typed) {
+  if (dr.phase !== 'run') return;
+  const item = dr.queue[dr.i], v = verbByInf[item.inf];
+  const skipped = typed === null;
+  const t = skipped ? '' : typed.trim();
+  if (!skipped && !t) { $('dAns').focus(); return; }         // rien tapé : on ne compte pas
+  const g = skipped ? {r: 0, elision: false} : gradeAnswer(item, t);
+  const ok = g.r > 0;
+  /* enregistrement */
+  fresh();
+  if (!store.conj || typeof store.conj !== 'object') store.conj = {};
+  const rec = (store.conj[item.inf] = store.conj[item.inf] || {});
+  const st = (rec[item.key] = rec[item.key] || {ok: 0, tot: 0});
+  st.tot++; if (ok) st.ok++; st.last = Date.now();
+  try{ DuduSync.markActive(store); }catch(e){}   // série 🔥
+  const mkey = 'conj:' + item.inf + ':' + item.key;
+  if (window.DuduMistakes) {
+    if (ok) DuduMistakes.fix(store, mkey);
+    else DuduMistakes.log(store, {
+      key: mkey, unit: v.unit, src: 'ex', ref: 'carnet', tab: '',
+      topic: 'Conjugaison — ' + v.inf, q: item.label + ' · ' + v.inf, said: t, better: answerShown(item), why: '',
+    });
+  }
+  save();
+  /* réaction de la troupe : bonne réponse = Dubois content (+ un palier de série parlé à 3, 5, 10) ; faux = Dubois triste un instant */
+  streak = ok ? streak + 1 : 0;
+  if (ok) { sfx('correct', {char: 'dubois'}); hostMood('happy', 1500); }      // les paliers 3 / 5 / 10 de suite : c'est Sfx qui les fête
+  else { sfx('wrong', {char: 'dubois'}); hostMood('sad', 1900); }
+  dr.res.push({item, ok, accent: g.r === 1, said: t});
+  dr.phase = 'fb';
+  const inp = $('dAns'); inp.disabled = true;
+  $('dOk').hidden = true; $('dSkip').hidden = true;
+  const shown = answerShown(item);
+  const sayBtn = `<button class="spk" type="button" data-say="${esc(sayOf(item))}" aria-label="Écouter la bonne réponse">${icon('speak')}</button>`;
+  const face = `<span class="fb__char" aria-hidden="true">${Cast.svg('dubois', {crop: 'face', mood: ok ? 'happy' : 'sad', label: ''})}</span>`;
+  const row = streak >= 2 && ok ? `<span class="t-chip t-chip--fire streak" role="status">${icon('flame')} ${streak} de suite !</span>` : '';
+  let html;
+  if (g.r === 2) html = `<div class="fb ok"><div class="fb__top">${face}<div class="ans"><b class="big">✓ Bien !</b><span>${esc(shown)}</span>${sayBtn}</div></div>${row}</div>`;
+  else if (g.r === 1) html = `<div class="fb acc-only"><div class="fb__top">${face}<div class="ans"><b class="big">✓ Presque</b>${sayBtn}</div></div>
+      <p>Attention aux accents : <b>${esc(shown)}</b></p>${tableFor(item)}${row}</div>`;
+  else html = `<div class="fb bad"><div class="fb__top">${face}<div class="ans"><b class="big">✗ ${skipped ? 'La réponse' : 'Pas tout à fait'}</b>${sayBtn}</div></div>
+      <p>${skipped ? '' : `Vous avez écrit « ${esc(t)} ». `}Réponse : <b>${esc(shown)}</b></p>
+      ${g.elision ? '<p>Devant une voyelle ou un h muet, <i>je</i> devient <b>j\'</b>.</p>' : ''}${tableFor(item)}</div>`;
+  const last = dr.i === dr.queue.length - 1;
+  $('dFb').innerHTML = html + `<div class="drow"><button class="t-btn ${ok ? 't-btn--teal' : ''} t-btn--block" id="dNext" type="button">${last ? 'Voir mon score →' : 'Suivant →'}</button></div>`;
+  const nx = $('dNext');
+  nx.onclick = () => { dr.i++; if (dr.i >= dr.queue.length) { dr.phase = 'end'; drawEnd(); } else { dr.phase = 'run'; drawQuestion(); } };
+  nx.focus({preventScroll: true});
+  nx.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+}
+function drawEnd() {
+  const box = $('drillBox');
+  const n = dr.res.length, k = dr.res.filter(r => r.ok).length, bad = dr.res.filter(r => !r.ok);
+  const msg = k === n ? 'Parfait !' : k >= n * 0.7 ? 'Très bien !' : k >= n * 0.4 ? 'Pas mal — on continue.' : 'Courage : relisez les tableaux, puis refaites.';
+  box.innerHTML = `<div class="t-card panel">
+    <h2>Série terminée</h2>
+    <div class="sc">${k} / ${n}</div>
+    <p class="drill-end__msg">${msg}</p>
+    <p class="en">${k === n ? 'Perfect!' : 'Redo the missed ones — that is how forms stick.'}</p>
+    ${bad.length ? `<ul class="errs">${bad.map(r => `<li><span class="q">${esc(r.item.label)} · ${esc(r.item.inf)}</span> —
+        ${r.said ? `<s>${esc(r.said)}</s> → ` : ''}<b>${esc(answerShown(r.item))}</b></li>`).join('')}</ul>` : ''}
+    <div class="drow drow--end">
+      ${bad.length ? '<button class="t-btn t-btn--teal" id="dRedo" type="button">Refaire les erreurs</button>' : ''}
+      <button class="t-btn ${bad.length ? 't-btn--secondary' : 't-btn--teal'}" id="dAgain" type="button">Nouvelle série</button>
+      <button class="t-btn t-btn--secondary" id="dSetup" type="button">Changer de verbes</button></div>
+  </div>`;
+  if (n) sfx(k === n ? 'perfect' : k >= n * 0.7 ? 'complete' : 'fail', {char: 'dubois'});
+  if ($('dRedo')) $('dRedo').onclick = () => startRound(bad.map(r => ({inf: r.item.inf, key: r.item.key})).sort(() => Math.random() - 0.5));
+  $('dAgain').onclick = () => { const pool = drillPool(); startRound(pick(pool, DRILL_N)); };
+  $('dSetup').onclick = () => { dr.phase = 'setup'; drawSetup(); };
+}
+
+/* impression : toutes les fiches ouvertes, puis on remet comme c'était */
+let wasOpen = null;
+window.addEventListener('beforeprint', () => {
+  const ds = Array.from(document.querySelectorAll('details'));
+  wasOpen = ds.map(d => d.open); ds.forEach(d => { d.open = true; });
+});
+window.addEventListener('afterprint', () => {
+  if (!wasOpen) return;
+  Array.from(document.querySelectorAll('details')).forEach((d, i) => { if (i < wasOpen.length) d.open = wasOpen[i]; });
+  wasOpen = null;
+});
+
+/* ============================================================
+   DÉMARRAGE : ?u=N  ?q=…  #regles | #verbes | #drill
+   ============================================================ */
+Unlock.ready().then(st => { LK = st; init(); });
+function init() {
+  const params = new URLSearchParams(location.search);
+  const u = +params.get('u');
+  if (UNITS.includes(u)) {
+    if (LK.locked(u)) setTimeout(() => Unlock.notice(u), 250);       // ?u=4 d'une unité verrouillée : on reste sur « Toutes »
+    else ui.unit = u;
+  }
+  dr.sel.maxU = LK.frontier;                                         // le drill s'arrête à la dernière unité ouverte
+  const qq = params.get('q');
+  if (qq) { ui.q = qq; q.value = qq; qClear.hidden = false; }
+  renderUnitChips();
+  showTab(location.hash.slice(1) || 'regles', true);
+  loadRules();
+}
+</script>
+</body>
+</html>

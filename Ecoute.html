@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFF5E8" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DuDu">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/v4/icon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="icons/v4/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/v4/apple-touch-icon.png">
+<title>DuDu — Écoute libre</title>
+<script src="content/meta.js"></script>
+<script>
+/* Thème avant le premier affichage : store.theme = 'light' | 'dark', absent = automatique (le système décide). */
+(function () {
+  try {
+    var st = JSON.parse(localStorage.getItem('dudu-a1-u1') || '{}') || {};
+    if (st.theme === 'light' || st.theme === 'dark') document.documentElement.setAttribute('data-theme', st.theme);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="troupe.css">
+<style>
+/* =====================================================================
+   Ecoute.html — « La Troupe ». Tout est page-local ; les composants viennent de troupe.css
+   (t-card, t-btn, t-pill, t-choice, t-input, t-bubble, t-progress, t-uN…). Jetons --t-* uniquement.
+   Les couleurs d'unité arrivent par .t-u1 … .t-u5 sur chaque section (--t-unit, --t-unit-d, --t-unit-l, --t-unit-ink).
+   ===================================================================== */
+[hidden]{display:none!important}
+.eco{max-width:1040px;margin:0 auto;padding:6px 16px 28px}
+.eco-narrow{max-width:640px}
+
+/* ---- l'hôte : Léa + sa bulle ---- */
+.host{display:grid;grid-template-columns:88px minmax(0,1fr);gap:16px;align-items:center;margin:4px auto 20px;max-width:640px}
+.host__av{width:88px;height:88px;padding:0;margin:0;border:2px solid var(--t-rim);background:var(--t-teal-l);cursor:pointer;display:block;overflow:hidden;border-radius:50%;box-shadow:0 4px 0 var(--t-edge);transition:transform .09s,box-shadow .09s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.host__av svg{display:block;width:100%;height:100%}
+.host__av:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-edge)}
+.host .t-bubble{padding:11px 14px}
+.host .t-bubble--l::before{top:50%;margin-top:-8px}
+.host__say{font:800 18px/1.2 var(--t-font-d);letter-spacing:-.005em;margin:0}
+
+/* ---- en-tête de page ---- */
+.hero{max-width:640px;margin:0 auto}
+.hero h1 .mark{background:linear-gradient(transparent 62%,var(--t-mustard-l) 62%);padding-inline:.04em;color:var(--t-ink)}
+.hero .lede{margin-top:10px;font:600 14.5px/1.55 var(--t-font-b);color:var(--t-ink-2)}
+.hero .lede strong{color:var(--t-ink)}
+.caveat{margin-top:12px;border-left:5px solid var(--t-mustard);padding:12px 14px;font:600 13.5px/1.5 var(--t-font-b);color:var(--t-ink-2)}
+.caveat b{color:var(--t-ink)}
+.score{margin-top:14px;padding:12px 14px;display:grid;gap:10px}
+.score__row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.scorebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font:700 14px/1.3 var(--t-font-b);color:var(--t-ink-2)}
+.scorebar b{color:var(--t-ink);font-family:var(--t-font-d);font-weight:800}
+.score .scorebar{flex:1;min-width:0;margin:0}
+.en-toggle{margin-left:auto;flex:none;margin-bottom:5px}
+.en-toggle[aria-pressed="true"]{--bg:var(--t-teal);--edge:var(--t-teal-d);--fg:var(--t-on-accent);border-color:var(--t-teal-d)}
+.unav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:16px}
+.unav a{min-height:48px;display:grid;place-items:center;text-decoration:none;font:800 14px/1.1 var(--t-font-d);text-align:center;padding:0 4px;border-radius:16px;
+  background:var(--t-unit-l);color:var(--t-unit-ink);border:2px solid var(--t-unit);box-shadow:0 3px 0 var(--t-unit-d);transition:transform .09s,box-shadow .09s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.unav a:active{transform:translateY(3px);box-shadow:0 0 0 var(--t-unit-d)}
+.unav a span{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.unav a.is-locked{background:transparent;border-style:dashed;box-shadow:none;color:var(--t-ink-2);cursor:not-allowed}
+.unav a.is-locked:active{transform:none}
+.unav a.is-locked .ul-ico{font-size:14px;margin-left:2px}
+/* une unité verrouillée (unlock.js) : l'en-tête reste, en gris, et aucune vidéo ni question n'est chargée */
+.ugroup.is-locked .ugroup-head{background:var(--t-surface,var(--t-paper));border-color:var(--t-line);border-style:dashed}
+.ugroup.is-locked .ugroup-art{filter:grayscale(1);opacity:.55}
+.ugroup.is-locked .ugroup-num,.ugroup.is-locked .ugroup-head h2{color:var(--t-ink-2)}
+.ugroup.is-locked .ugroup-count{border-color:var(--t-line);color:var(--t-ink-2)}
+.ugroup.is-locked .ugroup-count .ul-ico{font-size:14px;margin-right:4px}
+.ulock{margin-top:14px;padding:14px 16px;border-style:dashed}
+.ulock .ul-hint{margin:0}
+
+/* ---- une unité ---- */
+.ugroup{margin-top:34px;scroll-margin-top:84px}
+.ugroup-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:center;padding:12px 14px;background:var(--t-unit-l);border-color:var(--t-unit-d)}
+.ugroup-art{grid-row:1/3;width:64px;height:64px;display:block}
+.ugroup-art svg{display:block;width:100%;height:100%}
+.ugroup-num{font:800 12px/1 var(--t-font-d);letter-spacing:.14em;text-transform:uppercase;color:var(--t-unit-ink);align-self:end}
+.ugroup-head h2{font:800 clamp(22px,5.5vw,28px)/1.1 var(--t-font-d);letter-spacing:-.015em;margin:0;color:var(--t-ink);align-self:start;overflow-wrap:anywhere}
+.ugroup-count{grid-column:1/-1;justify-self:start;font:800 13px/1 var(--t-font-d);padding:7px 11px;border-radius:99px;background:var(--t-paper);border:2px solid var(--t-unit);color:var(--t-unit-ink);white-space:nowrap}
+.ugroup-count b{color:var(--t-ink)}
+.ugroup-topics{grid-column:1/-1;list-style:none;margin:2px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.ugroup-topics li{font:700 12.5px/1 var(--t-font-b);padding:6px 10px;border-radius:99px;background:var(--t-paper);color:var(--t-ink-2)}
+.vgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start;margin-top:18px}
+
+/* ---- une ressource ---- */
+.vcard{padding:0;overflow:hidden;display:flex;flex-direction:column;min-width:0;border-radius:26px}
+.vcard.done{background:var(--t-ok-bg);border-color:var(--t-line);box-shadow:none}
+.vcard.done .vtitle::before{content:"✓ ";color:var(--t-teal-ink)}
+.vthumb{position:relative;aspect-ratio:16/9;background:var(--t-track);cursor:pointer;border:0;padding:0;width:100%;display:block;margin:0;border-bottom:2px solid var(--t-unit-d);overflow:hidden;-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent}
+.vthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.vthumb .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,transparent 50%,rgba(43,34,48,.45))}
+.vthumb .play i{width:58px;height:58px;border-radius:50%;background:var(--t-unit);border:2px solid var(--t-rim);box-shadow:0 4px 0 var(--t-edge);display:grid;place-items:center;font-style:normal;font-size:21px;color:#2B2230;padding-left:3px;transition:transform .09s,box-shadow .09s}
+.vthumb:active .play i{transform:translateY(3px);box-shadow:0 1px 0 var(--t-edge)}
+.vthumb .dur{position:absolute;right:10px;bottom:10px;background:rgba(43,34,48,.82);color:#fff;font:800 12px/1 var(--t-font-d);padding:5px 8px;border-radius:99px}
+.vframe-wrap{position:relative;aspect-ratio:16/9;background:#000;border-bottom:2px solid var(--t-unit-d)}
+.vframe-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.aplay{display:flex;flex-direction:column;gap:10px;padding:16px;min-height:96px;justify-content:center;background:var(--t-unit-l);border-bottom:2px solid var(--t-unit-d)}
+.aplay .abtn{align-self:flex-start;margin-bottom:5px}
+.aplay audio{width:100%;min-height:40px}
+.vbody{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+.vbody .src{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font:800 12px/1.2 var(--t-font-d);letter-spacing:.02em;color:var(--t-unit-ink);min-width:0}
+.vbody .src > span:first-child{overflow-wrap:anywhere;min-width:0}
+.chip.t-pill{background:var(--t-cream);color:var(--t-ink-2)}
+.chip.t-pill:last-child{background:var(--t-unit-l);color:var(--t-unit-ink)}
+.vtitle{font:800 18px/1.2 var(--t-font-d);letter-spacing:-.005em;margin:0;color:var(--t-ink);overflow-wrap:anywhere}
+.vbody .why{margin:0;font:600 14px/1.5 var(--t-font-b);color:var(--t-ink-2)}
+.en{display:none;margin:2px 0 0;font:600 14px/1.45 var(--t-font-b);font-style:italic;color:var(--t-ink-2);border-left:4px solid var(--t-line);padding-left:10px}
+.en.on,body.en-all .en{display:block}
+.enb{position:relative;border:2px solid var(--t-line);background:var(--t-paper);color:var(--t-ink-2);border-radius:10px;font:800 11px/1 var(--t-font-d);letter-spacing:.08em;padding:0 8px;min-height:30px;min-width:44px;cursor:pointer;vertical-align:middle;margin-left:4px;-webkit-appearance:none;appearance:none}
+.enb::after{content:"";position:absolute;inset:-8px -2px}   /* zone de toucher de 46 px de haut, sans grossir le bouton */
+.enb.on{background:var(--t-unit);border-color:var(--t-unit-d);color:#2B2230}
+.vpractice{display:flex;align-items:center;gap:12px;min-height:48px;cursor:pointer;user-select:none;font:800 15px/1.2 var(--t-font-d);color:var(--t-ink);margin-top:2px}
+.vpractice input{-webkit-appearance:none;appearance:none;width:30px;height:30px;flex:none;margin:0;border-radius:10px;border:2px solid var(--t-rim);background:var(--t-surface);display:grid;place-items:center;cursor:pointer;box-shadow:0 3px 0 var(--t-edge);transition:background .15s,box-shadow .09s,transform .09s}
+.vpractice input:active{transform:translateY(2px);box-shadow:0 1px 0 var(--t-edge)}
+.vpractice input:checked{background:var(--t-teal);border-color:var(--t-teal-d);box-shadow:0 3px 0 var(--t-teal-d)}
+.vpractice input:checked::after{content:"";width:15px;height:8px;border-left:4px solid #fff;border-bottom:4px solid #fff;transform:rotate(-45deg) translate(1px,-1px);border-radius:1px}
+.vpractice input:focus-visible{outline:3px solid var(--t-focus);outline-offset:3px}
+.vactions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.vactions .t-btn{margin-bottom:5px}
+.vbtn[aria-expanded="true"]{--bg:var(--t-unit-l);--edge:var(--t-unit-d);--fg:var(--t-unit-ink);border-color:var(--t-unit)}
+.vbtn .n{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 7px;border-radius:99px;background:var(--t-cream);color:var(--t-ink-2);font:800 12px/1 var(--t-font-d);font-variant-numeric:tabular-nums}
+.panel-q,.panel-w{border-top:2px dashed var(--t-line);padding-top:12px;display:flex;flex-direction:column;gap:12px}
+.panel-q[hidden],.panel-w[hidden]{display:none}
+.src-note{margin:0;font:600 12px/1.4 var(--t-font-b);color:var(--t-ink-2)}
+
+/* ---- questions ---- */
+.q{border:2px solid var(--t-line);border-radius:20px;padding:12px;background:var(--t-paper);min-width:0}
+.q.ok{border-color:var(--t-teal)} .q.no{border-color:var(--t-tomato)}
+.q-h{display:flex;gap:10px;align-items:flex-start}
+.q-n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--t-unit);color:#2B2230;font:800 14px/1 var(--t-font-d);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.q-t{flex:1;min-width:0;font:700 16px/1.4 var(--t-font-b);color:var(--t-ink);overflow-wrap:anywhere}
+.tchip{border:2px solid var(--t-line);background:var(--t-cream);border-radius:99px;font:800 12px/1 var(--t-font-d);padding:0 12px;min-height:44px;cursor:pointer;white-space:nowrap;color:var(--t-ink-2);flex:none;-webkit-appearance:none;appearance:none}
+.tchip:active{transform:scale(.95)}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.opt{width:100%;text-align:left;min-height:52px;padding:10px 14px;font:800 16px/1.3 var(--t-font-d);margin:0 0 5px}
+.tfrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tfrow .opt{text-align:center;font-size:17px}
+.gaprow{display:flex;gap:10px;margin-top:12px;align-items:flex-start}
+.gaprow .t-input{flex:1;min-width:0;min-height:52px}
+.gaprow .t-btn{flex:none;padding-inline:16px}
+.gaprow input.right{border-color:var(--t-teal);background:var(--t-teal-l)}
+.gaprow input.wrong{border-color:var(--t-tomato);background:var(--t-tomato-l)}
+.q-fb{margin-top:12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:start;font:600 14px/1.5 var(--t-font-b);color:var(--t-ink)}
+.q-fb[hidden]{display:none}
+.q-face{grid-row:1/4;width:44px;height:44px;border-radius:50%;border:2px solid var(--t-rim);background:var(--t-teal-l);overflow:hidden;display:block}
+.q-face svg{display:block;width:100%;height:100%}
+.q-fb .q-tx{min-width:0}
+.q-fb .v{font:800 16px/1.2 var(--t-font-d)}
+.q-fb .v.ok{color:var(--t-teal-ink)} .q-fb .v.no{color:var(--t-tomato-ink)}
+.q-fb .note{color:var(--t-mustard-ink);font-weight:700}
+.q-fb b{font-family:var(--t-font-d)}
+
+/* ---- mots clés ---- */
+.words{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.words li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;border:2px solid var(--t-line);border-radius:18px;padding:8px 8px 8px 14px;background:var(--t-paper)}
+.words .wfr{font:800 16px/1.2 var(--t-font-d);flex:1 1 8rem;min-width:0;overflow-wrap:anywhere}
+.words .wen{color:var(--t-ink-2);font:600 14px/1.3 var(--t-font-b);flex:1 1 8rem;min-width:0}
+.words .wbt{display:flex;gap:8px;margin-left:auto;align-items:center}
+.wbtn.t-btn{margin-bottom:5px}
+.wbtn.added{--bg:var(--t-teal-l);--edge:var(--t-teal);--fg:var(--t-teal-ink)}
+.wbtn.t-iconbtn{font-size:17px;margin-bottom:0}
+
+/* ---- ressources externes + pied ---- */
+.lsec{margin-top:38px}
+.lsec > h2{margin-bottom:6px}
+.lsec > p.sub{margin:0 0 16px;max-width:60ch}
+.lgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.lcard{display:flex;flex-direction:column;gap:6px;padding:14px 16px;text-decoration:none;color:var(--t-ink);transition:transform .09s,box-shadow .09s}
+.lcard:active{transform:translateY(3px)}
+.lcard .lname{font:800 17px/1.2 var(--t-font-d);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lcard .lname .go{font:800 12px/1 var(--t-font-d);color:var(--t-teal-ink);white-space:nowrap}
+.lcard p{margin:0;font:600 14px/1.45 var(--t-font-b);color:var(--t-ink-2)}
+.lcard .ldomain{font:800 11.5px/1 var(--t-font-d);color:var(--t-ink-3);letter-spacing:.04em}
+.colophon{margin-top:34px;max-width:70ch}
+.colophon .fine{margin:0 0 8px;font:600 12.5px/1.55 var(--t-font-b);color:var(--t-ink-2)}
+
+.toast{position:fixed;left:50%;bottom:calc(98px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--t-ink);color:var(--t-cream);
+  padding:11px 18px;border-radius:99px;font:800 14px/1.25 var(--t-font-d);z-index:50;max-width:min(92vw,420px);text-align:center;box-shadow:0 4px 0 var(--t-edge)}
+
+@media (min-width:720px){
+  .vgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ugroup-head{grid-template-columns:auto minmax(0,1fr) auto;padding:14px 18px}
+  .ugroup-art{grid-row:1/3}
+  .ugroup-count{grid-column:3;grid-row:1/3;justify-self:end}
+  .ugroup-topics{grid-column:2/-1}
+}
+@media (max-width:359px){
+  .host{grid-template-columns:72px minmax(0,1fr);gap:12px}
+  .host__av{width:72px;height:72px}
+  .host__say{font-size:16px}
+  .unav{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ugroup-art{width:52px;height:52px}
+  .q-h{flex-wrap:wrap}
+  .q-t{flex:1 1 calc(100% - 40px)}
+  .tchip{margin-left:38px}
+}
+</style>
+</head>
+<body class="t-page">
+
+<main class="eco" id="main">
+
+  <!-- L'hôte : Léa -->
+  <div class="host" id="host">
+    <button class="host__av" id="hostAv" type="button" aria-label="Léa — touchez pour une réaction"></button>
+    <div class="t-bubble t-bubble--l"><p class="host__say" id="hostSay">On écoute ensemble ?</p></div>
+  </div>
+
+  <section class="hero">
+    <h1 class="t-h2">De vraies voix françaises, <span class="mark">choisies pour votre niveau.</span></h1>
+    <p class="lede">Dix ressources par unité — <strong>vidéos YouTube et dialogues audio</strong>, toutes
+    vérifiées une par une, au vocabulaire de l'unité. Pour chacune : <strong>3 à 5 questions</strong> écrites à partir du
+    contenu réel, des <strong>mots clés</strong> à écouter et à ajouter à Mémoire, et une case « pratiqué ». Rien n'est hébergé
+    chez nous : chaque extrait reste chez son créateur et s'ouvre ici, d'un tap.</p>
+    <p class="t-card t-card--flat caveat">Beaucoup de vidéos ont des sous-titres français et anglais activables dans le lecteur YouTube
+    (icône <b>CC</b>) — utile la première fois, à retirer ensuite pour s'entraîner à l'oreille seule. Le bouton <b>EN</b>
+    affiche la traduction anglaise de tout ce qui est en français.</p>
+    <div class="t-card t-card--flat score">
+      <div class="score__row">
+        <p class="scorebar"><span><b id="totalDone">0</b> / <span id="totalAll">40</span> ressources pratiquées</span></p>
+        <button class="t-btn t-btn--secondary t-btn--sm en-toggle" id="enBtn" type="button" aria-pressed="false" title="Afficher toutes les traductions anglaises">EN</button>
+      </div>
+      <div class="t-progress t-progress--teal t-progress--sm" role="presentation"><i id="heroFill"></i></div>
+    </div>
+    <nav class="unav" aria-label="Aller à une unité"><script>document.write(Object.keys(COURSE.units).map(n => `<a class="t-u${n}" href="#u${n}"><span>Unité</span>${n}</a>`).join(''));</script></nav>
+  </section>
+
+<!-- ============================== LES UNITÉS ============================== -->
+<!-- une section par unité de content/meta.js (titre, thèmes) ; les ressources de content/videos.js s'y rangent -->
+<script>
+document.write(Object.values(COURSE.units).map(u => `<section class="ugroup t-u${u.n}" id="u${u.n}" data-u="${u.n}">
+  <div class="ugroup-head t-card t-card--unit">
+    <span class="ugroup-art" data-art aria-hidden="true"></span>
+    <span class="ugroup-num">Unité ${u.n}.0</span>
+    <h2>${u.titre}</h2>
+    <span class="ugroup-count" data-count></span>
+    <ul class="ugroup-topics">${((COURSE.topics || {})[u.n] || []).map(t => `<li>${t}</li>`).join('')}</ul>
+  </div>
+  <div class="vgrid" data-vgrid="${u.n}"></div>
+</section>
+`).join('\n'));
+</script>
+
+<!-- ============================== RESSOURCES EXTERNES ============================== -->
+<section class="lsec">
+  <h2 class="t-h2">Pour aller plus loin, sans limite de niveau</h2>
+  <p class="t-small sub">Quatre sites gratuits, fiables et sans inscription obligatoire, pour écouter du français
+  tous les jours — pas seulement sur le vocabulaire des 5 unités.</p>
+  <div class="lgrid" id="linkGrid"></div>
+</section>
+
+<footer class="colophon">
+  <p class="fine">Les vidéos restent hébergées et diffusées par leurs auteurs respectifs (YouTube) ; cette
+  page ne fait qu'intégrer leur lecteur officiel, comme le permettent leurs conditions d'utilisation. Les dialogues
+  audio sont lus depuis podcastfrancaisfacile.com, qui les publie avec leur transcription. Les liens « ressources
+  externes » ouvrent des sites tiers dans un nouvel onglet.</p>
+  <p class="fine">Les questions ont été écrites à partir du contenu réel de chaque ressource (sous-titres, transcription
+  automatique ou transcription publiée par l'auteur). Votre case « pratiqué », vos scores, vos erreurs et vos mots
+  ajoutés sont enregistrés dans ce navigateur et synchronisés avec votre compte.</p>
+</footer>
+
+</main>
+
+<script src="sync.js"></script>
+<script src="unlock.js"></script>
+<script src="mistakes.js"></script>
+<script src="cast.js"></script>
+<script src="sfx.js"></script>
+<script src="places.js"></script>
+<script src="nav.js"></script>
+<script src="content/vocab.js"></script>
+<script src="vocab.js"></script>
+<script src="content/videos.js"></script>
+<script>
+const LS='dudu-a1-u1';
+const store=(()=>{try{return JSON.parse(localStorage.getItem(LS)||'{}');}catch(e){return {};}})();
+addEventListener('dudu:ttsvoice', e => { store.ttsVoice = e.detail; });   // voix choisie dans « Moi » (nav.js)
+/* La page ne possède que ces clés. Le thème, le son et les voix sont écrits par nav.js / sfx.js pendant que la page
+   est ouverte : save() relit donc le store avant d'écrire et n'y remet que SES clés (sinon un « store » gardé en
+   mémoire depuis le chargement écraserait le thème ou le son choisis entre-temps). */
+const OWNED=['ecoute','ecouteQ','ecouteEN','memPerso','mistakes'];
+const save=()=>{
+  /* On garde l'objet « store » vivant (c'est lui que sync.js réécrit après l'envoi), mais on y ramène d'abord les clés
+     qui ne sont pas à nous, relues dans le stockage. */
+  let fresh = {};
+  try{ fresh = (window.DuduNav && DuduNav.readStore) ? DuduNav.readStore() : JSON.parse(localStorage.getItem(LS)||'{}'); }catch(e){}
+  Object.keys(store).forEach(k=>{ if(!OWNED.includes(k) && !(k in fresh)) delete store[k]; });
+  Object.keys(fresh).forEach(k=>{ if(!OWNED.includes(k)) store[k]=fresh[k]; });
+  try{localStorage.setItem(LS,JSON.stringify(store));}catch(e){}
+  DuduSync.schedulePush(store);
+};
+const sfx=(n,o)=>{ try{ if(window.Sfx) Sfx.play(n,o); }catch(e){} };
+
+/* Thème, son, compte : barre du haut et feuille « Moi » de nav.js. */
+
+/* Bouton EN : affiche (ou cache) toutes les traductions anglaises de la page. */
+const enBtn=document.getElementById('enBtn');
+function applyEN(on){ document.body.classList.toggle('en-all',on); enBtn.setAttribute('aria-pressed',on); }
+applyEN(!!store.ecouteEN);
+enBtn.onclick=()=>{ store.ecouteEN=!store.ecouteEN; applyEN(store.ecouteEN); save(); };
+
+/* Les ressources (VIDEOS) vivent dans videos.js, partagé avec plan.html. */
+store.ecoute = store.ecoute||{};      // { id: true }  — la case « pratiqué » (lue par plan.html)
+store.ecouteQ = store.ecouteQ||{};    // { id: {ok, tot, at} } — dernier score aux questions
+store.memPerso = store.memPerso||{};  // { clé: {fr, en, u, src} } — mots ajoutés ici, lus par Mémoire
+
+/* ---------- l'hôte (Léa) : humeur et voix ---------- */
+const hostAv = document.getElementById('hostAv');
+const hostG = () => hostAv.querySelector('g[data-char]');
+let hostT = null, speakT = null;
+try{ Cast.mount(hostAv, {char:'lea', mood:'idle', crop:'face', label:''}); }catch(e){}
+function hostMood(m, ms){
+  const g = hostG(); if(!g) return;
+  clearTimeout(hostT);
+  try{ Cast.setMood(g, m); }catch(e){}
+  if(m !== 'idle') hostT = setTimeout(()=>{ try{ Cast.setMood(g, 'idle'); }catch(e){} }, ms || 1100);
+}
+hostAv.addEventListener('click', ()=>{ sfx('mascot', {char:'lea'}); const g = hostG(); if(g && g.dataset.mood === 'idle') hostMood('happy', 900); });
+/* Quand la voix de Léa (Sfx) parle, elle saute pendant sa réplique. */
+window.addEventListener('dudu:speak', e => {
+  const d = e.detail || {};
+  if(d.char !== 'lea') return;
+  const g = hostG(); if(!g) return;
+  const ms = Math.max(300, (d.duration || 1) * 1000);
+  clearTimeout(hostT); clearTimeout(speakT);
+  try{ Cast.setMood(g, 'happy'); }catch(e){}
+  speakT = setTimeout(()=>{ try{ Cast.setMood(g, 'idle'); }catch(e){} }, ms + 200);
+});
+const face = (mood) => { try{ return Cast.svg('lea', {crop:'face', mood, label:''}); }catch(e){ return ''; } };
+
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtT = s => Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+const ytThumb = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function toast(msg){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg; t.setAttribute('role','status');
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2200);
+}
+
+/* ---------- voix (même réglage que Mémoire / la page de révision) ---------- */
+const TTS_OK = 'speechSynthesis' in window;
+let VOICES = [];
+function loadVoices(){ if(TTS_OK) VOICES = speechSynthesis.getVoices().filter(v=>(v.lang||'').toLowerCase().startsWith('fr')); }
+if(TTS_OK){ loadVoices(); speechSynthesis.addEventListener('voiceschanged', loadVoices); }
+function speak(text){
+  if(!TTS_OK || !text) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const v = VOICES.find(x=>x.voiceURI===(store.ttsVoice||'')) || VOICES[0];
+  if(v){ u.voice = v; u.lang = v.lang || 'fr-FR'; } else u.lang = 'fr-FR';
+  u.rate = parseFloat(store.ttsRate || 0.5);
+  u.pitch = parseFloat(store.ttsPitch || 1);
+  speechSynthesis.speak(u);
+}
+
+/* ---------- clé d'un mot : IDENTIQUE à gkey() de lexique.js, que Mémoire utilise ---------- */
+const gkey = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+  .replace(/[’`]/g,"'").replace(/[.,;:!?…]/g,'').replace(/\s+/g,' ').trim();
+/* Le mot est-il déjà dans Mémoire (vocab.js, vos mots, ou ajouté ici) ? */
+function memStatus(fr){
+  const k = gkey(fr);
+  if(store.memPerso[k]) return 'added';
+  if((store.vocabPerso||[]).some(w=>gkey(w.fr)===k)) return 'have';
+  if(typeof VOCAB!=='undefined' && VOCAB.some(w=>gkey(w.fr)===k)) return 'have';
+  return 'new';
+}
+function addToMemoire(fr, en, unit, id){
+  if(memStatus(fr)!=='new') return false;
+  store.memPerso[gkey(fr)] = {fr, en, u:unit, src:'ecoute:'+id};
+  save(); return true;
+}
+
+/* ---------- correction des réponses écrites (même esprit que judge() de Mémoire) ---------- */
+const cleanTxt = s => String(s||'').toLowerCase().trim().replace(/[’`]/g,"'").replace(/\s+/g,' ').replace(/[.!?;:,«»"]+/g,'').trim();
+const noAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'');
+function judge(given, expected){
+  const g = cleanTxt(given);
+  if(!g) return {ok:false, empty:true};
+  const alts = String(expected).split('|').map(cleanTxt);
+  if(alts.includes(g)) return {ok:true};
+  const gn = noAcc(g);
+  if(alts.some(a=>noAcc(a)===gn)) return {ok:true, note:"presque — attention aux accents."};
+  return {ok:false};
+}
+
+/* ---------- avancement ---------- */
+let LK=null;      // les unités ouvertes (unlock.js), rempli avant le premier affichage
+function updateCounts(){
+  let done=0, all=0;
+  document.querySelectorAll('.ugroup').forEach(g=>{
+    const u=g.dataset.u, list=VIDEOS[u]||[];
+    if(g.classList.contains('is-locked')) return;      // une unité verrouillée ne compte pas
+    const k=list.filter(v=>store.ecoute[v.id]).length;
+    done+=k; all+=list.length;
+    g.querySelector('[data-count]').innerHTML=`<b>${k}</b> / ${list.length} pratiquées`;
+  });
+  document.getElementById('totalDone').textContent=done;
+  document.getElementById('totalAll').textContent=all;
+  document.getElementById('heroFill').style.width = (all ? Math.round(100*done/all) : 0) + '%';
+}
+function setPracticed(v, on, card, quiet){
+  const was = !!store.ecoute[v.id];
+  if(on) store.ecoute[v.id]=true; else delete store.ecoute[v.id];
+  card.classList.toggle('done', !!on);
+  card.querySelector('[data-practice]').checked=!!on;
+  save(); updateCounts();
+  if(on && !was){ hostMood('happy', 1100); if(!quiet) sfx('xp'); }
+  return on && !was;
+}
+
+/* ---------- lecteurs ---------- */
+function openYoutube(card, v, t){
+  let wrap = card.querySelector('.vframe-wrap');
+  const src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0&playsinline=1${t?'&start='+t:''}`;
+  if(wrap){ wrap.querySelector('iframe').src = src; }
+  else{
+    wrap = document.createElement('div'); wrap.className='vframe-wrap';
+    wrap.innerHTML = `<iframe src="${src}" title="${esc(v.title)}"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    card.querySelector('.vthumb').replaceWith(wrap);
+  }
+  wrap.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+function openAudio(card, v, t){
+  let au = card.querySelector('audio');
+  if(!au){
+    au = document.createElement('audio'); au.controls=true; au.preload='metadata'; au.src=v.audio;
+    card.querySelector('.abtn').replaceWith(au);
+    au.addEventListener('loadedmetadata',()=>{
+      const d=Math.round(au.duration); const c=card.querySelector('[data-dur]');
+      if(c && isFinite(d) && d>0){ c.textContent=fmtT(d); c.hidden=false; }
+    });
+    au.addEventListener('error',()=>toast("Audio indisponible pour l'instant — ouvrez la page d'origine."));
+  }
+  if(t) au.currentTime=t;
+  au.play().catch(()=>{});
+}
+function play(card, v, t){ if(v.kind==='audio') openAudio(card, v, t); else if(v.kind==='youtube') openYoutube(card, v, t); }
+
+/* ---------- carte d'une ressource ---------- */
+function enBlock(text){
+  if(!text) return '';
+  return `<button class="enb" type="button" data-en aria-label="English" title="English">EN</button>`;
+}
+function buildCard(v, unit){
+  const card = document.createElement('article');
+  card.className = 'vcard t-card t-card--unit'; card.id = 'r-'+v.id;
+  const nq = v.questions.length, nw = (v.words||[]).length;
+  const media = v.kind==='audio'
+    ? `<div class="aplay"><button class="abtn t-btn t-btn--unit" type="button">▶ Écouter le dialogue</button></div>`
+    : v.kind==='youtube'
+      ? `<button class="vthumb" type="button" aria-label="Lire : ${esc(v.title)}">
+           <img loading="lazy" src="${ytThumb(v.id)}" alt="">
+           <span class="play"><i>▶</i></span>${v.duration?`<span class="dur">${esc(v.duration)}</span>`:''}
+         </button>`
+      : '';
+  card.innerHTML = `${media}
+    <div class="vbody">
+      <div class="src"><span>${esc(v.channel||v.src||'')}</span>
+        <span class="chip t-pill" data-dur ${v.duration?'':'hidden'}>${esc(v.duration||'')}</span>
+        <span class="chip t-pill">${esc(v.level||'A1')}</span>
+        <span class="chip t-pill">${v.kind==='audio'?'🎧 audio':v.kind==='youtube'?'▶ vidéo':'↗ page'}</span></div>
+      <h3 class="vtitle t-h3">${esc(v.title)}</h3>
+      <p class="why">${esc(v.why||'')}${v.whyEn?' '+enBlock(v.whyEn):''}</p>
+      ${v.whyEn?`<p class="en">${esc(v.whyEn)}</p>`:''}
+      <div class="vactions">
+        ${nq?`<button class="vbtn t-btn t-btn--secondary t-btn--sm" type="button" data-tq aria-expanded="false">Questions <span class="n" data-qscore>${nq}</span></button>`:''}
+        ${nw?`<button class="vbtn t-btn t-btn--secondary t-btn--sm" type="button" data-tw aria-expanded="false">Mots clés <span class="n">${nw}</span></button>`:''}
+        ${v.url?`<a class="vbtn t-btn t-btn--secondary t-btn--sm" href="${esc(v.url)}" target="_blank" rel="noopener">ouvrir ↗</a>`:''}
+      </div>
+      <div class="panel-q" hidden></div>
+      <div class="panel-w" hidden></div>
+      <label class="vpractice"><input type="checkbox" data-practice> pratiqué</label>
+    </div>`;
+
+  /* lecteur */
+  const thumb = card.querySelector('.vthumb'); if(thumb) thumb.onclick = ()=>play(card, v);
+  const abtn = card.querySelector('.abtn'); if(abtn) abtn.onclick = ()=>play(card, v);
+
+  /* EN du pourquoi */
+  card.querySelectorAll('.why [data-en]').forEach(b=>b.onclick=()=>{
+    const e=card.querySelector('.vbody > .en'); const on=e.classList.toggle('on'); b.classList.toggle('on',on);
+  });
+
+  /* case pratiqué */
+  const cb = card.querySelector('[data-practice]');
+  cb.checked = !!store.ecoute[v.id]; card.classList.toggle('done', cb.checked);
+  cb.onchange = () => setPracticed(v, cb.checked, card);
+
+  /* panneaux */
+  const pq = card.querySelector('.panel-q'), pw = card.querySelector('.panel-w');
+  const tq = card.querySelector('[data-tq]'), tw = card.querySelector('[data-tw]');
+  const qs = {built:false};
+  if(tq) tq.onclick = () => {
+    const open = pq.hidden; pq.hidden = !open; tq.setAttribute('aria-expanded', open);
+    if(open && !qs.built){ qs.built=true; buildQuestions(card, v, unit, pq, qs); }
+  };
+  if(tw){
+    buildWords(v, unit, pw);
+    tw.onclick = () => { const open = pw.hidden; pw.hidden = !open; tw.setAttribute('aria-expanded', open); };
+  }
+  refreshScoreChip(card, v);
+  return card;
+}
+function refreshScoreChip(card, v){
+  const c = card.querySelector('[data-qscore]'); if(!c) return;
+  const r = store.ecouteQ[v.id];
+  c.textContent = r ? `${r.ok}/${r.tot}` : String(v.questions.length);
+}
+
+/* ---------- mots clés ---------- */
+function buildWords(v, unit, host){
+  const ul = document.createElement('ul'); ul.className='words';
+  v.words.forEach(w=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="wfr">${esc(w.fr)}</span><span class="wen">${esc(w.en)}</span>
+      <span class="wbt"><button class="wbtn t-iconbtn" type="button" data-say aria-label="Écouter : ${esc(w.fr)}">🔈</button>
+      <button class="wbtn t-btn t-btn--sm t-btn--secondary" type="button" data-mem></button></span>`;
+    li.querySelector('[data-say]').onclick = () => speak(w.fr.replace(/\(e\)/g,'').replace(/\//g,','));
+    const mb = li.querySelector('[data-mem]');
+    const paint = () => {
+      const st = memStatus(w.fr);
+      mb.className = 'wbtn t-btn t-btn--sm t-btn--secondary' + (st==='added'?' added':'');
+      mb.disabled = st!=='new';
+      mb.textContent = st==='added' ? '✓ ajouté' : st==='have' ? 'déjà dans Mémoire' : '＋ Mémoire';
+    };
+    paint();
+    mb.onclick = () => { if(addToMemoire(w.fr, w.en, unit, v.id)){ paint(); toast('Ajouté à Mémoire — « Mes mots »'); } };
+    ul.appendChild(li);
+  });
+  const all = document.createElement('button'); all.type='button'; all.className='vbtn t-btn t-btn--secondary t-btn--sm'; all.style.alignSelf='flex-start';
+  const paintAll = () => {
+    const n = v.words.filter(w=>memStatus(w.fr)==='new').length;
+    all.textContent = n ? `＋ Tout ajouter à Mémoire (${n})` : '✓ Tous les mots sont dans Mémoire'; all.disabled = !n;
+  };
+  paintAll();
+  all.onclick = () => {
+    let n=0; v.words.forEach(w=>{ if(addToMemoire(w.fr,w.en,unit,v.id)) n++; });
+    ul.querySelectorAll('li').forEach((li,i)=>{ const w=v.words[i], mb=li.querySelector('[data-mem]'); const st=memStatus(w.fr);
+      mb.className='wbtn t-btn t-btn--sm t-btn--secondary'+(st==='added'?' added':''); mb.disabled=st!=='new'; mb.textContent=st==='added'?'✓ ajouté':st==='have'?'déjà dans Mémoire':'＋ Mémoire'; });
+    paintAll(); if(n) toast(`${n} mot${n>1?'s':''} ajouté${n>1?'s':''} à Mémoire`);
+  };
+  host.appendChild(ul); host.appendChild(all);
+}
+
+/* ---------- questions ---------- */
+function buildQuestions(card, v, unit, host, qs){
+  qs.res = new Array(v.questions.length).fill(null);   // {ok, said}
+  host.innerHTML = '';
+  const note = document.createElement('p'); note.className='src-note'; note.textContent = 'Source des questions : ' + (v.source||'contenu de la ressource');
+  const list = document.createElement('div'); list.style.display='flex'; list.style.flexDirection='column'; list.style.gap='.7rem';
+  const bar = document.createElement('div'); bar.className='scorebar';
+  host.appendChild(list); host.appendChild(bar); host.appendChild(note);
+
+  const last = store.ecouteQ[v.id];
+  const showBar = () => {
+    const answered = qs.res.filter(Boolean).length, ok = qs.res.filter(r=>r&&r.ok).length, tot = v.questions.length;
+    if(answered===tot){
+      bar.innerHTML = `<span>Résultat : <b>${ok} / ${tot}</b> ${ok===tot?'— parfait !':ok>=tot-1?'— très bien.':'— réécoutez les passages et réessayez.'}</span>`;
+      const b = document.createElement('button'); b.type='button'; b.className='vbtn t-btn t-btn--secondary t-btn--sm'; b.textContent='↺ Recommencer';
+      b.onclick = () => { qs.built=false; buildQuestions(card, v, unit, host, qs); qs.built=true; };
+      bar.appendChild(b);
+    } else {
+      bar.innerHTML = `<span>${answered} / ${tot} répondues${last?` · dernier score : <b>${last.ok} / ${last.tot}</b>`:''}</span>`;
+    }
+  };
+
+  const logWrong = (i, q, said, better) => {
+    if(!window.DuduMistakes) return;
+    DuduMistakes.log(store, {key:'video:'+v.id+':'+i, unit, src:'video', ref:'ecoute#u'+unit, tab:'',
+      topic:'Écoute — '+v.title, q:q.q, said, better, why:q.why});
+  };
+  const fixRight = i => { if(window.DuduMistakes) DuduMistakes.fix(store, 'video:'+v.id+':'+i); };
+
+  const finish = (i, q, el, ok, said, better, note) => {
+    qs.res[i] = {ok, said};
+    el.classList.add(ok?'ok':'no');
+    const fb = el.querySelector('.q-fb'); fb.hidden = false;
+    fb.innerHTML = `<span class="q-face">${face(ok?'happy':'sad')}</span><div class="q-tx"><span class="v ${ok?'ok':'no'}">${ok?'✓ Juste':'✗ Pas tout à fait'}</span>${ok?'':` — réponse : <b>${esc(better)}</b>`}
+      ${note?`<div class="note">${esc(note)}</div>`:''}<div>${esc(q.why||'')}</div></div>`;
+    if(ok) fixRight(i); else logWrong(i, q, said, better);
+    save();
+    /* Léa réagit à chaque réponse : « correct » / « wrong » */
+    sfx(ok?'correct':'wrong', {char:'lea'});
+    hostMood(ok?'happy':'idle', 1100);
+    if(qs.res.every(Boolean)){
+      const okN = qs.res.filter(r=>r.ok).length;
+      store.ecouteQ[v.id] = {ok:okN, tot:v.questions.length, at:Date.now()};
+      try{ DuduSync.markActive(store); }catch(e){}   // série 🔥
+      const newly = setPracticed(v, true, card, true);          // coche « pratiqué » (save() inclus)
+      /* toutes les questions sont faites : « perfect » (sans faute) ou « complete », un instant après la réaction à la dernière réponse */
+      if(newly) setTimeout(()=>sfx(okN===v.questions.length ? 'perfect' : 'complete', {char:'lea'}), 900);
+      refreshScoreChip(card, v);
+    }
+    showBar();
+  };
+
+  v.questions.forEach((q,i)=>{
+    const el = document.createElement('div'); el.className='q'; el.dataset.i=i;
+    el.innerHTML = `<div class="q-h"><span class="q-n">${i+1}</span>
+        <div class="q-t">${esc(q.q)}${q.qEn?' <button class="enb" type="button" data-en aria-label="English" title="English">EN</button>':''}</div>
+        ${q.t!=null && v.kind==='youtube' ? `<button class="tchip" type="button" data-t="${q.t}" title="Lancer la vidéo à ce moment">▶ à ${fmtT(q.t)}</button>`:''}</div>
+      ${q.qEn?`<p class="en">${esc(q.qEn)}</p>`:''}
+      <div class="q-body"></div><div class="q-fb" hidden></div>`;
+    const body = el.querySelector('.q-body');
+    const enB = el.querySelector('[data-en]');
+    if(enB) enB.onclick = () => { const on = el.querySelector(':scope > .en').classList.toggle('on'); enB.classList.toggle('on', on); };
+    const tc = el.querySelector('[data-t]'); if(tc) tc.onclick = () => play(card, v, q.t);
+
+    if(q.type==='mcq'){
+      const order = shuffle(q.options.map((o,k)=>k));
+      const box = document.createElement('div'); box.className='opts';
+      order.forEach(k=>{
+        const b = document.createElement('button'); b.type='button'; b.className='opt t-choice'; b.textContent=q.options[k];
+        b.onclick = () => {
+          if(qs.res[i]) return;
+          const ok = k===q.answer;
+          box.querySelectorAll('.opt').forEach(x=>{ x.disabled=true; x.classList.add('is-dim'); });
+          b.classList.remove('is-dim'); b.classList.add(ok?'right':'wrong', ok?'is-right':'is-wrong');
+          if(!ok) box.querySelectorAll('.opt').forEach((x,xi)=>{ if(order[xi]===q.answer){ x.classList.remove('is-dim'); x.classList.add('right','is-hint'); } });
+          finish(i, q, el, ok, q.options[k], q.options[q.answer]);
+        };
+        box.appendChild(b);
+      });
+      body.appendChild(box);
+    } else if(q.type==='tf'){
+      const box = document.createElement('div'); box.className='tfrow';
+      [[true,'Vrai'],[false,'Faux']].forEach(([val,label])=>{
+        const b = document.createElement('button'); b.type='button'; b.className='opt t-choice'; b.textContent=label;
+        b.onclick = () => {
+          if(qs.res[i]) return;
+          const ok = val===q.answer;
+          box.querySelectorAll('.opt').forEach(x=>{ x.disabled=true; x.classList.add('is-dim'); });
+          b.classList.remove('is-dim'); b.classList.add(ok?'right':'wrong', ok?'is-right':'is-wrong');
+          if(!ok) box.querySelectorAll('.opt').forEach(x=>{ if(x.textContent===(q.answer?'Vrai':'Faux')){ x.classList.remove('is-dim'); x.classList.add('right','is-hint'); } });
+          finish(i, q, el, ok, label, q.answer?'Vrai':'Faux');
+        };
+        box.appendChild(b);
+      });
+      body.appendChild(box);
+    } else {   // gap
+      const row = document.createElement('div'); row.className='gaprow';
+      row.innerHTML = `<input class="t-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" aria-label="Votre réponse" placeholder="votre réponse…"><button class="t-btn t-btn--teal t-btn--sm" type="button">Vérifier</button>`;
+      const inp = row.querySelector('input'), btn = row.querySelector('button');
+      const check = () => {
+        if(qs.res[i]) return;
+        const r = judge(inp.value, q.answer);
+        if(r.empty){ inp.focus(); return; }
+        inp.disabled = true; btn.disabled = true; inp.classList.add(r.ok?'right':'wrong');
+        finish(i, q, el, r.ok, inp.value.trim(), String(q.answer).split('|')[0], r.note);
+      };
+      btn.onclick = check;
+      inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } });
+      body.appendChild(row);
+    }
+    list.appendChild(el);
+  });
+  showBar();
+}
+
+/* ---------- page ---------- */
+/* Unité verrouillée : ni vidéo, ni écoute, ni question — l'en-tête reste (grisé) avec le texte qui dit quoi faire. */
+function lockGroup(g, grid, n){
+  g.classList.add('is-locked');
+  const t = Unlock.lockText(n);
+  const ph = document.createElement('div');
+  ph.className = 'ulock t-card t-card--flat';
+  ph.innerHTML = `<span class="ul-hint" role="note">${Unlock.lockIcon()}<span>${t.fr}.<small>${t.en}</small></span></span>`;
+  grid.replaceWith(ph);
+  g.querySelector('[data-count]').innerHTML = `${Unlock.lockIcon()}Verrouillée`;
+  const a = document.querySelector(`.unav a[href="#u${n}"]`);
+  if(a){ a.classList.add('is-locked'); a.insertAdjacentHTML('beforeend', Unlock.lockIcon()); a.setAttribute('aria-label', `Unité ${n} — verrouillée : ${t.fr.replace(/^Verrouillée · /,'')}`); Unlock.lockControl(a, n); }
+}
+Unlock.ready(store).then(st=>{
+  LK = st;
+  document.querySelectorAll('[data-vgrid]').forEach(grid=>{
+    const u = grid.dataset.vgrid;
+    if(st.locked(+u)){ lockGroup(grid.closest('.ugroup'), grid, +u); return; }
+    (VIDEOS[u]||[]).forEach(v=> grid.appendChild(buildCard(v, +u)));
+  });
+  updateCounts();
+  const hm = /^#u(\d)$/.exec(location.hash);
+  if(hm && st.locked(+hm[1])){            // ecoute#u4 d'une unité verrouillée : on n'y va pas
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+    window.scrollTo(0,0); setTimeout(()=>Unlock.notice(+hm[1]),250);
+  }
+});
+
+/* ============================================================
+   RESSOURCES EXTERNES — sites vérifiés en ligne, pas de vidéo
+   à nous : on ouvre le site d'origine dans un nouvel onglet.
+   ============================================================ */
+const LINKS = [
+  {name:"Le français facile avec RFI", domain:'francaisfacile.rfi.fr', url:'https://francaisfacile.rfi.fr/fr/',
+   desc:"Le journal en français facile : l'actualité internationale en 10 minutes, avec des mots simples, tous les jours."},
+  {name:"Apprendre le français — TV5Monde", domain:'apprendre.tv5monde.com', url:'https://apprendre.tv5monde.com/fr',
+   desc:"De vrais extraits vidéo transformés en exercices gratuits, filtrables par niveau (A1 à C1)."},
+  {name:"Podcast Français Facile", domain:'podcastfrancaisfacile.com', url:'https://www.podcastfrancaisfacile.com/',
+   desc:"Une immense bibliothèque gratuite d'écoutes classées par thème et par niveau, avec la transcription."},
+  {name:"News in Slow French", domain:'newsinslowfrench.com', url:'https://www.newsinslowfrench.com/',
+   desc:"L'actualité racontée lentement, avec un lexique — quelques épisodes gratuits par mois."},
+];
+const linkGrid = document.getElementById('linkGrid');
+LINKS.forEach(l=>{
+  const a = document.createElement('a');
+  a.className = 'lcard t-card t-card--flat t-card--tap'; a.href = l.url; a.target = '_blank'; a.rel = 'noopener';
+  a.innerHTML = `<div class="lname">${l.name} <span class="go">ouvrir ↗</span></div>
+    <p>${l.desc}</p><div class="ldomain">${l.domain}</div>`;
+  linkGrid.appendChild(a);
+});
+
+/* ---------- l'illustration de chaque unité (clair / sombre) ---------- */
+function paintArt(){
+  const dark = !!(window.DuduNav && DuduNav.isDark && DuduNav.isDark());
+  document.querySelectorAll('.ugroup').forEach(g=>{
+    const slot = g.querySelector('[data-art]'); if(!slot) return;
+    try{ slot.innerHTML = Places.svg(+g.dataset.u, {variant:'stop', dark}); }catch(e){ slot.hidden = true; }
+  });
+}
+paintArt();
+window.addEventListener('dudu:theme', paintArt);
+DuduNav.mount({active:null, title:'Écoute', back:'app', topbar:'page', tabbar:true});
+
+</script>
+</body>
+</html>

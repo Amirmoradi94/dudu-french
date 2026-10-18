@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFF5E8" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DuDu">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/v4/icon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="icons/v4/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/v4/apple-touch-icon.png">
+<title>DuDu · Parcours</title>
+<script src="content/meta.js"></script>
+<script>
+/* Thème avant le premier affichage : le même réglage que les anciennes pages (store.theme = 'light' | 'dark',
+   absent = automatique, c'est alors le système qui décide). */
+(function () {
+  try {
+    var st = JSON.parse(localStorage.getItem('dudu-a1-u1') || '{}') || {};
+    if (st.theme === 'light' || st.theme === 'dark') document.documentElement.setAttribute('data-theme', st.theme);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="troupe.css">
+<style>
+/* =====================================================================
+   app.html — le parcours. Tout est page-local ; les composants viennent de troupe.css.
+   ===================================================================== */
+[hidden]{display:none!important}
+.app-main{max-width:480px;margin:0 auto;padding:6px 16px 24px}
+
+/* ---- Plan du jour (carte fine) ---- */
+.plan{display:flex;align-items:center;gap:12px;padding:9px 14px 9px 10px;border-radius:20px;min-height:56px;text-decoration:none;color:var(--t-ink);margin-top:2px}
+.plan__ic{width:38px;height:38px;border-radius:12px;background:var(--t-mustard-l);color:var(--t-mustard-ink);display:grid;place-items:center;flex:none}
+.plan__ic svg{width:21px;height:21px}
+.plan__tx{flex:1;min-width:0;display:grid;gap:5px}
+.plan__tx b{font:800 15.5px/1.1 var(--t-font-d)}
+.plan__tx span.sub{font:600 13px/1.25 var(--t-font-b);color:var(--t-ink-2)}
+.plan__go{width:22px;height:22px;color:var(--t-ink-2);flex:none}
+.plan .t-progress{height:8px}
+.plan[data-state="done"] .plan__ic{background:var(--t-teal-l);color:var(--t-teal-ink)}
+.plan[data-state="done"] .t-progress{--bar:var(--t-teal)}
+
+/* ---- une unité ---- */
+.unit{margin-top:26px}
+.u-card{padding:0;overflow:visible;border-radius:26px}
+.u-banner{border-radius:23px 23px 0 0;overflow:hidden;line-height:0;background:var(--t-track);aspect-ratio:9/5}
+.u-banner svg{display:block;width:100%;height:100%}
+.u-body{position:relative;padding:14px 16px 16px;display:grid;gap:8px}
+.u-av{position:absolute;right:14px;top:-30px;width:58px;height:58px;border-radius:50%;border:2px solid var(--t-rim);background:var(--t-unit-l);overflow:hidden;box-shadow:0 3px 0 var(--t-unit-d)}
+.u-av svg{display:block;width:100%;height:100%}
+.u-kicker{display:flex;align-items:center;gap:8px;min-height:22px}
+.u-kicker .t-pill{background:var(--t-unit);color:#2B2230}
+.u-title{padding-right:62px}
+.u-obj{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.u-prog{display:flex;align-items:center;gap:10px}
+.u-prog .t-progress{flex:1;min-width:0}
+.u-pct{font:800 13px/1 var(--t-font-d);color:var(--t-ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.u-prog .u-more{margin:-8px -6px -8px 0}
+.u-state{display:flex;align-items:center;min-height:22px}
+
+/* unités passées : le chemin se déplie à la demande */
+.u-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;margin:4px 0 0;padding:10px 16px;border-radius:14px;
+  border:2px solid var(--t-unit);background:var(--t-unit-l);color:var(--t-unit-ink);font:800 15px/1.1 var(--t-font-d);cursor:pointer;
+  box-shadow:0 3px 0 var(--t-unit-d);transition:transform .09s,box-shadow .09s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.u-toggle:active{transform:translateY(2px);box-shadow:0 1px 0 var(--t-unit-d)}
+.u-toggle svg{width:20px;height:20px;flex:none;transition:transform .2s}
+.u-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+.u-path.is-opening{animation:app-open .22s ease-out}
+
+/* unités verrouillées : on voit la carte, pas le chemin */
+.unit[data-state="locked"] .u-banner{filter:grayscale(.9) saturate(.4);opacity:.5}
+.unit[data-state="locked"] .u-av{filter:grayscale(1);opacity:.55;box-shadow:none}
+.unit[data-state="locked"] .u-title{color:var(--t-ink-2)}
+.unit[data-state="locked"] .u-card{box-shadow:0 5px 0 var(--t-line);border-color:var(--t-line);background:var(--t-paper);cursor:default}
+.u-lock{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;background:var(--t-track);color:var(--t-ink-2)}
+.u-lock__badge{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--t-paper);border:2px solid var(--t-line);color:var(--t-ink-2)}
+.u-lock__badge svg{width:22px;height:22px}
+.u-lock__badge.is-shake{animation:app-shake .45s ease-in-out}
+.u-lock__tx{margin:0;display:grid;gap:2px;min-width:0}
+.u-lock__tx b{font:800 14px/1.25 var(--t-font-d);color:var(--t-ink-2)}
+.u-lock__tx .uo-en{margin:0;font-size:12.5px}
+.unit.is-unlocked .u-card{animation:app-unlock 1.5s ease-out}
+
+/* ---- le chemin ---- */
+.u-path{position:relative;padding:28px 0 6px;--amp:46px;--row:106px}
+@media (min-width:420px){.u-path{--amp:60px}}
+.u-stops{list-style:none;margin:0;padding:0;position:relative;z-index:1}
+.stop{position:relative;height:var(--row);display:flex;justify-content:center;align-items:center}
+.stop--boss{height:calc(var(--row) + 26px)}
+.stop__in{position:relative;width:72px;height:72px;transform:translateX(calc(var(--k,0) * var(--amp)))}
+.stop--boss .stop__in{width:92px;height:92px}
+.stop--cur .stop__in{width:84px;height:84px}
+.stop--boss.stop--cur .stop__in{width:98px;height:98px}
+.stop__btn{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;padding:0;margin:0;cursor:pointer;
+  display:grid;place-items:center;font:800 28px/1 var(--t-font-d);
+  background:var(--t-paper);color:var(--t-unit-ink);border:4px solid var(--t-unit);box-shadow:0 7px 0 var(--t-line);
+  transition:transform .09s,box-shadow .09s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.stop__btn svg{width:32px;height:32px}
+.stop--boss .stop__btn svg{width:42px;height:42px}
+.stop__btn:active{transform:translateY(6px);box-shadow:0 1px 0 var(--t-line)}
+.stop--done .stop__btn{background:var(--t-unit);color:#2B2230;border-color:var(--t-unit-d);box-shadow:0 7px 0 var(--t-unit-d)}
+.stop--done .stop__btn:active{box-shadow:0 1px 0 var(--t-unit-d)}
+.stop--cur .stop__btn{background:var(--t-unit);color:#2B2230;border-color:var(--t-rim);box-shadow:0 8px 0 var(--t-unit-d)}
+.stop--cur .stop__btn:active{box-shadow:0 2px 0 var(--t-unit-d)}
+.stop--cur .stop__btn svg{width:38px;height:38px}
+.stop--boss.stop--cur .stop__btn svg{width:46px}
+.stop__ring{position:absolute;inset:-6px;border-radius:50%;border:4px solid var(--t-unit);pointer-events:none;opacity:0}
+.stop--cur .stop__ring{animation:app-ring 1.9s ease-out infinite}
+.stop__tick{position:absolute;right:-5px;top:-5px;width:28px;height:28px;border-radius:50%;background:var(--t-teal);color:#fff;border:2.5px solid var(--t-paper);display:grid;place-items:center;pointer-events:none}
+.stop__tick svg{width:15px;height:15px}
+.stop__lbl{position:absolute;top:50%;transform:translateY(-50%);width:max-content;max-width:118px;pointer-events:none;
+  font:800 13.5px/1.2 var(--t-font-d);color:var(--t-ink-2);overflow-wrap:break-word}
+.stop__lbl.is-r{left:calc(100% + 14px);text-align:left}
+.stop__lbl.is-l{right:calc(100% + 14px);text-align:right}
+.stop__lbl.is-b{top:auto;bottom:-26px;left:50%;transform:translateX(-50%);max-width:150px;text-align:center;white-space:nowrap;color:var(--t-unit-ink)}
+.stop--cur{height:calc(var(--row) + 18px)}
+.stop__tag{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);pointer-events:none;white-space:nowrap}
+.stop__tag .t-pill{border:2px solid var(--t-paper);box-shadow:0 2px 0 rgba(0,0,0,.08)}
+.stop__boss{position:absolute;left:50%;top:-12px;transform:translateX(-50%);pointer-events:none;white-space:nowrap}
+.stop--boss .stop__btn{border-radius:50%;border-width:5px}
+.stop--boss:not(.stop--done):not(.stop--cur) .stop__btn{background:var(--t-unit-l)}
+
+/* Léa, une seule fois, à côté de l'arrêt en cours */
+.lea{position:absolute;top:50%;width:94px;height:86px;margin-top:-43px;z-index:3;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;outline-offset:2px}
+.lea.is-r{left:calc(100% + 10px)}
+.lea.is-l{right:calc(100% + 10px)}
+.lea>svg{display:block;width:100%;height:100%;overflow:visible}
+.lea .t-bubble{position:absolute;bottom:calc(100% + 2px);width:max-content;max-width:176px;padding:8px 12px;border-radius:18px;font:800 14.5px/1.15 var(--t-font-d);pointer-events:none;z-index:4}
+.lea.is-r .t-bubble{left:-4px}
+.lea.is-l .t-bubble{right:-4px}
+.lea .t-bubble::before{left:auto;right:auto}
+.lea.is-r .t-bubble::before{left:34px}
+.lea.is-l .t-bubble::before{right:34px}
+.lea .t-bubble{box-shadow:0 3px 0 var(--t-edge)}
+
+/* le chemin tracé derrière les arrêts */
+.u-conn{position:absolute;left:0;top:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible}
+.u-conn path{fill:none;stroke-linecap:round}
+.u-conn .base{stroke:var(--t-track);stroke-width:7;stroke-dasharray:1 15}
+.u-conn .made{stroke:var(--t-unit);stroke-width:8;opacity:.9}
+
+/* chargement */
+.sk{height:var(--row);display:flex;justify-content:center;align-items:center}
+.sk i{display:block;width:72px;height:72px;border-radius:50%;transform:translateX(calc(var(--k,0) * var(--amp)));
+  background:linear-gradient(100deg,var(--t-track) 30%,var(--t-line) 50%,var(--t-track) 70%) 0 0/220% 100%;animation:app-shim 1.3s linear infinite}
+.skline{display:block;height:12px;border-radius:99px;background:linear-gradient(100deg,var(--t-track) 30%,var(--t-line) 50%,var(--t-track) 70%) 0 0/220% 100%;animation:app-shim 1.3s linear infinite}
+.errcard{margin-top:18px;display:grid;gap:10px;justify-items:start}
+
+/* l'unité suivante (« Bientôt ») */
+.soon{margin-top:26px;border:2px dashed var(--t-line);border-radius:24px;padding:18px 16px;display:grid;gap:6px;justify-items:start;background:transparent}
+.soon .t-h3{color:var(--t-ink-2)}
+
+/* feuilles : contenu */
+.sh-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.sh-head>div{flex:1;min-width:0}
+.sh-head .t-label{display:block;line-height:1.35}
+.sh-ic{width:56px;height:56px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--t-unit);color:#2B2230;border:3px solid var(--t-unit-d);font:800 24px/1 var(--t-font-d)}
+.sh-ic svg{width:28px;height:28px}
+.sh-meta{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+.sh-meta .t-pill{font-size:12px;padding:6px 10px}
+
+/* feuille « options de l'unité » */
+.uo-en{display:block;margin-top:2px;font-style:italic;color:var(--t-ink-3,var(--t-ink-2))}
+.uo-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:12px}
+.uo-list li{padding-left:2px}
+.uo-list b{font-weight:800}
+.uo-acts{display:grid;gap:10px;margin-top:18px}
+.uo-acts .t-btn{white-space:nowrap}
+#unitTitle:focus{outline:none}
+
+@keyframes app-ring{0%{transform:scale(.92);opacity:.85}100%{transform:scale(1.4);opacity:0}}
+@keyframes app-open{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes app-shake{0%,100%{transform:translateX(0) rotate(0)}18%{transform:translateX(-5px) rotate(-8deg)}36%{transform:translateX(5px) rotate(8deg)}54%{transform:translateX(-3px) rotate(-5deg)}72%{transform:translateX(3px) rotate(4deg)}}
+@keyframes app-unlock{0%{outline:4px solid var(--t-unit);outline-offset:2px}100%{outline:4px solid transparent;outline-offset:12px}}
+@keyframes app-shim{from{background-position:120% 0}to{background-position:-100% 0}}
+@media (prefers-reduced-motion:reduce){.stop__ring,.sk i,.skline,.u-path.is-opening,.u-lock__badge.is-shake,.unit.is-unlocked .u-card{animation:none!important}.u-toggle svg{transition:none}.u-toggle{transition:none}.stop--cur .stop__ring{opacity:.7;transform:scale(1.15)}.stop__btn,.row{transition:none}}
+</style>
+</head>
+<body class="t-page">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-cards" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="13" height="13" rx="2.6"/><path d="M8 4h11a1.5 1.5 0 0 1 1.5 1.5V16"/></g></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.8l4.6 4.6L19.2 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M4 5h16v11.2H11L6.2 20v-3.8H4z"/><path d="M8 9.6h8M8 12.6h5"/></g></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><rect x="5.5" y="3" width="13.5" height="18" rx="2.4"/><path d="M9 8h7M9 12h7M9 16h4"/><path d="M3 7h3M3 12h3M3 17h3"/></g></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L8.5 19z"/><path d="M14.5 6l3.5 3.5"/></g></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11M17 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5"/><path d="M12 14v3.5M8.5 20.5h7M9.5 17.5h5"/></g></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2 6.3 20.3l1.2-6.4L2.8 9.5l6.4-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5.5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="18.5" cy="12" r="2.1"/></g></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 4.5 9.5 9 14"/><path d="M5 9.5h9a5 5 0 0 1 0 10h-3"/></g></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.6"/><path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7"/><path d="M12 14.6v2.2"/></g></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="3"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></g></symbol>
+</defs></svg>
+
+<div id="app">
+
+  <main class="app-main" id="main">
+    <h1 class="t-sr">Mon parcours DuDu</h1>
+
+    <a class="t-card t-card--flat plan" id="planCard" href="plan">
+      <span class="plan__ic" aria-hidden="true"><svg><use href="#i-cal"/></svg></span>
+      <span class="plan__tx">
+        <b>Plan du jour</b>
+        <span class="sub" id="planSub">Préparer ma séance du jour (≈ 30 min)</span>
+        <span class="t-progress t-progress--sm t-progress--teal" id="planBar" hidden style="--bar:var(--t-mustard)"><i id="planFill" style="width:0"></i></span>
+      </span>
+      <svg class="plan__go" aria-hidden="true"><use href="#i-arrow"/></svg>
+    </a>
+
+    <div id="loadErr" hidden></div>
+
+    <div id="units"></div>
+
+    <section class="soon" id="soon" aria-label="Unité suivante">
+      <span class="t-pill t-pill--mustard">Bientôt</span>
+      <h2 class="t-h3"></h2>
+      <p class="t-small">Pas encore construite. Les prochaines unités arrivent ici, au bout du chemin.</p>
+    </section>
+    <script>
+    /* l'unité d'après la dernière de content/meta.js (COURSE.next : son titre, facultatif) */
+    (function () {
+      var n = Math.max.apply(null, Object.keys(COURSE.units).map(Number)) + 1, s = document.getElementById('soon');
+      s.setAttribute('aria-label', 'Unité ' + n);
+      s.querySelector('h2').textContent = 'Unité ' + n + (COURSE.next ? ' · ' + COURSE.next : '');
+    })();
+    </script>
+
+    <p class="t-sr" role="status" aria-live="polite" id="loadStatus">Chargement du parcours…</p>
+  </main>
+
+</div>
+
+<!-- feuille : un arrêt -->
+<div class="t-sheet" id="shStop" aria-hidden="true">
+  <div class="t-sheet__scrim" data-close></div>
+  <div class="t-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="stopTitle" tabindex="-1">
+    <span class="t-sheet__grip"></span>
+    <div id="stopBody"></div>
+  </div>
+</div>
+
+<!-- feuille : options d'une unité -->
+<div class="t-sheet" id="shUnit" aria-hidden="true">
+  <div class="t-sheet__scrim" data-close></div>
+  <div class="t-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="unitTitle" tabindex="-1">
+    <span class="t-sheet__grip"></span>
+    <div id="unitBody"></div>
+  </div>
+</div>
+
+<script src="sync.js"></script>
+<script src="mistakes.js"></script>
+<script src="cast.js"></script>
+<script src="sfx.js"></script>
+<script src="nav.js"></script>
+<script src="places.js"></script>
+<script src="content/vocab.js"></script>
+<script src="vocab.js"></script>
+<script src="course.js"></script>
+<script src="unlock.js"></script>
+<script>
+(function () {
+'use strict';
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const sfx = (n, o) => { try { window.Sfx && Sfx.play(n, o); } catch (e) {} };
+
+const UNITS = Object.keys(COURSE.units).map(Number);   // content/meta.js
+const LEADER = {1: 'lea', 2: 'jo', 3: 'dubois', 4: 'lea', 5: 'lea'};
+/* les « objectifs » de chaque unité (content/meta.js) */
+const OBJ = COURSE.goals || {};
+const PANEL_LABEL = {docs: 'Document', gram: 'Grammaire', voc: 'Vocabulaire', phon: 'Phonétique', parler: 'Parler', cahier: 'Cahier'};
+const KIND_LABEL = {learn: 'Leçon', parler: 'Parler', cahier: 'Cahier', test: 'Test', bilan: 'Bilan', mots: 'Mémoire'};
+const clean = t => String(t || '').replace(/^\s*\d+\s*·\s*/, '');
+const OFFS = [0, -1, -1.6, -1, 0, 1, 1.6, 1];
+/* Un ou deux mots à côté de chaque arrêt du chemin : de quoi parle l'étape (content/meta.js, shortLabels). Clé = titre normalisé (stopKey) ;
+   un titre absent (nouvelle unité) prend un raccourci automatique (autoShort). */
+const SHORT = COURSE.shortLabels || {};
+const stopKey = t => String(t || '').toLowerCase()
+  .replace(/\s*\(p\.\s*\d+\)/g, '')                            // un renvoi de page « (p. NN) »
+  .replace(/^[^\p{L}\d]+/u, '')                                    // ✍️ 📖
+  .replace(/^(\d+|[a-h])\s*·\s*/, '')                              // « 1 · », « A · »
+  .replace(/^(grammaire|vocabulaire)\s*—\s*/, '')
+  .replace(/\s+/g, ' ').trim();
+function autoShort(t){
+  let x = clean(t).replace(/\s*\(p\.\s*\d+\)/g, '').replace(/^[^\p{L}\d]+/u, '').replace(/^[A-H]\s*·\s*/, '')
+    .replace(/^(Grammaire|Vocabulaire|Compréhension orale|Compréhension écrite)\s*—\s*/, '')
+    .split(/\s*[,—:(]\s*/)[0];
+  const lect = /^Lecture\s*·\s*/i.test(x);                          // « Lecture · Un week-end à Paris » → « Lecture : week-end »
+  x = x.replace(/^Lecture\s*·\s*/i, '').replace(/^(?:(?:les|le|la|un|une|des)\s+|l')/i, '').replace(/[!?.]+$/, '').trim();
+  const w = x.split(/\s+/);
+  x = lect ? w[0] : w.slice(0, 2).join(' ') + (w.length > 2 ? '…' : '');
+  x = x ? x[0].toUpperCase() + x.slice(1) : '';
+  return lect ? 'Lecture : ' + x.toLowerCase() : x;
+}
+const shortLabel = s => s.kind === 'mots' ? `Mots ${s.seen}/${s.total}` : s.gp ? `Livre · ch. ${s.gp}` : SHORT[stopKey(s.title)] || autoShort(s.title);
+
+/* ------------------------------ le store ------------------------------ */
+let store = Course.readStore();
+
+/* ------------------------------ thème ------------------------------
+   Le réglage (store.theme → html[data-theme], <meta theme-color>, feuille « Moi ») est dans nav.js ;
+   ici on ne repeint que les bannières, quand nav.js annonce un changement. */
+const isDark = () => DuduNav.isDark();
+function paintBanners() {
+  const dark = isDark();
+  UNITS.forEach(n => { const b = $('[data-banner="' + n + '"]'); if (b) b.innerHTML = Places.svg(n, {variant: 'banner', dark}); });
+}
+window.addEventListener('dudu:theme', paintBanners);
+
+/* ------------------------------ plan du jour (repris de l'ancienne page d'accueil) ------------------------------ */
+const pad = n => String(n).padStart(2, '0');
+const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function renderPlan() {
+  try {
+    const today = dateKey(new Date());
+    const plan = store.plan;
+    const sub = $('#planSub'), card = $('#planCard'), bar = $('#planBar');
+    const prefs = store.planPrefs || {};
+    card.removeAttribute('data-state');
+    if (!plan || plan.date !== today || !Array.isArray(plan.items) || !plan.items.length) {
+      sub.textContent = `Préparer ma séance du jour (≈ ${prefs.budget || 30} min)`;
+      bar.hidden = true;
+      return;
+    }
+    const exDone = id => { const r = store['ex_' + id]; return !!(r && r.tot); };
+    const memDone = store.memMeta && store.memMeta.date === today && store.memMeta.newToday > 0;
+    const isDone = it => typeof it.done === 'boolean' ? it.done : !!(it.manual
+      || (it.exIds && it.exIds.length && it.exIds.every(exDone))
+      || (it.kind === 'memoire' && memDone)
+      || (it.kind === 'listen' && it.videoId && (store.ecoute || {})[it.videoId]));
+    const n = plan.items.length;
+    const k = plan.items.filter(isDone).length;
+    const left = plan.items.filter(it => !isDone(it)).reduce((t, it) => t + (+it.est || 0), 0);
+    sub.textContent = k >= n ? `Séance terminée · ${n} / ${n} activités faites`
+      : `${k} / ${n} activité${n > 1 ? 's' : ''} faite${k > 1 ? 's' : ''} · ≈ ${left} min`;
+    bar.hidden = false;
+    $('#planFill').style.width = Math.round(k / n * 100) + '%';
+    if (k >= n) card.dataset.state = 'done';
+  } catch (e) {}
+}
+
+/* ------------------------------ squelette de l'écran ------------------------------ */
+function skeletonHtml(n) {
+  let h = '<div class="u-skel" aria-hidden="true">';
+  for (let i = 0; i < 5; i++) h += `<div class="sk" style="--k:${OFFS[i % OFFS.length]}"><i></i></div>`;
+  return h + '</div>';
+}
+function buildShell() {
+  const frag = document.createDocumentFragment();
+  UNITS.forEach(n => {
+    const info = Places.info(n);
+    const sec = document.createElement('section');
+    sec.className = 'unit t-u' + n;
+    sec.id = 'unit-' + n;
+    sec.setAttribute('aria-labelledby', 'unit-' + n + '-t');
+    sec.innerHTML =
+      `<div class="t-card t-card--unit u-card">
+         <div class="u-banner" data-banner="${n}"></div>
+         <div class="u-body">
+           <span class="u-av" data-react aria-hidden="true">${Cast.svg(LEADER[n], {crop: 'face', label: ''})}</span>
+           <div class="u-state" hidden></div>
+           <h2 class="t-h3 u-title" id="unit-${n}-t">Unité ${n} · ${esc(info ? info.name : '')}</h2>
+           <p class="t-small u-obj">${esc(info ? info.topic : '')} — ${esc((OBJ[n] || []).join(' · '))}</p>
+           <div class="u-prog">
+             <div class="t-progress t-progress--unit t-progress--sm" role="progressbar" aria-label="Progression de l'unité ${n}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i style="width:0"></i></div>
+             <span class="u-pct" id="pct-${n}"></span>
+             <button class="t-iconbtn u-more" type="button" data-unitmenu="${n}" aria-haspopup="dialog" aria-label="Options de l'unité ${n}" title="Options de l'unité ${n}"><svg aria-hidden="true"><use href="#i-dots"/></svg></button>
+           </div>
+           <div class="u-lock" hidden>
+             <span class="u-lock__badge" aria-hidden="true"><svg><use href="#i-lock"/></svg></span>
+             <p class="u-lock__tx"><b></b><span class="t-small uo-en"></span></p>
+           </div>
+           <button class="u-toggle" type="button" data-toggle="${n}" aria-controls="path-${n}" aria-expanded="false" hidden><span class="u-toggle__tx">Voir le chemin</span><svg aria-hidden="true"><use href="#i-chev"/></svg></button>
+         </div>
+       </div>
+       <div class="u-path" id="path-${n}">${skeletonHtml(n)}</div>`;
+    frag.appendChild(sec);
+  });
+  $('#units').appendChild(frag);
+  paintBanners();
+}
+
+/* ------------------------------ le parcours ------------------------------ */
+let course = null, paths = {}, current = null, stopByKey = {};
+const ICON = {learn: 'i-book', parler: 'i-chat', cahier: 'i-pencil', test: 'i-trophy', bilan: 'i-star', mots: 'i-cards'};
+
+/* Ce qui est ouvert ne dépend que de la progression (jamais de store.unit, que l'ancienne page écrit à chaque changement d'onglet) :
+   la règle est dans unlock.js (partagée avec toutes les pages) — l'unité N est ouverte si c'est la première, si un de ses exercices
+   a déjà été fait, ou si le test de l'unité N-1 est réussi. La plus haute unité ouverte est « l'unité en cours » ;
+   en dessous : passées (repliées) ; au-dessus : verrouillées. */
+let frontier = UNITS[0], stateOf = {};
+function computeStates() {
+  Unlock.remember(course);                        // garde la carte exercice → unité pour les autres pages
+  const us = Unlock.state(store);
+  frontier = us.frontier;
+  UNITS.forEach(n => { stateOf[n] = us.stateOf(n); });
+}
+
+/* Les chemins dépliés (unités passées) vivent hors du DOM : refresh() les garde. Mémorisés le temps de la session. */
+const OPEN_KEY = 'dudu-app-open';
+const openSet = new Set();
+try { JSON.parse(sessionStorage.getItem(OPEN_KEY) || '[]').forEach(v => { if (UNITS.indexOf(+v) >= 0) openSet.add(+v); }); } catch (e) {}
+function saveOpen() { try { sessionStorage.setItem(OPEN_KEY, JSON.stringify(Array.from(openSet))); } catch (e) {} }
+const reduceMotion = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function stopState(s) { return s.done ? 'fait' : (current && current.key === s.key ? 'en cours' : 'à faire'); }
+function stopLabel(s) {
+  const k = s.kind === 'learn' ? PANEL_LABEL[s.panel] || 'Leçon' : s.kind === 'test' ? 'Test de fin d\'unité' : s.kind === 'bilan' ? s.title : KIND_LABEL[s.kind];
+  if (s.kind === 'mots') return `Unité ${s.unit} · Mots, paquet ${s.pack} sur ${s.packs} · ${s.seen} mots vus sur ${s.total}${s.due ? ' · ' + s.due + ' à revoir' : ''}`;
+  return `Unité ${s.unit} · ${k}${s.kind === 'bilan' ? '' : ' · ' + clean(s.title)}${s.bonus ? ' · bonus, facultatif' : ''} · ${stopState(s)}${s.weak ? ' · à revoir' : ''}`;
+}
+function stopInner(s) {
+  if (s.kind === 'learn' && s.letter) return `<span aria-hidden="true">${esc(s.letter)}</span>`;
+  return `<svg aria-hidden="true"><use href="#${ICON[s.kind] || 'i-book'}"/></svg>`;
+}
+
+function setToggleUi(n, open) {
+  const t = $('#unit-' + n + ' .u-toggle');
+  if (!t) return;
+  t.setAttribute('aria-expanded', open ? 'true' : 'false');
+  $('.u-toggle__tx', t).textContent = open ? 'Masquer le chemin' : 'Voir le chemin';
+}
+/* l'état de la carte (en cours / passée / verrouillée) : tout ce qui n'est pas le chemin lui-même */
+function paintCard(n, state, prog, left) {
+  const sec = $('#unit-' + n), host = $('#path-' + n), card = $('.u-card', sec);
+  const locked = state === 'locked', past = state === 'past';
+  sec.dataset.state = state;
+  $('.u-prog', sec).hidden = locked;
+  $('.u-lock', sec).hidden = !locked;
+  const av = $('.u-av', sec);
+  if (locked) av.removeAttribute('data-react'); else av.setAttribute('data-react', '');
+  const st = $('.u-state', sec), tg = $('.u-toggle', sec);
+  st.hidden = !past; tg.hidden = !past;
+  st.innerHTML = past ? (prog.pct === 100 ? '<span class="t-pill t-pill--teal">Terminée</span>'
+    : `<span class="t-pill t-pill--mustard">${left} étape${left > 1 ? 's' : ''} pas encore faite${left > 1 ? 's' : ''}</span>`) : '';
+  if (locked) {
+    const need = n - 1, lt = Unlock.lockText(n);
+    $('.u-lock__tx b', sec).textContent = lt.fr;
+    $('.u-lock__tx .uo-en', sec).textContent = lt.en;
+    card.setAttribute('role', 'group'); card.setAttribute('aria-disabled', 'true');
+    card.setAttribute('aria-label', `Unité ${n} · ${Places.name(n)} — verrouillée : termine l'unité ${need} pour l'ouvrir.`);
+    host.innerHTML = ''; host.hidden = true;
+  } else {
+    card.removeAttribute('role'); card.removeAttribute('aria-disabled'); card.removeAttribute('aria-label');
+    const open = past && openSet.has(n);
+    host.hidden = past && !open;
+    host.classList.remove('is-opening');
+    if (past) setToggleUi(n, open);
+  }
+}
+
+function renderUnit(n, leaFig) {
+  const state = stateOf[n];
+  if (state === 'locked') { paintCard(n, state, null, 0); return; }
+  const stops = paths[n] || [];
+  const host = $('#path-' + n);
+  const prog = Course.unitProgress(stops);
+  paintCard(n, state, prog, stops.filter(s => !s.done).length);
+  const bar = $('#unit-' + n + ' .t-progress');
+  bar.firstElementChild.style.width = prog.pct + '%';
+  bar.setAttribute('aria-valuenow', prog.pct);
+  $('#pct-' + n).textContent = `${prog.done} / ${prog.total} · ${prog.pct} %`;
+
+  const ol = document.createElement('ol');
+  ol.className = 'u-stops';
+  ol.setAttribute('aria-label', 'Étapes de l\'unité ' + n);
+  const frag = document.createDocumentFragment();
+  let k = 0;
+  stops.forEach((s, i) => {
+    stopByKey[s.key] = s;
+    const boss = s.kind === 'test' || s.kind === 'bilan';
+    const isCur = !!(current && current.key === s.key);
+    const li = document.createElement('li');
+    li.className = 'stop' + (boss ? ' stop--boss' : '') + (s.done ? ' stop--done' : '') + (isCur ? ' stop--cur' : '');
+    const kk = boss && s.kind === 'test' ? 0 : OFFS[k % OFFS.length];
+    li.style.setProperty('--k', kk);
+    li.dataset.k = kk;
+    k++;
+    li.innerHTML =
+      `<div class="stop__in">
+         <span class="stop__ring"></span>
+         <button type="button" class="stop__btn" data-key="${esc(s.key)}" aria-haspopup="dialog" aria-label="${esc(stopLabel(s))}"${isCur ? ' aria-current="step"' : ''}>${stopInner(s)}</button>
+         ${s.done ? '<span class="stop__tick" aria-hidden="true"><svg><use href="#i-check"/></svg></span>' : ''}
+         ${s.weak && !isCur ? '<span class="stop__tag"><span class="t-pill t-pill--mustard">à revoir</span></span>' : s.bonus && !s.done && !isCur ? '<span class="stop__tag"><span class="t-pill">bonus</span></span>' : ''}
+         <span class="stop__lbl ${isCur ? 'is-b' : kk > 0 ? 'is-l' : 'is-r'}" aria-hidden="true">${esc(shortLabel(s))}</span>
+         ${boss && !s.done && !isCur ? '' : ''}
+       </div>`;
+    if (isCur && leaFig) {
+      const right = kk > 0.2 ? false : true;     // Léa se tient du côté où il y a de la place
+      leaFig.classList.add(right ? 'is-r' : 'is-l');
+      li.querySelector('.stop__in').appendChild(leaFig);
+    }
+    frag.appendChild(li);
+  });
+  ol.appendChild(frag);
+  host.innerHTML = '';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const conn = document.createElementNS(svgNS, 'svg');
+  conn.setAttribute('class', 'u-conn'); conn.setAttribute('aria-hidden', 'true');
+  conn.innerHTML = '<path class="base"></path><path class="made"></path>';
+  host.appendChild(conn);
+  host.appendChild(ol);
+  drawConn(n);
+}
+
+/* trace le chemin entre les centres des arrêts : un seul <path> en pointillés, un second plein jusqu'à l'arrêt en cours */
+function drawConn(n) {
+  const host = $('#path-' + n);
+  if (!host || host.hidden) return;                 // replié ou verrouillé : rien à tracer (on retrace à l'ouverture)
+  const conn = $('.u-conn', host), stops = paths[n] || [];
+  if (!conn) return;
+  const hr = host.getBoundingClientRect();
+  if (!hr.width) return;
+  const pts = $$('.stop__btn', host).map(b => { const r = b.getBoundingClientRect(); return [r.left - hr.left + r.width / 2, r.top - hr.top + r.height / 2]; });
+  if (pts.length < 2) { $('.base', conn).setAttribute('d', ''); $('.made', conn).setAttribute('d', ''); return; }
+  conn.setAttribute('viewBox', `0 0 ${hr.width} ${hr.height}`);
+  const seg = (a, b) => { const m = (a[1] + b[1]) / 2; return ` C${a[0]},${m} ${b[0]},${m} ${b[0]},${b[1]}`; };
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++) d += seg(pts[i - 1], pts[i]);
+  $('.base', conn).setAttribute('d', d);
+  /* le tronçon « déjà fait » : jusqu'à l'arrêt en cours (ou tout, si l'unité est finie) */
+  let upto = stops.findIndex(s => !s.done && s.kind !== 'mots');
+  if (upto < 0) upto = stops.length - 1;
+  let m = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i <= upto && i < pts.length; i++) m += seg(pts[i - 1], pts[i]);
+  $('.made', conn).setAttribute('d', upto > 0 ? m : '');
+}
+const ro = window.ResizeObserver ? new ResizeObserver(es => es.forEach(e => { const n = (e.target.id || '').replace('path-', ''); if (n) drawConn(n); })) : null;
+
+/* Léa */
+let lea = null, leaMoodT = null;
+function makeLea() {
+  const fresh = !UNITS.some(n => (paths[n] || []).some(s => s.done));
+  const el = document.createElement('div');
+  el.className = 'lea';
+  el.setAttribute('role', 'button'); el.tabIndex = 0; el.setAttribute('data-react', '');
+  el.setAttribute('aria-label', 'Léa — touchez pour une réaction');
+  el.innerHTML = `<div class="t-bubble t-bubble--b" aria-hidden="true">${fresh ? 'C\'est parti !' : 'On continue ?'}</div>` + Cast.svg('lea', {label: ''});
+  const poke = () => {
+    sfx('mascot', {char: 'lea'});
+    const g = $('g[data-char]', el); if (!g) return;
+    if (g.dataset.mood !== 'idle') return;
+    clearTimeout(leaMoodT); Cast.setMood(g, 'happy');
+    leaMoodT = setTimeout(() => { if (g.dataset.mood === 'happy') Cast.setMood(g, 'idle'); }, 900);
+  };
+  el.addEventListener('click', poke);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); poke(); } });
+  return el;
+}
+const WHO = {mamie: 'jo'};
+let speakT = null;
+window.addEventListener('dudu:speak', e => {
+  const d = e.detail || {}, c = WHO[d.char] || d.char;
+  const gs = $$('g[data-char="' + c + '"]').filter(g => g.closest('[data-react]'));
+  if (!gs.length) return;
+  const ms = Math.max(300, (d.duration || 1) * 1000);
+  gs.forEach(g => { if (g._was === undefined) g._was = g.dataset.mood; Cast.setMood(g, 'happy'); clearTimeout(g._st); g._st = setTimeout(() => { Cast.setMood(g, g._was || 'idle'); g._was = undefined; }, ms + 200); });
+});
+
+function renderTop() {
+  let done = 0, total = 0;
+  UNITS.forEach(n => { const p = Course.unitProgress(paths[n] || []); done += p.done; total += p.total; });
+  const pct = total ? Math.round(100 * done / total) : 0;
+  DuduNav.setProgress(pct);
+}
+
+function renderPath() {
+  store = Course.readStore();
+  stopByKey = {};
+  UNITS.forEach(n => { paths[n] = Course.pathOf(n, course, store); });
+  computeStates();
+  current = Course.currentStop(paths[frontier] || []);
+  const prev = lea && lea.parentNode ? lea.parentNode : null;
+  lea = current ? makeLea() : null;
+  UNITS.forEach(n => {
+    const host = $('#path-' + n);
+    renderUnit(n, current && current.unit === n && stateOf[n] === 'current' ? lea : null);
+    if (ro && !host._ro) { ro.observe(host); host._ro = true; }
+  });
+  renderTop(); DuduNav.refresh(); renderPlan();
+  $('#loadStatus').textContent = '';
+}
+
+/* ------------------------------ feuilles ------------------------------ */
+let dirty = false;
+/* l'ouverture / fermeture des feuilles (focus, Échap, arrière-plan inerte) est dans nav.js */
+DuduNav.onSheetClose(silent => { if (!silent && dirty) { dirty = false; refresh(); } });
+
+/* l'arrêt */
+function openMots(s, from) {
+  const pct = s.total ? Math.round(100 * s.seen / s.total) : 0;
+  const pills = [`<span class="t-pill t-pill--unit">Mémoire</span>`, `<span class="t-pill">≈ 10 min</span>`,
+    s.done ? '<span class="t-pill t-pill--teal">Tous les mots vus</span>' : `<span class="t-pill t-pill--mustard">${s.seen} / ${s.total} mots vus</span>`];
+  if (s.due) pills.push(`<span class="t-pill t-pill--blush">${s.due} à revoir aujourd'hui</span>`);
+  const sheet = $('#shStop');
+  sheet.className = sheet.className.replace(/\bt-u\d\b/g, '').trim() + ' t-u' + s.unit;
+  $('#stopBody').innerHTML =
+    `<div class="sh-head">
+       <span class="sh-ic" aria-hidden="true"><svg><use href="#i-cards"/></svg></span>
+       <div><span class="t-label">Unité ${s.unit} · ${esc(Places.name(s.unit))}</span><h2 class="t-h2" id="stopTitle" style="margin-top:6px">Mots · paquet ${s.pack}/${s.packs}</h2></div>
+       <button class="t-iconbtn" type="button" data-close aria-label="Fermer"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+     </div>
+     <div class="sh-meta">${pills.join('')}</div>
+     <div class="t-progress t-progress--sm" style="margin:-4px 0 12px" role="progressbar" aria-label="Mots vus" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
+     <p class="t-small" style="margin:0 0 14px">Les ${s.total} mots de ce paquet en cartes. Ensuite, chaque mot revient au bon moment (après 1, 2, 4, 9, 18 puis 35 jours) pour rester en mémoire.</p>
+     <a class="t-btn t-btn--unit t-btn--block" id="stopGo" href="${esc(s.href)}">${s.seen ? 'Réviser' : 'Commencer'}<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>`;
+  $('#stopGo').addEventListener('click', () => sfx('tap'));
+  DuduNav.openSheet('shStop', from);
+}
+function openStop(s, from) {
+  if (s.kind === 'mots') { openMots(s, from); return; }
+  const done = s.exIds.filter(id => Course.isDone(store, id)).length;
+  const boss = s.kind === 'test' || s.kind === 'bilan';
+  const kind = s.kind === 'learn' ? (PANEL_LABEL[s.panel] || 'Leçon') : s.kind === 'test' ? 'Test de fin d\'unité' : s.kind === 'bilan' ? 'Bilan' : KIND_LABEL[s.kind];
+  const cta = s.done ? 'Refaire' : (done > 0 ? 'Continuer' : 'Commencer');
+  const marked = stopMarked(store, s), markable = canMarkStop(s) && (marked || !s.done);   // fait pour de vrai : rien à marquer
+  const pills = [];
+  pills.push(`<span class="t-pill t-pill--unit">${esc(kind)}</span>`);
+  if (s.gp) pills.push(`<span class="t-pill">Livre de grammaire · ch. ${esc(s.gp)}</span>`);
+  if (s.bonus) pills.push('<span class="t-pill">Bonus · facultatif</span>');
+  pills.push(`<span class="t-pill">≈ ${s.est} min</span>`);
+  if (!boss) pills.push(`<span class="t-pill">${s.exIds.length} exercice${s.exIds.length > 1 ? 's' : ''}</span>`);
+  if (s.done) pills.push('<span class="t-pill t-pill--teal">Fait</span>');
+  else if (done > 0) pills.push(`<span class="t-pill t-pill--mustard">En cours · ${done} / ${s.exIds.length}</span>`);
+  if (s.weak) pills.push('<span class="t-pill t-pill--blush">À revoir</span>');
+  const sub = boss ? 'Un test noté par le tuteur, à ton rythme.' : s.weak ? 'Quelques réponses à retravailler.'
+    : s.bonus ? 'Pour aller plus loin : tu peux la passer, l\'unité avance sans elle.' : '';
+  const body = $('#stopBody');
+  const sheet = $('#shStop');
+  sheet.className = sheet.className.replace(/\bt-u\d\b/g, '').trim() + ' t-u' + s.unit;
+  body.innerHTML =
+    `<div class="sh-head">
+       <span class="sh-ic" aria-hidden="true">${s.kind === 'learn' && s.letter ? esc(s.letter) : '<svg><use href="#' + (ICON[s.kind] || 'i-book') + '"/></svg>'}</span>
+       <div><span class="t-label">Unité ${s.unit} · ${esc(Places.name(s.unit))}</span><h2 class="t-h2" id="stopTitle" style="margin-top:6px">${esc(clean(s.title))}</h2></div>
+       <button class="t-iconbtn" type="button" data-close aria-label="Fermer"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+     </div>
+     <div class="sh-meta">${pills.join('')}</div>
+     ${sub ? `<p class="t-small" style="margin:-6px 0 14px">${esc(sub)}</p>` : ''}
+     <a class="t-btn t-btn--unit t-btn--block" id="stopGo" href="${esc(s.href)}">${cta}<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+     ${markable ? `<button class="t-btn t-btn--secondary t-btn--block" type="button" id="stopMark" style="margin-top:10px">${marked ? 'Annuler « fait »' : 'Marquer comme fait'}<svg aria-hidden="true"><use href="#${marked ? 'i-undo' : 'i-check'}"/></svg></button>` : ''}`;
+  $('#stopGo').addEventListener('click', () => sfx('tap'));
+  const mk = $('#stopMark');
+  if (mk) mk.addEventListener('click', () => {
+    const ok = marked ? unmarkStop(s) : markStop(s);
+    if (!ok) { mk.insertAdjacentHTML('afterend', '<p class="t-small" role="alert" style="margin-top:10px;color:var(--t-tomato-ink)">Impossible d\'enregistrer. Réessaie.</p>'); return; }
+    sfx('tap');
+    afterUnitChange(s.unit, marked ? `« ${clean(s.title)} » n'est plus marqué comme fait.` : `« ${clean(s.title)} » marqué comme fait.`);   // pas de « bravo, unité finie » pour une seule étape
+  });
+  DuduNav.openSheet('shStop', from);     // nav.js : le petit « pop » d'ouverture
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.stop__btn');
+  if (!b) return;
+  const s = stopByKey[b.dataset.key];
+  if (s) openStop(s, b);
+});
+
+/* ------------------------------ options de l'unité : « marquer comme terminée » ------------------------------
+   Écrit, pour chaque exercice des arrêts de l'unité qui n'est pas déjà fait, {ok:1, tot:1, manual:true} (jamais par-dessus
+   un résultat existant), et pour le test (et le bilan, après les unités 2 et 4) un enregistrement
+   {passed:true, manual:true, attempts:[], best:{pct:100, at}}. store.resume[N] devient {pct:100, done:total, total}.
+   store.manualDone[N] = {ex:[ids écrits], tests:[ids écrits], prev:{id: ancien enregistrement partiel}, prevTests:{id: ancien
+   enregistrement | null}, resumeBefore, at} : de quoi défaire exactement ce qui a été fait, et rien d'autre.
+   Pas de stars pour les exercices .spk : isWeak() ne les exige pas, et un « stars » sans réponse s'afficherait
+   comme « Déjà réussi : « » » dans la page de révision. */
+const testIdOf = s => s.kind === 'bilan' ? ((Course.BILANS[s.unit] || {}).id || '') : String(s.unit);
+const isBoss = s => s.kind === 'test' || s.kind === 'bilan';
+const plainObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
+
+function markUnit(n) {
+  const st0 = Course.readStore();
+  const stops = Course.pathOf(n, course, st0);
+  const exIds = Array.from(new Set(stops.reduce((a, s) => a.concat(s.exIds), [])));
+  const testIds = stops.filter(isBoss).map(testIdOf).filter(Boolean);
+  const total = Object.keys(course.exWhere).filter(id => course.exWhere[id].unit === n).length;
+  const now = Date.now();
+  return DuduNav.save(st => {
+    if (!plainObj(st.manualDone)) st.manualDone = {};
+    const m = plainObj(st.manualDone[n]) ? st.manualDone[n] : {ex: [], tests: [], resumeBefore: (plainObj(st.resume) && st.resume[n]) || null, at: now};
+    m.ex = m.ex || []; m.tests = m.tests || [];
+    exIds.forEach(id => {
+      const k = 'ex_' + id, r = st[k];
+      if (r && r.tot) return;                                   // déjà fait : on ne touche à rien
+      if (m.ex.indexOf(id) < 0) m.ex.push(id);
+      if (plainObj(r)) (m.prev = m.prev || {})[id] = r;          // un essai sans réussite (tries, state…) : gardé, et restitué à l'annulation
+      st[k] = Object.assign({}, plainObj(r) ? r : {}, {ok: 1, tot: 1, manual: true});
+    });
+    testIds.forEach(id => {
+      const t = plainObj(st.tests) ? st.tests[id] : null;
+      if (t && t.passed) return;                                // déjà réussi
+      if (!plainObj(st.tests)) st.tests = {};
+      if (m.tests.indexOf(id) < 0) m.tests.push(id);
+      (m.prevTests = m.prevTests || {})[id] = plainObj(t) ? t : null;
+      const rec = Object.assign({attempts: []}, plainObj(t) ? t : {}, {passed: true, manual: true});
+      if (!rec.best) rec.best = {pct: 100, at: now};
+      st.tests[id] = rec;
+    });
+    if (!plainObj(st.resume)) st.resume = {};
+    st.resume[n] = {pct: 100, done: total, total};
+    st.manualDone[n] = m;
+  });
+}
+
+/* Marquer UN arrêt comme fait, à la main — mêmes règles que markUnit : on n'écrit que sur les exercices pas encore faits
+   ({ok:1, tot:1, manual:true}), le test devient réussi (manual), et store.manualSteps[clé de l'arrêt] garde de quoi défaire
+   exactement ce qui a été écrit. Refait pour de vrai entre-temps : l'annulation n'y touche pas. */
+const canMarkStop = s => s.kind !== 'mots' && (isBoss(s) || s.exIds.length > 0);
+const stopMarked = (st, s) => !!(plainObj(st.manualSteps) && st.manualSteps[s.key]);
+function markStop(s) {
+  const now = Date.now();
+  return DuduNav.save(st => {
+    if (!plainObj(st.manualSteps)) st.manualSteps = {};
+    const m = plainObj(st.manualSteps[s.key]) ? st.manualSteps[s.key] : {unit: s.unit, ex: [], prev: {}, tests: [], prevTests: {}, at: now};
+    s.exIds.forEach(id => {
+      const k = 'ex_' + id, r = st[k];
+      if (r && r.tot) return;
+      if (m.ex.indexOf(id) < 0) m.ex.push(id);
+      if (plainObj(r)) m.prev[id] = r;
+      st[k] = Object.assign({}, plainObj(r) ? r : {}, {ok: 1, tot: 1, manual: true});
+    });
+    if (isBoss(s)) {
+      const id = testIdOf(s), t = plainObj(st.tests) ? st.tests[id] : null;
+      if (id && !(t && t.passed)) {
+        if (!plainObj(st.tests)) st.tests = {};
+        if (m.tests.indexOf(id) < 0) m.tests.push(id);
+        m.prevTests[id] = plainObj(t) ? t : null;
+        const rec = Object.assign({attempts: []}, plainObj(t) ? t : {}, {passed: true, manual: true});
+        if (!rec.best) rec.best = {pct: 100, at: now};
+        st.tests[id] = rec;
+      }
+    }
+    st.manualSteps[s.key] = m;
+  });
+}
+function unmarkStop(s) {
+  return DuduNav.save(st => {
+    const m = plainObj(st.manualSteps) ? st.manualSteps[s.key] : null;
+    if (!m) return;
+    const only = (r, keys) => Object.keys(r).every(k => keys.indexOf(k) >= 0);
+    (m.ex || []).forEach(id => {
+      const k = 'ex_' + id, r = st[k], prev = m.prev && m.prev[id];
+      if (!plainObj(r) || r.manual !== true) return;
+      if (prev) { if (JSON.stringify(r) === JSON.stringify(Object.assign({}, prev, {ok: 1, tot: 1, manual: true}))) st[k] = prev; }
+      else if (r.ok === 1 && r.tot === 1 && only(r, ['ok', 'tot', 'manual'])) delete st[k];
+    });
+    (m.tests || []).forEach(id => {
+      const r = plainObj(st.tests) ? st.tests[id] : null;
+      if (!r || r.manual !== true) return;
+      const prev = m.prevTests && m.prevTests[id];
+      if (prev) st.tests[id] = prev; else delete st.tests[id];
+    });
+    if (plainObj(st.tests) && !Object.keys(st.tests).length) delete st.tests;
+    delete st.manualSteps[s.key];
+    if (!Object.keys(st.manualSteps).length) delete st.manualSteps;
+  });
+}
+
+function unmarkUnit(n) {
+  return DuduNav.save(st => {
+    const m = plainObj(st.manualDone) ? st.manualDone[n] : null;
+    if (!m) return;
+    const only = (r, keys) => Object.keys(r).every(k => keys.indexOf(k) >= 0);
+    (m.ex || []).forEach(id => {
+      const k = 'ex_' + id, r = st[k], prev = m.prev && m.prev[id];
+      if (!plainObj(r) || r.manual !== true) return;            // plus marqué à la main (refait pour de vrai depuis) : on garde
+      if (prev) { if (JSON.stringify(r) === JSON.stringify(Object.assign({}, prev, {ok: 1, tot: 1, manual: true}))) st[k] = prev; }
+      else if (r.ok === 1 && r.tot === 1 && only(r, ['ok', 'tot', 'manual'])) delete st[k];
+    });
+    (m.tests || []).forEach(id => {
+      const r = plainObj(st.tests) ? st.tests[id] : null;
+      if (!r || r.manual !== true) return;                      // le test a été repassé pour de vrai : on garde
+      const prev = m.prevTests && m.prevTests[id];
+      if (prev) st.tests[id] = prev; else delete st.tests[id];
+    });
+    if (plainObj(st.tests) && !Object.keys(st.tests).length) delete st.tests;
+    if (m.resumeBefore) { if (!plainObj(st.resume)) st.resume = {}; st.resume[n] = m.resumeBefore; }
+    else if (plainObj(st.resume)) { delete st.resume[n]; if (!Object.keys(st.resume).length) delete st.resume; }
+    delete st.manualDone[n];
+    if (!Object.keys(st.manualDone).length) delete st.manualDone;
+  });
+}
+
+/* la feuille : deux vues (options, puis confirmation) dans le même panneau */
+const UM_CLOSE = '<button class="t-iconbtn" type="button" data-close aria-label="Fermer"><svg aria-hidden="true"><use href="#i-x"/></svg></button>';
+function umHead(n, title) {
+  return `<div class="sh-head">
+       <div><span class="t-label">Unité ${n} · ${esc(Places.name(n))}</span><h2 class="t-h2" id="unitTitle" tabindex="-1" style="margin-top:6px">${title}</h2></div>${UM_CLOSE}
+     </div>`;
+}
+function unitState(n) {
+  const st = Course.readStore();
+  const stops = Course.pathOf(n, course, st);
+  return {
+    left: stops.filter(s => !s.done && s.kind !== 'mots'),     // « Mots » se fait dans Mémoire, on ne le marque pas à la main
+    tests: stops.filter(isBoss).filter(s => !Course.testPassed(st, testIdOf(s))),
+    manual: !!(plainObj(st.manualDone) && st.manualDone[n]),
+  };
+}
+let umUnit = 0;
+function showUnitMenu(n) {
+  const u = unitState(n);
+  const rows = [];
+  if (u.left.length) rows.push(`<button class="n-row" type="button" data-uact="ask"><span class="n-row__ic"><svg aria-hidden="true"><use href="#i-check"/></svg></span><span class="n-row__tx"><b>Marquer l'unité comme terminée</b><span>${u.left.length} étape${u.left.length > 1 ? 's' : ''} pas encore faite${u.left.length > 1 ? 's' : ''}</span></span><svg class="n-row__ar" aria-hidden="true"><use href="#i-arrow"/></svg></button>`);
+  if (u.manual) rows.push(`<button class="n-row" type="button" data-uact="undo"><span class="n-row__ic"><svg aria-hidden="true"><use href="#i-undo"/></svg></span><span class="n-row__tx"><b>Annuler le marquage</b><span>Remet l'unité comme avant</span></span><svg class="n-row__ar" aria-hidden="true"><use href="#i-arrow"/></svg></button>`);
+  $('#unitBody').innerHTML = umHead(n, `Options de l'unité ${n}`) +
+    (rows.length ? `<div class="n-list">${rows.join('')}</div>`
+      : `<p class="t-small">Toutes les étapes de cette unité sont déjà faites : il n'y a rien à marquer.</p>`);
+}
+function showUnitConfirm(n) {
+  const u = unitState(n);
+  const tn = u.tests.map(s => s.kind === 'bilan' ? esc(s.title).replace(/^Bilan/, 'le bilan') : 'le test de l\'unité');
+  const testFr = tn.length ? `${tn.join(' et ')} ${tn.length > 1 ? 'seront marqués' : 'sera marqué'} comme ${tn.length > 1 ? 'réussis' : 'réussi'} (marqué à la main).` : '';
+  const testEn = u.tests.length ? (u.tests.length > 1 ? 'The unit test and the review test will be marked as passed (marked by hand).' : (u.tests[0].kind === 'bilan' ? 'The review test will be marked as passed (marked by hand).' : 'The unit test will be marked as passed (marked by hand).')) : '';
+  $('#unitBody').innerHTML = umHead(n, `Terminer l'unité ${n} ?`) +
+    `<ul class="uo-list">
+       <li><span class="t-body">Toutes les étapes de cette unité seront marquées comme <b>faites</b>.</span><span class="t-small uo-en">Every step of this unit will be marked as done.</span></li>
+       <li><span class="t-body">Les exercices que tu as déjà faits <b>gardent ton vrai score</b>.</span><span class="t-small uo-en">Exercises you already did keep your real score.</span></li>
+       ${testFr ? `<li><span class="t-body">${testFr.replace(/^./, c => c.toUpperCase())}</span><span class="t-small uo-en">${testEn}</span></li>` : ''}
+       <li><span class="t-body">Tu pourras tout annuler avec « Annuler le marquage ».</span><span class="t-small uo-en">You can undo it afterwards with “Undo the marking”.</span></li>
+     </ul>
+     <div class="uo-acts">
+       <button class="t-btn t-btn--unit t-btn--block" type="button" data-uact="yes">Oui, terminer l'unité<svg aria-hidden="true"><use href="#i-check"/></svg></button>
+       <button class="t-btn t-btn--secondary t-btn--block" type="button" data-uact="no">Annuler</button>
+     </div>`;
+}
+function openUnitMenu(n, from) {
+  umUnit = n;
+  const sheet = $('#shUnit');
+  sheet.className = sheet.className.replace(/\bt-u\d\b/g, '').trim() + ' t-u' + n;
+  showUnitMenu(n);
+  DuduNav.openSheet('shUnit', from);
+}
+function afterUnitChange(n, msg, finished) {
+  const before = frontier;
+  DuduNav.closeSheet(true);
+  renderPath();
+  retPast = 0;
+  const opened = frontier > before;           // terminer l'unité en cours ouvre la suivante
+  const sec = opened ? $('#unit-' + frontier) : null;
+  if (!opened && finished) sfx('complete', {char: 'lea'});     // (si une unité s'ouvre, « unlock » parle à sa place : pas deux voix l'une sur l'autre)
+  if (opened) { sfx('unlock', {char: 'lea'}); sec.classList.remove('is-unlocked'); void sec.offsetWidth; sec.classList.add('is-unlocked'); setTimeout(() => sec.classList.remove('is-unlocked'), 1600); }
+  requestAnimationFrame(() => {
+    UNITS.forEach(drawConn);
+    centerOnCurrent(true);
+    const b = $('[data-unitmenu="' + n + '"]');
+    try { if (b) b.focus({preventScroll: true}); } catch (e) {}
+  });
+  $('#loadStatus').textContent = msg;
+}
+document.addEventListener('click', e => {
+  const m = e.target.closest && e.target.closest('[data-unitmenu]');
+  if (m) { sfx('tap'); openUnitMenu(+m.dataset.unitmenu, m); return; }
+  const a = e.target.closest && e.target.closest('#unitBody [data-uact]');
+  if (!a || !umUnit) return;
+  const n = umUnit, act = a.dataset.uact;
+  if (act === 'ask') { sfx('tap'); showUnitConfirm(n); const h = $('#unitTitle'); if (h) h.focus({preventScroll: true}); }
+  else if (act === 'no') DuduNav.closeSheet();
+  else if (act === 'yes') {
+    if (markUnit(n)) { afterUnitChange(n, `Unité ${n} marquée comme terminée.`, true); }
+    else { $('#unitBody').insertAdjacentHTML('beforeend', '<p class="t-small" role="alert" style="margin-top:12px;color:var(--t-tomato-ink)">Impossible d\'enregistrer. Réessaie.</p>'); }
+  }
+  else if (act === 'undo') {
+    if (unmarkUnit(n)) { sfx('tap'); afterUnitChange(n, `Marquage de l'unité ${n} annulé.`); }
+  }
+});
+
+/* ------------------------------ unités passées (plier / déplier) et unités verrouillées ------------------------------ */
+function setOpen(n, open, o) {
+  o = o || {};
+  if (open) openSet.add(n); else openSet.delete(n);
+  saveOpen();
+  if (stateOf[n] !== 'past') return;
+  const host = $('#path-' + n);
+  host.hidden = !open;
+  setToggleUi(n, open);
+  if (!open) return;
+  if (o.animate && !reduceMotion()) { host.classList.remove('is-opening'); void host.offsetWidth; host.classList.add('is-opening'); }
+  drawConn(n);
+  requestAnimationFrame(() => drawConn(n));
+}
+/* garde le bouton à l'écran, avec un peu de chemin dessous : jamais de saut vers le bas de la page */
+function keepInView(el) {
+  const topH = $('.t-topbar').offsetHeight, tabH = $('.t-tabbar').offsetHeight;
+  const r = el.getBoundingClientRect();
+  let dy = 0;
+  if (r.top < topH + 12) dy = r.top - topH - 16;
+  else if (r.bottom > innerHeight - tabH - 220) dy = r.top - (topH + (innerHeight - tabH - topH) * 0.3);
+  if (Math.abs(dy) > 1) window.scrollBy({top: dy, behavior: reduceMotion() ? 'auto' : 'smooth'});
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-toggle]');
+  if (t) {
+    const n = +t.dataset.toggle, open = !openSet.has(n);
+    sfx('tap');
+    setOpen(n, open, {animate: true});
+    requestAnimationFrame(() => keepInView(t));
+    return;
+  }
+  const lk = e.target.closest && e.target.closest('.unit[data-state="locked"] .u-card');
+  if (lk) {
+    sfx('tap');
+    const b = $('.u-lock__badge', lk);
+    if (b && !reduceMotion()) { b.classList.remove('is-shake'); void b.offsetWidth; b.classList.add('is-shake'); }
+  }
+});
+document.addEventListener('animationend', e => {
+  const c = e.target.classList;
+  if (c.contains('is-shake')) c.remove('is-shake');
+  else if (c.contains('is-opening')) c.remove('is-opening');
+});
+
+/* ------------------------------ défilement vers l'arrêt en cours ------------------------------ */
+let userScrolled = false;
+['wheel', 'touchmove', 'keydown'].forEach(t => window.addEventListener(t, () => { userScrolled = true; }, {passive: true, once: true}));
+let retPast = 0;      // retour d'une leçon d'une unité passée : c'est elle qu'on remet en vue
+function returnTarget() {
+  const c = Course.currentStop(paths[retPast] || []);
+  const b = c && $$('.stop__btn', $('#path-' + retPast)).find(x => x.dataset.key === c.key);
+  return b || $('#unit-' + retPast + ' .u-toggle');
+}
+function centerOnCurrent(force) {
+  if (retPast && stateOf[retPast] !== 'past') retPast = 0;
+  const el = retPast ? returnTarget() : (current ? $('#path-' + frontier + ' .stop--cur .stop__btn') : null);
+  const target = el || (!current && !retPast ? $('#soon') : null);
+  if (!target) return;
+  const topH = $('.t-topbar').offsetHeight, tabH = $('.t-tabbar').offsetHeight;
+  const r = target.getBoundingClientRect();
+  const visTop = topH + 24, visBot = innerHeight - tabH - 24;
+  const first = !retPast && current && current.unit === UNITS[0] && paths[UNITS[0]][0] && paths[UNITS[0]][0].key === current.key;
+  /* tout premier arrêt déjà visible : on reste en haut, avec la carte du plan et la bannière */
+  if (first && r.top >= visTop && r.bottom <= visBot) return;
+  const mid = (topH + (innerHeight - tabH)) / 2;
+  window.scrollTo({top: Math.max(0, r.top + r.height / 2 + window.scrollY - mid), behavior: 'auto'});
+}
+
+/* ------------------------------ chargement ------------------------------ */
+function showError() {
+  $('#loadStatus').textContent = '';
+  $$('.u-path').forEach(p => { p.innerHTML = ''; });
+  const box = $('#loadErr');      // hors des chemins : toujours visible, même si une unité est repliée
+  box.hidden = false;
+  box.innerHTML = '<div class="t-card t-card--flat errcard" role="alert"><p class="t-body"><b>Le parcours ne s\'est pas chargé.</b><br>Vérifie ta connexion, puis réessaie.</p><button class="t-btn t-btn--sm" type="button" id="retry">Réessayer</button></div>';
+  $('#retry').addEventListener('click', () => {
+    box.hidden = true; box.innerHTML = '';
+    $$('.u-path').forEach(p => { if (!p.hidden) p.innerHTML = skeletonHtml(+p.id.replace('path-', '')); });
+    load(true);
+  });
+}
+function load(force) {
+  Course.loadCourse(force).then(c => {
+    course = c;
+    renderPath();
+    const ru = returnedUnit();
+    if (ru && stateOf[ru] === 'past') { retPast = ru; setOpen(ru, true); }
+    requestAnimationFrame(() => {
+      UNITS.forEach(drawConn);
+      centerOnCurrent();
+      autoOpen();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { UNITS.forEach(drawConn); if (!userScrolled && !DuduNav.isSheetOpen()) centerOnCurrent(); });
+    });
+  }).catch(showError);
+}
+/* lesson.js revient sur  app?from=lesson&u=N#next  : N est l'unité de la leçon qu'on vient de quitter */
+function returnedUnit() {
+  if (!/[?&]from=lesson\b/.test(location.search)) return 0;
+  const m = /[?&]u=(\d+)/.exec(location.search), n = m ? +m[1] : 0;
+  return UNITS.indexOf(n) >= 0 ? n : 0;
+}
+function autoOpen() {
+  const want = location.hash === '#next' || /[?&]from=lesson\b/.test(location.search);
+  if (!want || !current || retPast) return;
+  const b = $('.stop--cur .stop__btn');
+  openStop(current, b);
+}
+function refresh() {
+  if (!course) return;
+  if (DuduNav.isSheetOpen()) { dirty = true; return; }
+  const y = window.scrollY;
+  renderPath();
+  requestAnimationFrame(() => { UNITS.forEach(drawConn); window.scrollTo(0, y); });
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+window.addEventListener('pageshow', e => { if (e.persisted) refresh(); });
+window.addEventListener('storage', e => { if (e.key === Course.LS || e.key === null) { refresh(); } });
+
+/* ------------------------------ « Coucou ! » : la première ouverture du jour ------------------------------
+   Léa salue, une fois par jour et par appareil, au premier geste de l'utilisateur (un navigateur bloque le son avant).
+   La date est gardée hors du store synchronisé (localStorage de cet appareil seulement). Son coupé : on garde le salut pour plus tard. */
+(function () {
+  const KEY = 'dudu-hello-day';
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const done = () => { try { return localStorage.getItem(KEY) === today(); } catch (e) { return true; } };
+  if (done()) return;
+  const types = ['pointerdown', 'touchend', 'click', 'keydown'];
+  function off() { types.forEach(t => document.removeEventListener(t, onGesture, true)); }
+  function onGesture(e) {
+    if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return;
+    if (!window.Sfx || Sfx.muted || document.hidden) return;
+    off();
+    try { localStorage.setItem(KEY, today()); } catch (err) { return; }
+    sfx('hello', {char: 'lea'});
+  }
+  types.forEach(t => document.addEventListener(t, onGesture, {capture: true, passive: true}));
+})();
+
+/* ------------------------------ démarrage ------------------------------ */
+DuduNav.mount({active: 'parcours', topbar: 'full', tabbar: true});
+buildShell();
+renderPlan();
+load();
+setTimeout(() => DuduNav.maybeShowInstall(), 1200);   // « DuDu sur l'écran d'accueil » : une seule fois, sur téléphone (nav.js)
+})();
+</script>
+</body>
+</html>

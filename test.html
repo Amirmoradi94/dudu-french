@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFF5E8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DuDu">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/v4/icon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="icons/v4/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/v4/apple-touch-icon.png">
+<title>DuDu — test de fin d'unité</title>
+<script src="content/meta.js"></script>
+<script>
+/* Thème avant le premier affichage : le même réglage que les autres pages (store.theme = 'light' | 'dark',
+   absent = automatique, c'est alors le système qui décide). nav.js le réapplique ensuite (idempotent). */
+(function () {
+  try {
+    var st = JSON.parse(localStorage.getItem('dudu-a1-u1') || '{}') || {};
+    if (st.theme === 'light' || st.theme === 'dark') document.documentElement.setAttribute('data-theme', st.theme);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="troupe.css">
+<style>
+/* =====================================================================
+   test.html — le test de fin d'unité, version « La Troupe ».
+   Tout est page-local (préfixe tp-) ; les composants viennent de troupe.css.
+   M. Dubois est l'examinateur : il présente le test, lit les consignes, et réagit au résultat.
+   ===================================================================== */
+[hidden]{display:none!important}
+.tp-main{max-width:560px;margin:0 auto;padding:6px 16px 20px;min-width:0}
+.tp-ic{width:20px;height:20px;flex:none;vertical-align:-4px}
+.en{color:var(--t-ink-2);font:600 13px/1.4 var(--t-font-b);margin:2px 0 0}
+.tp-main h1:focus,.tp-main h1:focus-visible{outline:none}
+
+/* ---------- M. Dubois : visage + bulle ---------- */
+.tp-host{display:flex;align-items:flex-start;gap:14px;margin:4px 0 2px}
+.tp-face{width:64px;height:64px;flex:none;border-radius:50%;border:2px solid var(--t-rim);background:var(--t-mustard-l);overflow:hidden;box-shadow:0 3px 0 var(--t-edge);cursor:pointer;margin:2px 0 3px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.tp-face svg{display:block;width:100%;height:100%}
+.tp-say{flex:1;margin-top:2px;font:700 15.5px/1.35 var(--t-font-b);padding:10px 14px;border-radius:20px;overflow-wrap:anywhere}
+.tp-say.t-bubble--l::before{top:20px}
+.tp-say .enb{vertical-align:baseline}
+.tp-host--big{align-items:center;gap:16px;margin:8px 0 4px}
+.tp-fig{width:min(112px,30vw);aspect-ratio:360/330;flex:none;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.tp-fig svg{display:block}
+.tp-host--big .tp-say{font:800 19px/1.2 var(--t-font-d);padding:14px 16px;border-radius:22px}
+.tp-host--big .tp-say.t-bubble--l::before{top:50%;margin-top:-8px}
+.tp-fig:focus-visible,.tp-face:focus-visible{outline:3px solid var(--t-focus);outline-offset:3px;border-radius:18px}
+.tp-face:focus-visible{border-radius:50%}
+
+/* ---------- puces d'info ---------- */
+.tp-meta{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.tp-meta .t-pill{font-size:12px;padding:6px 10px;text-transform:none;letter-spacing:.01em;border:2px solid transparent}
+.tp-meta .t-pill:not([class*="--"]){background:var(--t-paper);border-color:var(--t-line)}
+
+/* ---------- cartes ---------- */
+.tp-card{padding:14px 16px;border-radius:22px;margin-top:14px}
+.tp-card>h2{margin:0}
+.tp-card--note{background:var(--t-teal-l);border-color:var(--t-teal)}
+.tp-card--warn{background:var(--t-mustard-l);border-color:var(--t-mustard-d)}
+.tp-card .en,.partlist .en,.tp-rules .en,.accents .en{display:block}
+.tp-rules{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:11px}
+.tp-rules li{position:relative;padding-left:32px;min-width:0;overflow-wrap:anywhere}
+.tp-rules li::before{content:"✓";position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:800 12px/1 var(--t-font-d);
+  background:var(--t-paper);color:var(--t-teal-ink);border:2px solid var(--t-teal)}
+.tp-card--warn .tp-rules li::before{content:"!";color:var(--t-mustard-ink);border-color:var(--t-mustard-d)}
+.partlist{list-style:none;margin:10px 0 0;padding:0;display:grid}
+.partlist li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:2px solid var(--t-line)}
+.partlist li:first-child{border-top:0;padding-top:4px}
+.partlist .n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:800 15px/1 var(--t-font-d);background:var(--t-unit-l);color:var(--t-unit-ink);border:2px solid var(--t-unit)}
+.partlist b{font:800 16px/1.15 var(--t-font-d)}
+.hist{margin:0;font:600 14px/1.5 var(--t-font-b);color:var(--t-ink-2)}
+.hist b{color:var(--t-ink);font-weight:800}
+.tp-hist{margin-top:14px;padding:12px 16px}
+
+/* ---------- boutons fixes (au-dessus de la barre d'onglets) ---------- */
+.tp-bar{position:sticky;bottom:var(--tp-tab,78px);z-index:20;margin:18px -16px 0;padding:14px 16px 6px;display:flex;gap:10px;
+  background:linear-gradient(to top,var(--t-cream) 74%,transparent)}
+.tp-bar .t-btn{flex:1 1 0;min-width:0;padding-inline:12px;margin-bottom:5px}
+.tp-bar .t-btn--sm{padding-inline:12px}
+.tp-bar .t-btn[hidden]{display:none}
+.tp-bar .tp-prev{flex:0 0 auto}
+
+/* ---------- la liste des tests (sans identifiant) ---------- */
+.tp-pick{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:12px}
+.tp-pick a{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:12px 16px;font:800 16px/1.2 var(--t-font-d);color:var(--t-ink);text-decoration:none}
+.tp-pick a small{font:800 12px/1 var(--t-font-d)}
+.state{margin-top:14px;padding:18px;text-align:center}
+.tp-lockbadge{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:50%;margin:2px auto 10px;background:var(--t-track);color:var(--t-ink-2);font-size:30px}
+.tp-locked h1{margin:0}
+.tp-locked .why{margin:10px 0 0;font:800 16px/1.3 var(--t-font-d);color:var(--t-ink)}
+.tp-pick a.is-locked{border-style:dashed;box-shadow:none;color:var(--t-ink-2);cursor:not-allowed}
+.tp-pick a.is-locked .ul-ico{font-size:1.1em;margin-right:6px}
+.state .t-btn{margin-top:12px}
+
+/* ---------- l'épreuve : barre de progression + étapes (collée sous la barre du haut) ---------- */
+.tp-stepper{position:sticky;top:var(--tp-top,64px);z-index:25;margin:0 -16px 12px;padding:6px 16px 4px;background:var(--t-cream);border-bottom:2px solid var(--t-line)}
+.tp-stepper .t-progress{margin:0 0 2px}
+.tp-steprow{display:flex;align-items:center;gap:8px}
+.tp-steps{flex:1;display:flex;justify-content:space-between;gap:2px;max-width:300px}
+.step{min-width:44px;min-height:44px;padding:0;border:0;background:none;cursor:pointer;display:grid;place-items:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.step b{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--t-line);background:var(--t-paper);color:var(--t-ink-2);
+  font:800 14px/1 var(--t-font-d);transition:transform .09s}
+.step:active b{transform:scale(.9)}
+.step.seen b{background:var(--t-unit-l);border-color:var(--t-unit-d);color:var(--t-unit-ink)}
+.step.cur b{background:var(--t-unit);border-color:var(--t-rim);color:#2B2230;box-shadow:0 3px 0 var(--t-unit-d)}
+.timer{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:800 14px/1 var(--t-font-d);color:var(--t-ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.timer::before{content:"";width:15px;height:15px;background:currentColor;flex:none;
+  -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><g fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round'><circle cx='12' cy='13' r='8'/><path d='M12 9v4.5l3 1.8M9.5 2.8h5'/></g></svg>") center/contain no-repeat;
+  mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><g fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round'><circle cx='12' cy='13' r='8'/><path d='M12 9v4.5l3 1.8M9.5 2.8h5'/></g></svg>") center/contain no-repeat}
+.timer:empty{display:none}
+.parthead .t-label{display:block;margin:0 0 6px}
+.parthead h1{margin:0}
+.parthead .en{margin-top:3px}
+
+/* ---------- questions ---------- */
+.items{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:12px}
+.q{padding:14px}
+.qhead{display:flex;gap:12px;align-items:flex-start}
+.qn{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:800 14px/1 var(--t-font-d);background:var(--t-unit-l);color:var(--t-unit-ink);border:2px solid var(--t-unit)}
+.qt{margin:0;flex:1 1 auto;min-width:0;font:600 16.5px/2.45 var(--t-font-b);overflow-wrap:anywhere}
+.qt.plain{line-height:1.45;padding-top:3px}
+.atag{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:3px 9px;border-radius:99px;background:var(--t-teal-l);color:var(--t-teal-ink);font:800 11.5px/1 var(--t-font-d);vertical-align:middle;white-space:nowrap}
+.atag .tp-ic{width:14px;height:14px;vertical-align:0}
+.enb{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:24px;margin-left:6px;padding:0 8px;vertical-align:middle;
+  border:2px solid var(--t-line);border-radius:99px;background:var(--t-paper);color:var(--t-ink-2);cursor:pointer;font:800 11px/1 var(--t-font-d);letter-spacing:.06em;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.enb::after{content:"";position:absolute;inset:-10px -6px}
+.enb[aria-expanded="true"],.enb[aria-pressed="true"]{background:var(--t-teal-l);border-color:var(--t-teal);color:var(--t-teal-ink)}
+.enx{display:block;margin:4px 0 0;color:var(--t-ink-2);font:600 14px/1.4 var(--t-font-b);font-style:italic}
+.opts{display:grid;gap:7px;margin-top:12px}
+.opts.tf{grid-template-columns:1fr 1fr;gap:12px}
+.tp-opt{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:9px 14px;text-align:left;font:700 16.5px/1.25 var(--t-font-b);overflow-wrap:anywhere}
+.tp-opt::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;border:3px solid var(--t-line);background:var(--t-surface);transition:border-color .15s,background .15s}
+.tp-opt[aria-checked="true"]{background:var(--t-mustard-l);border-color:var(--t-mustard-d);box-shadow:0 5px 0 var(--t-mustard-d);color:var(--t-mustard-ink)}
+.tp-opt[aria-checked="true"]::before{border-color:var(--t-mustard-d);background:radial-gradient(circle,var(--t-mustard-d) 0 38%,var(--t-surface) 44%)}
+.opts.tf .tp-opt{justify-content:center;font:800 20px/1.1 var(--t-font-d);min-height:58px}
+.opts.tf .tp-opt::before{display:none}
+.gap-in{display:inline-block;width:min(9rem,42vw);min-height:44px;margin:0 4px;padding:7px 12px;vertical-align:middle;font:700 16px/1.2 var(--t-font-b);border-radius:14px 14px 14px 5px}
+
+/* ---------- écoute ---------- */
+.aud{margin-top:14px;padding:14px;display:grid;gap:12px;border-radius:22px}
+.aud__h{display:flex;align-items:center;gap:12px;min-width:0}
+.aud__ic{width:40px;height:40px;border-radius:14px;flex:none;display:grid;place-items:center;background:var(--t-teal-l);color:var(--t-teal-ink)}
+.aud__ic .tp-ic{width:22px;height:22px;vertical-align:0}
+.aud h3{margin:0;min-width:0;font:800 16px/1.2 var(--t-font-d);overflow-wrap:anywhere}
+.aud .t-btn{justify-self:start;margin-bottom:5px}
+.aud .err{margin:0;color:var(--t-bad-fg);font:700 14px/1.35 var(--t-font-b)}
+
+/* ---------- lecture ---------- */
+.doc{margin-top:14px;padding:14px 16px;border-radius:22px}
+.doc .t-pill{display:inline-flex;align-items:center;gap:5px;margin-bottom:8px;text-transform:none;font-size:12px;letter-spacing:.01em}
+.doc .t-pill .tp-ic{width:14px;height:14px;vertical-align:0}
+.doc h2{margin:0 0 6px}
+.doc p{margin:6px 0 0;font:400 16px/1.55 var(--t-font-b)}
+.doc.mail{border-color:var(--t-teal)}
+.doc.annonce{border:2px dashed var(--t-mustard-d);background:var(--t-mustard-l)}
+.doc.message{background:var(--t-teal-l);border-color:var(--t-teal);border-radius:22px 22px 22px 6px}
+.doc.forum{border-color:var(--t-tomato)}
+
+/* ---------- écrit & oral ---------- */
+.tp-task{margin-top:14px;padding:14px 16px;border-radius:22px;background:var(--t-tomato-l);border-color:var(--t-tomato)}
+.tp-task p{margin:0}
+.tp-task .t-label{display:block;margin-bottom:6px}
+.tp-lbl{display:block;margin-top:16px;margin-bottom:6px;font:800 13px/1.3 var(--t-font-d);color:var(--t-ink-2)}
+.t-input.gap-in,.t-input.field{border-color:var(--t-ink-3)}
+.t-input.gap-in:focus,.t-input.field:focus{border-color:var(--t-teal)}
+.t-input:focus-visible{outline:none}
+.field{min-height:9rem;resize:vertical;font:600 16px/1.5 var(--t-font-b);border-radius:20px 20px 20px 6px}
+.field.short{min-height:5.5rem}
+.counter{display:flex;justify-content:space-between;gap:12px;margin:8px 0 0;font:800 13px/1.2 var(--t-font-d);color:var(--t-ink-2);font-variant-numeric:tabular-nums}
+.counter b.ok{color:var(--t-teal-ink)} .counter b.low{color:var(--t-tomato-ink)}
+.pr{padding:14px}
+.pr .kind{margin:0 0 8px}
+.pr .kind .t-pill{text-transform:none;font-size:12px;letter-spacing:.01em}
+.pr .ask{display:flex;gap:10px;align-items:flex-start}
+.pr .ask p{margin:0;flex:1;min-width:0;font:700 16.5px/1.4 var(--t-font-b);overflow-wrap:anywhere}
+.pr .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.pr .row .t-btn{margin-bottom:5px}
+.mic.rec{--bg:var(--t-tomato-d);--edge:var(--t-ink);animation:t-pulse 1.4s ease-in-out infinite}
+.trans{margin:10px 0 0;min-height:3rem;padding:10px 14px;border-radius:16px;border:2px dashed var(--t-line);background:var(--t-surface);font:600 16px/1.4 var(--t-font-b);overflow-wrap:anywhere}
+.trans.empty{color:var(--t-ink-3);font-style:italic}
+.pr .hint{margin:8px 0 0;font:600 14px/1.4 var(--t-font-b);color:var(--t-ink-2)}
+.pr .hint.err{color:var(--t-tomato-ink)}
+.tp-iconbtn{width:44px;height:44px}
+.tp-note{margin-top:14px}
+
+/* ---------- fenêtre de confirmation (feuille) ---------- */
+.tp-dlg__body p{margin:0 0 10px;font:600 16px/1.45 var(--t-font-b)}
+.tp-dlg__body p.en{font:600 13px/1.4 var(--t-font-b);margin:-4px 0 12px;color:var(--t-ink-2)}
+.tp-dlg__acts{display:grid;gap:10px;margin-top:8px}
+.tp-dlg__acts .t-btn{width:100%}
+
+/* ---------- résultats ---------- */
+.tp-res{position:relative;overflow:hidden;margin-top:12px;padding:18px 16px 14px;text-align:center;border-radius:28px}
+.tp-res.is-pass{background:var(--t-teal-l);border-color:var(--t-teal-d);box-shadow:0 5px 0 var(--t-teal-d)}
+.tp-res__in{position:relative;z-index:2;display:grid;justify-items:center;gap:4px}
+.tp-troupe{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:100%;margin:6px 0 0}
+.tp-troupe figure{margin:0;display:grid;justify-items:center;gap:2px}
+.tp-troupe .tp-c{width:min(112px,26vw);aspect-ratio:360/330}
+.tp-troupe figcaption{font:800 13px/1 var(--t-font-d);color:var(--t-ink-2)}
+.tp-score{margin-top:12px;padding:14px 16px;text-align:center;border-radius:24px}
+.tp-score.is-fail{background:var(--t-tomato-l);border-color:var(--t-tomato)}
+.tp-pct{font:800 clamp(52px,16vw,72px)/1 var(--t-font-d);letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--t-ink)}
+.is-pass .tp-pct{color:var(--t-teal-ink)} .is-fail .tp-pct{color:var(--t-tomato-ink)}
+.tp-verdict{margin:6px 0 0;font:800 20px/1.15 var(--t-font-d);display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.tp-verdict .tp-ic{width:24px;height:24px;vertical-align:0}
+.tp-pts{margin:6px 0 0;font:700 15px/1.4 var(--t-font-b);color:var(--t-ink-2)}
+.bars{display:grid;gap:14px;margin-top:18px}
+.bar .top{display:flex;justify-content:space-between;align-items:center;gap:10px;font:700 15px/1.2 var(--t-font-b);margin-bottom:6px}
+.bar .top b{font:800 14px/1 var(--t-font-d);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar .t-progress{--bar:var(--t-teal);height:14px;display:block}
+.bar.weak .t-progress{--bar:var(--t-tomato)}
+.flag{margin-left:6px;vertical-align:middle}
+.tp-flag{margin-left:6px}
+.section{margin-top:24px}
+.section>h2{margin:0}
+.section>.en{margin-bottom:2px}
+details.fold{margin-top:12px;border-radius:20px;padding:0}
+details.fold>summary{cursor:pointer;min-height:48px;display:flex;align-items:center;gap:10px;padding:8px 16px;font:800 15.5px/1.2 var(--t-font-d);list-style:none}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"";width:9px;height:9px;flex:none;border-right:3px solid var(--t-ink-2);border-bottom:3px solid var(--t-ink-2);transform:rotate(-45deg);transition:transform .15s}
+details.fold[open]>summary::before{transform:rotate(45deg)}
+details.fold .inner{padding:0 16px 14px}
+.wrong{padding:12px 0;border-top:2px solid var(--t-line)}
+.wrong:first-child{border-top:0;padding-top:2px}
+.wrong .qtx{margin:0;font:700 16px/1.45 var(--t-font-b)}
+.wrong .vs{margin:6px 0 0;font:600 15px/1.5 var(--t-font-b);display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.bad{color:var(--t-bad-fg);text-decoration:line-through;text-decoration-thickness:2px}
+.good{color:var(--t-ok-fg);font-weight:800}
+.wrong .why{margin:4px 0 0;font:600 14px/1.4 var(--t-font-b);color:var(--t-ink-2)}
+.accents{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:var(--t-mustard-l);color:var(--t-ink);font:600 14px/1.45 var(--t-font-b)}
+.tr-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:start;padding:8px 0;border-top:2px solid var(--t-line)}
+.tr-line:first-of-type{border-top:0}
+.tr-line .who{font:800 12px/1 var(--t-font-d);letter-spacing:.06em;text-transform:uppercase;color:var(--t-ink-2)}
+.tr-line .fr{margin:0;font:600 15.5px/1.45 var(--t-font-b)}
+.tr-line .enx{display:none}
+.tr.show-en .tr-line .enx{display:block}
+.tr h3{margin:12px 0 6px}
+.sidebyside{display:grid;gap:10px;margin-top:12px}
+@media (min-width:40rem){.sidebyside{grid-template-columns:1fr 1fr}}
+.paper{padding:10px 14px;border-radius:16px;border:2px solid var(--t-line);background:var(--t-surface);white-space:pre-wrap;overflow-wrap:anywhere;font:600 15.5px/1.5 var(--t-font-b)}
+.paper.fixed{border-color:var(--t-teal);background:var(--t-teal-l)}
+.paper h4{font:800 12px/1 var(--t-font-d);letter-spacing:.08em;text-transform:uppercase;color:var(--t-ink-2);margin:0 0 6px;white-space:normal}
+.subs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.sub{padding:6px 11px;border-radius:99px;background:var(--t-mustard-l);color:var(--t-mustard-ink);font:700 13px/1 var(--t-font-b)}
+.sub b{font:800 13px/1 var(--t-font-d)}
+.fb{margin:10px 0 0;font:600 15.5px/1.45 var(--t-font-b)}
+.fb.well::before{content:"✓ ";color:var(--t-teal-ink);font-weight:800}
+.tips{margin:8px 0 0;padding-left:1.2rem;font:600 14.5px/1.45 var(--t-font-b)}
+.tips li+li{margin-top:4px}
+.mist{padding:10px 0;border-top:2px solid var(--t-line);font:600 15px/1.5 var(--t-font-b);display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
+.mist:first-child{border-top:0}
+.mist small{flex:0 0 100%;color:var(--t-ink-2);font:600 13px/1.4 var(--t-font-b)}
+.pending{display:flex;gap:12px;align-items:center;margin-top:12px;color:var(--t-ink-2);font:600 15px/1.4 var(--t-font-b)}
+.tp-spin{flex:none;width:22px;height:22px;border-radius:50%;border:3px solid var(--t-line);border-top-color:var(--t-teal);animation:tp-spin .8s linear infinite}
+@keyframes tp-spin{to{transform:rotate(360deg)}}
+.fail-box{margin-top:12px;padding:14px 16px;border-radius:20px;background:var(--t-tomato-l);border-color:var(--t-tomato)}
+.fail-box p{margin:0}
+.fail-box .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.disclaimer{margin:12px 0 0;padding:10px 14px;border-radius:14px;background:var(--t-teal-l);color:var(--t-ink);font:600 14px/1.45 var(--t-font-b)}
+.disclaimer .en{display:block}
+.ans-mine{margin:8px 0 0;padding:10px 14px;border-radius:16px;background:var(--t-surface);border:2px dashed var(--t-line);font:600 15.5px/1.45 var(--t-font-b);overflow-wrap:anywhere}
+.ans-mine small{display:block;margin:0 0 2px}
+.actions{display:grid;gap:8px;margin-top:22px}
+.actions .t-btn{width:100%}
+
+@media (max-width:359px){
+  .tp-main{padding-inline:12px}
+  .tp-stepper,.tp-bar{margin-inline:-12px;padding-inline:12px}
+  .tp-host{gap:10px}
+  .tp-steps{gap:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .tp-spin{animation:none;border-top-color:var(--t-teal)}
+  .mic.rec{animation:none}
+  .step b,.tp-opt::before{transition:none}
+}
+</style>
+</head>
+<body class="t-page">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="tp-i-play" viewBox="0 0 24 24"><path d="M8 5.2 19 12 8 18.8z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="tp-i-speaker" viewBox="0 0 24 24"><path d="M3.5 9.2v5.6h3.8l5.2 4.2V5L7.3 9.2z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M16 8.6a5 5 0 0 1 0 6.8"/><path d="M18.6 5.8a9 9 0 0 1 0 12.4"/></g></symbol>
+  <symbol id="tp-i-phones" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 15v-3a7.5 7.5 0 0 1 15 0v3"/><rect x="3.5" y="14" width="4" height="6.5" rx="1.8"/><rect x="16.5" y="14" width="4" height="6.5" rx="1.8"/></g></symbol>
+  <symbol id="tp-i-mic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></g></symbol>
+  <symbol id="tp-i-pencil" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L8.5 19z"/><path d="M14.5 6l3.5 3.5"/></g></symbol>
+  <symbol id="tp-i-redo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 12a7.4 7.4 0 1 0 2.4-5.5"/><path d="M4 4v4.8h4.8"/></g></symbol>
+  <symbol id="tp-i-target" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></g><circle cx="12" cy="12" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="tp-i-check" viewBox="0 0 24 24"><path d="M5 12.8l4.6 4.6L19.2 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="tp-i-cal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="3"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></g></symbol>
+  <symbol id="tp-i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M4.5 8.5 12 13.5l7.5-5"/></g></symbol>
+  <symbol id="tp-i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.4-6-10.5a6 6 0 0 1 12 0C18 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/></g></symbol>
+  <symbol id="tp-i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M4 5h16v11.2H11L6.2 20v-3.8H4z"/><path d="M8 9.6h8M8 12.6h5"/></g></symbol>
+  <symbol id="tp-i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="8.2" r="3.9"/><path d="M4.5 20.5c.6-4 3.6-6 7.5-6s6.9 2 7.5 6"/></g></symbol>
+  <symbol id="tp-i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<main class="tp-main t-u4" id="view"></main>
+
+<script src="sync.js"></script>
+<script src="unlock.js"></script>
+<script src="cast.js"></script>
+<script src="sfx.js"></script>
+<script src="content/tests.js" onerror="void 0"></script>
+<script src="mistakes.js" onerror="void 0"></script>
+<script src="nav.js"></script>
+<script>
+/* ============================================================
+   TEST DE FIN D'UNITÉ — comme un vrai examen (DELF A1) : cinq
+   épreuves, rien n'est corrigé avant la fin. Compréhension orale,
+   compréhension écrite et grammaire/vocabulaire sont notées ici ;
+   la production écrite et la production orale sont corrigées par
+   le tuteur (POST /api/grade). Contenu : tests.js (TESTS).
+   Résultat : store.tests[id] (+ les erreurs dans store.mistakes).
+   Habillage « La Troupe » : M. Dubois est l'examinateur. Aucune
+   correction instantanée par question (c'est un examen) : seuls le
+   résultat final (bravo / presque) et les gestes de navigation ont un son.
+   ============================================================ */
+const LS = 'dudu-a1-u1';
+const readStore = () => { try { return JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch (e) { return {}; } };
+let store = readStore();
+const save = () => {
+  try { localStorage.setItem(LS, JSON.stringify(store)); } catch (e) {}
+  try { DuduSync.schedulePush(store); } catch (e) {}
+};
+
+/* ------------------------------ utilitaires ------------------------------ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const view = $('view');
+const UNIT_TITLES = Object.fromEntries(Object.values(COURSE.units).map(u => [u.n, u.titre]));   // content/meta.js
+const PASS = 70, WEAK = 50;
+const PART_KEYS = ['co', 'ce', 'gv', 'pe', 'po'];
+const AUTO = ['co', 'ce', 'gv'];
+const num = n => String(Math.round(n * 10) / 10).replace('.', ',');
+const fmtDate = ms => { try { return new Date(ms).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}); } catch (e) { return ''; } };
+const countWords = s => (String(s || '').match(/[\p{L}\d]+(?:['’-][\p{L}\d]+)*/gu) || []).length;
+const icon = id => `<svg class="tp-ic" aria-hidden="true"><use href="#tp-i-${id}"/></svg>`;
+const sfx = (n, o) => { try { if (window.Sfx) window.Sfx.play(n, o); } catch (e) {} };
+const HAS_CAST = !!(window.Cast && typeof window.Cast.svg === 'function');
+const guard = fn => { try { return fn(); } catch (e) {} };
+
+/* la même correction que Unite1_Revision.html : 2 = juste, 1 = juste aux accents/traits d'union près, 0 = faux */
+const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+const norm = s => (s || '').toLowerCase().trim().replace(/[’`]/g, "'").replace(/[.!?;]+$/, '')
+  .replace(/\s*[-–—]\s*/g, '-').replace(/\s+/g, ' ');
+const loose = s => strip(norm(s)).replace(/[-']/g, ' ').replace(/\s+/g, ' ').trim();
+function judge(val, answers) {
+  const v = norm(val); if (!v) return 0;
+  const list = answers.split('|').map(a => a.trim());
+  if (list.some(a => norm(a) === v)) return 2;
+  if (list.some(a => loose(a) === loose(v))) return 1;
+  return 0;
+}
+
+/* ------------------------------ paramètres ------------------------------ */
+const qs = new URLSearchParams(location.search);
+const FROM_PLAN = qs.get('from') === 'plan';
+const FROM_FAIBLES = qs.get('from') === 'faibles';
+const TID = qs.get('id') ? String(qs.get('id')) : (qs.get('u') ? String(parseInt(qs.get('u'), 10)) : null);
+const TESTS_OK = typeof TESTS !== 'undefined' && TESTS && typeof TESTS === 'object';
+const TOPICS = (typeof TEST_TOPICS !== 'undefined' && TEST_TOPICS) ? TEST_TOPICS : {};
+const T = TESTS_OK && TID ? TESTS[TID] : null;
+const UNIT = T && T.covers && T.covers.length ? T.covers[T.covers.length - 1] : 4;
+if (T) view.className = 'tp-main t-u' + (UNIT >= 1 && UNIT <= 5 ? UNIT : 4);
+
+/* barre du haut + barre d'onglets (nav.js) : retour vers le parcours, ou vers la page d'où l'on vient */
+const BACK = FROM_PLAN ? 'plan' : FROM_FAIBLES ? 'faibles' : 'app';
+try {
+  DuduNav.mount({active: null, title: T && T.covers && T.covers.length > 1 ? 'Bilan' : "Test de fin d'unité", back: BACK, topbar: 'page', tabbar: true});
+  const nb = document.getElementById('navBack');
+  if (nb && FROM_PLAN) { nb.setAttribute('aria-label', 'Retour au plan du jour'); nb.title = 'Plan du jour'; }
+  if (nb && FROM_FAIBLES) { nb.setAttribute('aria-label', 'Retour aux points faibles'); nb.title = 'Points faibles'; }
+} catch (e) {}
+/* les barres collées (étapes, boutons) se calent sous / sur les barres de nav.js */
+function measure() {
+  const r = document.documentElement.style;
+  const top = document.querySelector('.n-top'), tab = document.querySelector('.t-tabbar');
+  if (top) r.setProperty('--tp-top', top.offsetHeight + 'px');
+  if (tab) r.setProperty('--tp-tab', tab.offsetHeight + 'px');
+}
+measure();
+window.addEventListener('resize', measure);
+window.addEventListener('load', measure);
+try { if (window.ResizeObserver) { const ro = new ResizeObserver(measure); [document.querySelector('.n-top'), document.querySelector('.t-tabbar')].forEach(n => n && ro.observe(n)); } } catch (e) {}
+
+/* ------------------------------ M. Dubois ------------------------------ */
+const dubois = (mood, o) => HAS_CAST ? Cast.svg('dubois', Object.assign({mood: mood || 'idle', label: ''}, o || {})) : '';
+const hostFace = () => `<div class="tp-face" role="button" tabindex="0" data-react data-host aria-label="M. Dubois — touchez pour une réaction">${dubois('idle', {crop: 'face'})}</div>`;
+const hostFig = (mood, react) => `<div class="tp-fig" role="button" tabindex="0" ${react === false ? '' : 'data-react '}data-host aria-label="M. Dubois — touchez pour une réaction">${dubois(mood)}</div>`;
+let pokeT = null;
+function poke(el) {
+  sfx('mascot', {char: 'dubois'});
+  const g = el.querySelector('g[data-char]'); if (!g) return;
+  if (!el.hasAttribute('data-react')) return;
+  if (g.dataset.mood !== 'idle') return;
+  /* un petit saut tout de suite (même sans voix) ; si une voix démarre, dudu:speak prend le relais et le prolonge */
+  clearTimeout(pokeT); guard(() => Cast.setMood(g, 'happy'));
+  pokeT = setTimeout(() => { if (g.dataset.mood === 'happy' && g._was === undefined) guard(() => Cast.setMood(g, 'idle')); }, 900);
+}
+document.addEventListener('click', e => { const h = e.target.closest && e.target.closest('[data-host]'); if (h) poke(h); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const h = e.target.closest && e.target.closest('[data-host]'); if (h) { e.preventDefault(); poke(h); }
+});
+/* un personnage qui parle saute (seulement ceux qui sont « réactifs » : ni le Dubois déçu, ni les autres écrans) */
+window.addEventListener('dudu:speak', e => {
+  const d = e.detail || {}, c = d.char === 'mamie' ? 'jo' : d.char;
+  const gs = Array.from(document.querySelectorAll('g[data-char="' + c + '"]')).filter(g => g.closest('[data-react]'));
+  if (!gs.length || !HAS_CAST) return;
+  const ms = Math.max(300, (d.duration || 1) * 1000);
+  gs.forEach(g => {
+    if (g._was === undefined) g._was = g.dataset.mood === 'happy' ? 'idle' : g.dataset.mood;
+    Cast.setMood(g, 'happy'); clearTimeout(g._st);
+    g._st = setTimeout(() => { Cast.setMood(g, g._was || 'idle'); g._was = undefined; }, ms + 200);
+  });
+});
+const say1 = (fr, en) => `<div class="t-bubble t-bubble--l tp-say"><p>${fr}${en ? enPair(en) : ''}</p></div>`;
+
+/* ------------------------------ synthèse vocale ------------------------------ */
+const TTS_OK = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+function frUtter(text) {
+  const u = new SpeechSynthesisUtterance(String(text).replace(/\s+/g, ' ').trim().slice(0, 600));
+  const v = speechSynthesis.getVoices().filter(x => (x.lang || '').toLowerCase().startsWith('fr'))
+    .sort((a, b) => ((b.lang || '').toLowerCase() === 'fr-fr') - ((a.lang || '').toLowerCase() === 'fr-fr'))[0];
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'fr-FR';
+  u.rate = 0.85;
+  return u;
+}
+function say(text) {
+  if (!TTS_OK || !text) return;
+  try {
+    speechSynthesis.cancel();
+    speechSynthesis.speak(frUtter(text));
+  } catch (e) {}
+}
+const stopSay = () => { try { if (TTS_OK) speechSynthesis.cancel(); } catch (e) {} };
+const speakBtn = text => TTS_OK ? `<button type="button" class="t-iconbtn tp-iconbtn" data-act="say" data-say="${esc(text)}" aria-label="Écouter" title="Écouter">${icon('speaker')}</button>` : '';
+/* petit bouton EN + sa traduction (masquée) */
+const enPair = en => en ? `<button type="button" class="enb" data-act="en" aria-expanded="false" title="English">EN</button><span class="enx" hidden>${esc(en)}</span>` : '';
+
+/* ------------------------------ état ------------------------------ */
+let S = null;      // l'épreuve en cours (mémoire seulement)
+let G = null;      // la correction du tuteur (écrit, oral)
+let audios = [];   // éléments <audio> de la partie affichée
+let moodT = null;  // M. Dubois déçu : triste, puis il se reprend
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function freshState() {
+  const po = ((T.parts.find(p => p.key === 'po') || {}).prompts || []).map(() => ({text: '', typed: !SR}));
+  const ans = {};
+  AUTO.forEach(k => { const p = partOf(k); ans[k] = p ? (p.items || []).map(() => null) : []; });
+  return {part: 0, seen: new Set([0]), ans, pe: '', po, plays: {}, t0: 0, live: false, srRefused: !SR, mins: 0, finalized: false, result: null};
+}
+const partOf = key => T.parts.find(p => p.key === key);
+const maxPlaysOf = a => (a && a.maxPlays) || 2;
+const unitsLabel = t => (t.covers || []).map(u => `Unité ${u}`).join(' + ');
+const pointsOf = p => p.points || 20;
+
+/* ------------------------------ écrans ------------------------------ */
+function setView(html) { stopAudio(); stopSay(); clearTimeout(moodT); view.innerHTML = html; window.scrollTo(0, 0); }
+function focusTitle() { const h = view.querySelector('h1'); if (h) { h.tabIndex = -1; try { h.focus({preventScroll: true}); } catch (e) {} } }
+
+function show() {
+  if (!TESTS_OK) {
+    return setView(`${hostRow("Les tests ne sont pas encore là.", "The tests aren't available yet.")}
+      <div class="t-card t-card--flat state"><h1 class="t-h3">Les tests ne sont pas encore disponibles.</h1>
+      <p class="en">The tests aren't available yet.</p><a class="t-btn t-btn--teal" href="app">← Parcours</a></div>`);
+  }
+  if (!TID || !T) {
+    const ids = Object.keys(TESTS);
+    setView(`${hostRow(TID ? "Ce test n'existe pas encore." : 'Quel test veux-tu passer ?', TID ? "There's no test for this unit yet." : 'Which test would you like to take?')}
+      <section><h1 class="t-h2" style="margin-top:12px">${TID ? "Ce test n'existe pas encore" : 'Choisissez un test'}</h1>
+      <p class="en">${TID ? "There's no test for this unit yet." : 'Pick a test.'}</p>
+      ${ids.length ? `<ul class="tp-pick">${ids.map(id => { const t = TESTS[id], r = (store.tests || {})[id], cu = (t.covers && t.covers.length) ? t.covers[t.covers.length - 1] : 4;
+        if (LK.testLocked(id)) return `<li><a class="t-card t-card--flat t-u${cu} is-locked" data-lock-unit="${LK.testUnit(id)}" aria-label="${esc((t.title || 'Test ' + id) + ' — verrouillé : ' + Unlock.lockText(LK.testUnit(id)).fr.replace(/^Verrouillée · /, ''))}"><span>${Unlock.lockIcon()}${esc(t.title || 'Test ' + id)}</span><small class="t-pill">Verrouillé</small></a></li>`;
+        return `<li><a class="t-card t-card--flat t-card--tap t-u${cu}" href="test?id=${encodeURIComponent(id)}"><span>${esc(t.title || 'Test ' + id)}</span><small class="t-pill ${r && r.passed ? 't-pill--teal' : 't-pill--unit'}">${r && r.manual && r.passed ? 'Marqué ✓' : r && r.best ? r.best.pct + ' %' + (r.passed ? ' ✓' : '') : '—'}</small></a></li>`; }).join('')}</ul>` : ''}
+      <div class="actions"><a class="t-btn t-btn--secondary" href="app">← Parcours</a></div></section>`);
+    view.querySelectorAll('[data-lock-unit]').forEach(a => Unlock.lockControl(a, +a.dataset.lockUnit));
+    return;
+  }
+  const need = T.covers && T.covers.length ? Math.max.apply(null, T.covers) : LK.testUnit(TID);
+  if (LK.locked(need)) return showLocked(need);
+  showStart();
+}
+/* Test d'une unité (ou bilan) pas encore ouverte : on ne démarre rien. Dubois explique, et un bouton ramène au parcours. */
+function showLocked(n) {
+  const lt = Unlock.lockText(n), need = lt.need;
+  setView(`${hostRow("Ce test n'est pas encore ouvert.", "This test isn't open yet.", 'idle', false)}
+    <section class="t-card t-card--flat state tp-locked" role="group" aria-label="Test verrouillé">
+      <span class="tp-lockbadge" aria-hidden="true">${Unlock.lockIcon()}</span>
+      <h1 class="t-h3">${esc(T && T.title || 'Test')} — verrouillé</h1>
+      <p class="why">${esc(lt.fr)}</p>
+      <p class="en">${esc(lt.en)}</p>
+      <a class="t-btn t-btn--teal" href="app">← Retour au parcours</a>
+    </section>`);
+  focusTitle();
+}
+/* un grand Dubois + sa bulle (accueil, erreurs) */
+const hostRow = (fr, en, mood, react) => `<div class="tp-host tp-host--big">${hostFig(mood || 'idle', react)}${say1(fr, en)}</div>`;
+
+function showStart() {
+  const rec = (store.tests || {})[TID];
+  const total = T.parts.reduce((s, p) => s + pointsOf(p), 0);
+  const covers = (T.covers || []).map(u => `Unité ${u} · ${esc(UNIT_TITLES[u] || '')}`).join(' + ');
+  const maxPlays = Math.max(...T.parts.flatMap(p => (p.audios || []).map(maxPlaysOf)), 2);
+  let hist = '';
+  if (rec && rec.manual && rec.passed) {                 // marqué comme réussi à la main depuis le parcours (app.html) : aucun essai
+    hist = `<div class="t-card t-card--flat tp-hist"><p class="hist"><span class="t-pill t-pill--teal">Marqué comme réussi</span><br>Tu as marqué ce test comme réussi à la main, sans le passer. Tu peux quand même le passer pour de vrai.</p>
+      <p class="en">Marked as passed by hand, without taking it. You can still take it for real.</p></div>`;
+  } else if (rec && rec.attempts && rec.attempts.length) {
+    const last = rec.attempts.slice(-3).reverse().map(a => `${fmtDate(a.at)} : <b>${a.pct} %</b>`).join(' · ');
+    hist = `<div class="t-card t-card--flat tp-hist"><p class="hist">${rec.passed ? '<span class="t-pill t-pill--teal">Déjà réussi</span><br>' : ''}Meilleur résultat : <b>${rec.best ? rec.best.pct : '—'} %</b> · ${rec.attempts.length} essai${rec.attempts.length > 1 ? 's' : ''}<br>Derniers : ${last}</p>
+      <p class="en">Best result and latest attempts.</p></div>`;
+  }
+  setView(`${hostRow("C'est l'heure du test ! Prends ton temps.", "It's test time! Take your time.")}
+  <section>
+    <h1 class="t-h2" style="margin-top:14px">${esc(T.title || 'Test')}</h1>
+    <p class="en">${esc(T.titleEn || '')}</p>
+    <div class="tp-meta"><span class="t-pill t-pill--unit">${covers}</span><span class="t-pill">environ ${T.minutes || 25} min</span><span class="t-pill">${total} points</span><span class="t-pill t-pill--mustard">réussite à ${PASS} %</span></div>
+    ${hist}
+    <div class="t-card t-card--flat tp-card">
+      <h2 class="t-h3">Les 5 épreuves</h2><p class="en">The 5 parts.</p>
+      <ul class="partlist">${T.parts.map((p, i) => `<li><span class="n">${i + 1}</span><span><b>${esc(p.title)}</b><span class="en">${esc(p.titleEn || '')}</span></span><span class="t-pill t-pill--unit">${pointsOf(p)} pts</span></li>`).join('')}</ul>
+    </div>
+    <div class="t-card tp-card tp-card--note">
+      <h2 class="t-h3">Comme un vrai examen</h2><p class="en">Like a real exam.</p>
+      <ul class="tp-rules">
+        <li>Pas d'indices, pas de corrections avant la fin.<span class="en">No hints, no corrections until the end.</span></li>
+        <li>Chaque audio s'écoute ${maxPlays} fois au maximum.<span class="en">Each recording can be played at most ${maxPlays} times.</span></li>
+        <li>Vous pouvez revenir aux épreuves précédentes. Le chronomètre n'est qu'indicatif.<span class="en">You can go back. The timer is only a guide.</span></li>
+      </ul>
+    </div>
+    <div class="t-card tp-card tp-card--warn">
+      <h2 class="t-h3">Qui corrige quoi ?</h2><p class="en">Who marks what?</p>
+      <ul class="tp-rules">
+        <li>Les épreuves 1 à 3 sont corrigées tout de suite, dans cette page.<span class="en">Parts 1–3 are marked here, instantly.</span></li>
+        <li>Le tuteur corrige l'écrit et l'oral : il faut une connexion à la fin du test.<span class="en">The tutor marks writing and speaking — you need a connection at the end.</span></li>
+        <li><b>La prononciation n'est pas notée</b> : le tuteur lit la transcription de ce que vous dites, pas votre accent.<span class="en">Pronunciation isn't graded: the tutor reads a transcript of what you say, not your accent.</span></li>
+        <li>Pour l'oral, autorisez le micro. Sinon, vous pourrez écrire ce que vous diriez.<span class="en">Allow the microphone, otherwise you can type what you would say.</span></li>
+      </ul>
+    </div>
+    <div class="tp-bar"><button class="t-btn t-btn--teal" id="startBtn" type="button" data-act="start">Commencer le test</button></div>
+  </section>`);
+}
+
+/* ------------------------------ l'épreuve ------------------------------ */
+function startExam() {
+  S = freshState(); G = null;
+  S.t0 = Date.now(); S.live = true;
+  renderPart();
+  clearInterval(startExam.tick);
+  startExam.tick = setInterval(updateTimer, 1000);
+}
+const elapsed = () => Math.max(0, Math.floor((Date.now() - S.t0) / 1000));
+function updateTimer() {
+  const el = $('timer'); if (!el || !S) return;
+  const s = elapsed(); el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function stepperHTML() {
+  const n = T.parts.length, pct = Math.round((S.part + 1) / n * 100);
+  return `<div class="tp-stepper">
+    <div class="t-progress t-progress--sm t-progress--unit" role="progressbar" aria-valuemin="1" aria-valuemax="${n}" aria-valuenow="${S.part + 1}" aria-label="Épreuve ${S.part + 1} sur ${n}" style="--v:${pct}%"><i></i></div>
+    <div class="tp-steprow">
+      <div class="tp-steps" role="group" aria-label="Épreuves">${T.parts.map((q, i) => `<button type="button" class="step${i === S.part ? ' cur' : ''}${S.seen.has(i) ? ' seen' : ''}" data-act="goto" data-i="${i}" aria-label="Épreuve ${i + 1} : ${esc(q.title)}"${i === S.part ? ' aria-current="step"' : ''}><b>${i + 1}</b></button>`).join('')}</div>
+      <span class="timer" id="timer" role="timer" aria-label="Temps écoulé"></span>
+    </div>
+  </div>`;
+}
+
+/* ce que dit M. Dubois en tête de chaque épreuve (la consigne du test s'il y en a une) */
+const HOST_LINE = {
+  ce: ['Lis le texte, puis réponds aux questions.', 'Read the text, then answer the questions.'],
+  gv: ['Complète les phrases, une par une.', 'Complete the sentences, one by one.'],
+  pe: ['Écris ton texte. Le tuteur le corrigera à la fin.', 'Write your text. The tutor will mark it at the end.'],
+  po: ['Réponds à voix haute, ou écris si tu préfères.', 'Answer out loud, or type if you prefer.']
+};
+
+function renderPart() {
+  stopAudio(); stopSay(); stopRec();
+  const p = T.parts[S.part], last = S.part === T.parts.length - 1;
+  S.seen.add(S.part);
+  let body = '';
+  if (p.key === 'co') body = coHTML(p);
+  else if (p.key === 'ce') body = ceHTML(p);
+  else if (p.key === 'gv') body = itemsHTML('gv', p);
+  else if (p.key === 'pe') body = peHTML(p);
+  else if (p.key === 'po') body = poHTML(p);
+  const sayHtml = p.intro ? say1(esc(p.intro), p.introEn) : (HOST_LINE[p.key] ? say1(esc(HOST_LINE[p.key][0]), HOST_LINE[p.key][1]) : '');
+  view.innerHTML = `${stepperHTML()}
+    <section class="parthead">
+      <span class="t-label">Épreuve ${S.part + 1} sur ${T.parts.length} · ${pointsOf(p)} points</span>
+      <h1 class="t-h2">${S.part + 1}. ${esc(p.title)}</h1>
+      <p class="en">${esc(p.titleEn || '')}</p>
+      <div class="tp-host" style="margin-top:12px">${hostFace()}${sayHtml}</div>
+    </section>
+    ${body}
+    <div class="tp-bar">
+      <button class="t-btn t-btn--secondary t-btn--sm tp-prev" type="button" data-act="prev"${S.part === 0 ? ' hidden' : ''}>← Précédent</button>
+      <button class="t-btn ${last ? '' : 't-btn--teal '}t-btn--sm" type="button" data-act="${last ? 'submit' : 'next'}">${last ? 'Terminer le test' : 'Suivant →'}</button>
+    </div>`;
+  updateTimer(); updatePeCount();
+  window.scrollTo(0, 0);
+  focusTitle();
+}
+
+/* ---- éléments des questions ---- */
+function qHTML(key, it, i, showTag) {
+  const a = S.ans[key][i];
+  const tag = showTag && it.audio != null ? `<span class="atag">${icon('phones')} Audio ${it.audio + 1}</span>` : '';
+  let ctrl = '', qtext = '';
+  if (it.type === 'gap') {
+    const parts = String(it.q).split('___');
+    const input = `<input class="t-input gap-in" type="text" data-act="gap" data-k="${key}" data-i="${i}" value="${esc(a || '')}" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" lang="fr" enterkeyhint="done" aria-label="Réponse à la question ${i + 1}">`;
+    qtext = parts.length === 2 ? `${esc(parts[0])}${input}${esc(parts[1])}` : `${esc(it.q)} ${input}`;
+    return `<li class="q t-card t-card--flat"><div class="qhead"><span class="qn">${i + 1}</span><p class="qt">${qtext}${tag}${enPair(it.qEn)}</p></div></li>`;
+  }
+  if (it.type === 'tf') {
+    ctrl = `<div class="opts tf" role="radiogroup" aria-label="Vrai ou faux">${[[true, 'Vrai', 'True'], [false, 'Faux', 'False']].map(([v, fr, en]) =>
+      `<button type="button" class="opt t-choice tp-opt" role="radio" aria-checked="${a === v}" data-act="tf" data-k="${key}" data-i="${i}" data-v="${v ? 1 : 0}">${fr}</button>`).join('')}</div>`;
+  } else {
+    ctrl = `<div class="opts" role="radiogroup" aria-label="Réponses possibles">${(it.options || []).map((o, k) =>
+      `<button type="button" class="opt t-choice tp-opt" role="radio" aria-checked="${a === k}" data-act="mcq" data-k="${key}" data-i="${i}" data-o="${k}">${esc(o)}</button>`).join('')}</div>`;
+  }
+  return `<li class="q t-card t-card--flat"><div class="qhead"><span class="qn">${i + 1}</span><p class="qt plain">${esc(it.q)}${tag}${enPair(it.qEn)}</p></div>${ctrl}</li>`;
+}
+const itemsHTML = (key, p, showTag) => `<ol class="items">${(p.items || []).map((it, i) => qHTML(key, it, i, showTag)).join('')}</ol>`;
+
+/* ---- compréhension orale ---- */
+function coHTML(p) {
+  const list = p.audios || [];
+  const players = list.map((a, ai) => {
+    const used = S.plays[ai] || 0, left = Math.max(0, maxPlaysOf(a) - used);
+    return `<div class="aud t-card t-card--flat" data-ai="${ai}">
+      <div class="aud__h"><span class="aud__ic">${icon('phones')}</span><h3>${list.length > 1 ? `Audio ${ai + 1}` : 'Écoutez'}${a.title ? ` — ${esc(a.title)}` : ''}</h3></div>
+      <button type="button" class="t-btn t-btn--teal t-btn--sm" data-act="play" data-ai="${ai}"${left ? '' : ' disabled'}>${playLabel(left, false)}</button>
+      <p class="err" role="alert" hidden></p>
+    </div>`;
+  }).join('');
+  return players + itemsHTML('co', p, list.length > 1);
+}
+const playText = (left, playing) => playing ? 'Lecture…' : (left ? `Écouter (${left} restante${left > 1 ? 's' : ''})` : 'Écoutes épuisées');
+const playLabel = (left, playing) => (left || playing ? icon(playing ? 'speaker' : 'play') : '') + `<span>${playText(left, playing)}</span>`;
+function stopAudio() { audios.forEach(a => { try { a.pause(); } catch (e) {} }); audios = []; }
+function playAudio(ai, btn) {
+  const a = (partOf('co').audios || [])[ai]; if (!a) return;
+  const used = S.plays[ai] || 0; if (used >= maxPlaysOf(a)) return;
+  stopSay();
+  const box = btn.closest('.aud'), err = box.querySelector('.err');
+  err.hidden = true;
+  stopAudio();
+  const done = () => {
+    const left = Math.max(0, maxPlaysOf(a) - (S.plays[ai] || 0));
+    if (!btn.isConnected) return;
+    btn.disabled = left === 0; btn.innerHTML = playLabel(left, false);
+  };
+  /* un audio sans fichier (src absent) : la voix française du navigateur lit la transcription, réplique par réplique */
+  if (!a.src) {
+    const lines = (a.transcript || []).map(l => l.fr).filter(Boolean);
+    if (!TTS_OK || !lines.length) { err.textContent = "Pas d'audio pour cette écoute, et ce navigateur ne sait pas lire le texte à voix haute."; err.hidden = false; return; }
+    S.plays[ai] = used + 1;
+    btn.disabled = true; btn.innerHTML = playLabel(0, true);
+    try {
+      lines.forEach((t, i) => { const u = frUtter(t); if (i === lines.length - 1) { u.onend = done; u.onerror = done; } speechSynthesis.speak(u); });
+    } catch (e) { done(); }
+    return;
+  }
+  const el = new Audio(); el.preload = 'auto'; el.src = a.src; audios.push(el);
+  S.plays[ai] = used + 1;                              // l'écoute compte dès qu'elle commence
+  btn.disabled = true; btn.innerHTML = playLabel(0, true);
+  el.addEventListener('ended', done);
+  el.addEventListener('error', () => {            // fichier introuvable : l'écoute n'est pas perdue
+    S.plays[ai] = Math.max(0, (S.plays[ai] || 1) - 1);
+    err.textContent = "Impossible de lire cet audio. Vérifiez votre connexion et réessayez."; err.hidden = false; done();
+  });
+  const pr = el.play();
+  if (pr && pr.catch) pr.catch(e => {
+    if (e && e.name === 'AbortError') return;     // interrompu par nous (changement d'épreuve) : l'écoute reste comptée
+    S.plays[ai] = Math.max(0, (S.plays[ai] || 1) - 1);
+    err.textContent = "Impossible de lire cet audio. Touchez le bouton pour réessayer."; err.hidden = false; done();
+  });
+}
+
+/* ---- compréhension écrite ---- */
+const DOC_KIND = {mail: ['E-mail', 'mail', 't-pill--teal'], annonce: ['Annonce', 'pin', 't-pill--mustard'], message: ['Message', 'chat', 't-pill--teal'], forum: ['Forum', 'user', 't-pill--blush']};
+function ceHTML(p) {
+  const t = p.text || {};
+  const kind = ['mail', 'annonce', 'message', 'forum'].includes(t.kind) ? t.kind : '';
+  const k = DOC_KIND[kind];
+  return `<article class="doc t-card t-card--flat ${kind}">${k ? `<span class="t-pill ${k[2]}">${icon(k[1])}${k[0]}</span>` : ''}<h2 class="t-h3">${esc(t.title || '')}</h2>${(t.fr || []).map(x => `<p>${esc(x)}</p>`).join('')}</article>` + itemsHTML('ce', p);
+}
+
+/* ---- production écrite ---- */
+function peHTML(p) {
+  const t = p.task || {}, n = countWords(S.pe);
+  return `<div class="tp-task t-card t-card--flat"><span class="t-label">Consigne</span><p>${esc(t.fr)}${enPair(t.en)}</p></div>
+    <label for="peText" class="tp-lbl">Votre texte · your text</label>
+    <textarea id="peText" class="t-input field" data-act="pe" rows="9" autocapitalize="sentences" autocorrect="off" autocomplete="off" spellcheck="false" lang="fr" placeholder="Écrivez ici…">${esc(S.pe)}</textarea>
+    <p class="counter" id="peCount"></p>`;
+}
+function updatePeCount() {
+  const el = $('peCount'); if (!el) return;
+  const t = partOf('pe').task || {}, n = countWords(S.pe), min = t.minWords || 0, max = t.maxWords || 0;
+  const cls = n < min ? 'low' : (max && n > max ? 'low' : 'ok');
+  el.innerHTML = `<span><b class="${n ? cls : ''}">${n}</b> mot${n > 1 ? 's' : ''}</span><span>${min && max ? `visez ${min}–${max} mots` : ''}</span>`;
+}
+
+/* ---- production orale ---- */
+function poHTML(p) {
+  const info = !S.srRefused ? '' : `<div class="t-card tp-card tp-card--warn" style="margin-top:14px"><p style="margin:0">${SR ? "Le micro n'est pas disponible (autorisation refusée ?)" : 'Votre navigateur ne gère pas la reconnaissance vocale'} : écrivez ce que vous diriez.<span class="en" style="display:block">${SR ? 'The microphone is unavailable (permission denied?)' : 'Your browser has no speech recognition'} — type what you would say.</span></p></div>`;
+  return info + `<ol class="items">${(p.prompts || []).map((pr, i) => promptHTML(pr, i)).join('')}</ol>
+    <p class="en tp-note">Pronunciation isn't graded — the tutor reads a transcript of what you say.</p>`;
+}
+function promptHTML(pr, i) {
+  const slot = S.po[i];
+  const kind = pr.kind === 'monologue' ? 'Monologue' : 'Réponse courte';
+  let ctl;
+  if (slot.typed) {
+    ctl = `<label class="tp-lbl" for="po${i}" style="margin-top:12px">Écrivez ce que vous diriez · type what you would say</label>
+      <textarea id="po${i}" class="t-input field short" data-act="potype" data-p="${i}" autocapitalize="sentences" autocorrect="off" autocomplete="off" spellcheck="false" lang="fr" placeholder="Écrivez ce que vous diriez…">${esc(slot.text)}</textarea>`;
+    if (SR && !S.srRefused) ctl += `<div class="row"><button type="button" class="t-btn t-btn--ghost t-btn--sm" data-act="usemic" data-p="${i}">${icon('mic')} Parler plutôt</button></div>`;
+  } else {
+    ctl = `<div class="row"><button type="button" class="mic t-btn t-btn--sm" data-act="mic" data-p="${i}" id="mic${i}">${icon('mic')}<span>${slot.text ? 'Recommencer' : 'Répondre'}</span></button>
+      <button type="button" class="t-btn t-btn--ghost t-btn--sm" data-act="usetype" data-p="${i}">${icon('pencil')} Écrire à la place</button></div>
+      <div class="trans${slot.text ? '' : ' empty'}" id="tr${i}" aria-live="polite">${slot.text ? esc(slot.text) : 'Votre réponse apparaîtra ici…'}</div>
+      <p class="hint" id="hint${i}" hidden></p>`;
+  }
+  return `<li class="pr q t-card t-card--flat"><p class="kind"><span class="t-pill t-pill--unit">${kind} · environ ${pr.seconds || 30} s</span></p>
+    <div class="ask"><p>${esc(pr.fr)}${enPair(pr.en)}</p>${speakBtn(pr.fr)}</div>${ctl}</li>`;
+}
+
+let rec = null, recIdx = -1;
+function stopRec() { if (rec) { const r = rec; rec = null; try { r.abort ? r.abort() : r.stop(); } catch (e) {} } recIdx = -1; }
+function setMic(p, on) {
+  const b = $('mic' + p); if (!b) return;
+  b.classList.toggle('rec', on);
+  b.querySelector('span').textContent = on ? "J'écoute… touchez pour finir" : (S.po[p].text ? 'Recommencer' : 'Répondre');
+}
+function setTrans(p) {
+  const el = $('tr' + p); if (!el) return;
+  const t = S.po[p].text;
+  el.textContent = t || 'Votre réponse apparaîtra ici…'; el.classList.toggle('empty', !t);
+}
+function hint(p, msg, isErr) { const h = $('hint' + p); if (!h) return; h.hidden = !msg; h.textContent = msg || ''; h.classList.toggle('err', !!isErr); }
+function fallbackToTyping(why) {
+  S.srRefused = true; S.po.forEach(s => { s.typed = true; });
+  if (S.part === T.parts.findIndex(x => x.key === 'po')) renderPart();
+}
+function micToggle(p) {
+  if (rec && recIdx === p) { rec.stop(); return; }
+  if (rec) { rec.stop(); return; }      // un autre enregistrement tourne : on l'arrête d'abord
+  stopSay(); stopAudio();
+  const pr = partOf('po').prompts[p], slot = S.po[p], prev = slot.text;
+  const r = new SR();
+  r.lang = 'fr-FR'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
+  let gotAny = false, err = null, silence = null, hard = null;
+  const arm = ms => { clearTimeout(silence); silence = setTimeout(() => { try { r.stop(); } catch (e) {} }, ms); };
+  r.onstart = () => { recIdx = p; hint(p, ''); setMic(p, true); arm(9000); hard = setTimeout(() => { try { r.stop(); } catch (e) {} }, (pr.seconds || 30) * 1000 + 15000); };
+  r.onresult = e => {
+    let fin = '', inter = '';
+    for (let k = 0; k < e.results.length; k++) {
+      const x = e.results[k], t = x[0].transcript.trim();
+      if (!x.isFinal) { inter += ' ' + t; continue; }
+      if (fin && t.toLowerCase().startsWith(fin.trim().toLowerCase())) fin = ' ' + t; else fin += ' ' + t;
+    }
+    const text = (fin + inter).replace(/\s+/g, ' ').trim();
+    if (text) { gotAny = true; slot.text = text; setTrans(p); arm(6000); }
+  };
+  r.onerror = e => { err = e.error || 'error'; };
+  r.onend = () => {
+    clearTimeout(silence); clearTimeout(hard);
+    recSession(false);
+    const mine = rec === r; if (mine) rec = null; recIdx = -1;
+    if (!gotAny) slot.text = prev;
+    setMic(p, false); setTrans(p);
+    if (!mine) return;                                   // arrêté par nous (changement d'épreuve)
+    if (!gotAny && ['not-allowed', 'service-not-allowed', 'audio-capture', 'network', 'language-not-supported'].includes(err)) {
+      fallbackToTyping(err);
+    } else if (!gotAny) {
+      hint(p, "Je n'ai rien entendu. Touchez le micro et réessayez, ou écrivez à la place.", true);
+    }
+  };
+  recSession(true);
+  try { rec = r; r.start(); } catch (e) { recSession(false); rec = null; fallbackToTyping('start'); }
+}
+/* iPhone : sfx.js met la session audio en « playback » (sons en mode silencieux) — iOS y refuse le micro. */
+function recSession(on) {
+  try {
+    if (window.Sfx && typeof Sfx.recording === 'function') Sfx.recording(on);
+    else if (navigator.audioSession) navigator.audioSession.type = on ? 'play-and-record' : 'auto';
+  } catch (e) {}
+}
+
+/* ---- navigation ---- */
+function go(i) { if (i < 0 || i >= T.parts.length || i === S.part) return; S.part = i; renderPart(); }
+function unanswered() {
+  let n = 0;
+  AUTO.forEach(k => (S.ans[k] || []).forEach(v => { if (v === null || v === '' || v === undefined) n++; }));
+  if (countWords(S.pe) === 0) n++;
+  S.po.forEach(s => { if (!s.text.trim()) n++; });
+  return n;
+}
+/* fenêtre de confirmation : une feuille « La Troupe » (DuduNav l'ouvre : fond inerte, focus, Échap) ; fermer = le premier bouton */
+function dialog(html, buttons) {
+  let d = document.getElementById('tpDlg');
+  if (!d) {
+    d = document.createElement('div'); d.className = 't-sheet'; d.id = 'tpDlg'; d.setAttribute('aria-hidden', 'true');
+    d.innerHTML = '<div class="t-sheet__scrim" data-close></div><div class="t-sheet__panel" role="dialog" aria-modal="true" aria-label="Confirmation" tabindex="-1"><span class="t-sheet__grip"></span><div class="tp-dlg__body"></div><div class="tp-dlg__acts"></div></div>';
+    document.body.appendChild(d);
+    d.addEventListener('click', e => {
+      const b = e.target.closest('[data-d]'); if (!b) return;
+      closeDialog(); const fn = d._fns && d._fns[+b.dataset.d]; if (fn) fn();
+    });
+  }
+  d.querySelector('.tp-dlg__body').innerHTML = html;
+  d.querySelector('.tp-dlg__acts').innerHTML = buttons.map((b, i) => `<button type="button" class="t-btn ${b.ghost ? 't-btn--secondary' : 't-btn--teal'}" data-d="${i}">${b.label}</button>`).join('');
+  d._fns = buttons.map(b => b.fn);
+  if (window.DuduNav && DuduNav.openSheet) DuduNav.openSheet(d);
+  else { d.classList.add('is-open'); d.setAttribute('aria-hidden', 'false'); const f = d.querySelector('.t-btn'); if (f) f.focus(); }
+}
+function closeDialog() {
+  const d = document.getElementById('tpDlg'); if (!d) return;
+  if (window.DuduNav && DuduNav.closeSheet && DuduNav.isSheetOpen()) DuduNav.closeSheet(true);
+  d.classList.remove('is-open'); d.setAttribute('aria-hidden', 'true');
+}
+function trySubmit() {
+  const n = unanswered();
+  if (!n) return submit();
+  dialog(`<p><b>Il reste ${n} réponse${n > 1 ? 's' : ''} vide${n > 1 ? 's' : ''}.</b> Une réponse vide compte 0.</p><p class="en">${n} answer${n > 1 ? 's are' : ' is'} still empty — an empty answer scores 0.</p>`,
+    [{label: 'Continuer le test', ghost: true, fn() {}}, {label: 'Terminer quand même', fn: submit}]);
+}
+
+/* ------------------------------ correction ------------------------------ */
+function gradeAuto() {
+  const out = {};
+  AUTO.forEach(key => {
+    const p = partOf(key), items = p.items || [];
+    const per = items.length ? pointsOf(p) / items.length : 0;
+    const rows = items.map((it, i) => {
+      const a = S.ans[key][i];
+      let q = 0, given = '', right = '';
+      if (it.type === 'mcq') { q = a === it.answer ? 2 : 0; given = a == null ? '' : it.options[a]; right = it.options[it.answer]; }
+      else if (it.type === 'tf') { q = a === it.answer ? 2 : 0; given = a == null ? '' : (a ? 'Vrai' : 'Faux'); right = it.answer ? 'Vrai' : 'Faux'; }
+      else { q = judge(a || '', it.answer); given = a || ''; right = String(it.answer).split('|')[0].trim(); }
+      return {i, it, q, given, right};
+    });
+    const got = rows.reduce((s, r) => s + (r.q ? per : 0), 0);
+    out[key] = {rows, got: Math.round(got * 100) / 100, max: pointsOf(p)};
+  });
+  return out;
+}
+
+const gradeBody = kind => {
+  const units = (T.covers && T.covers.length) ? T.covers : [1];
+  const topics = [...new Set(units.flatMap(u => TOPICS[u] || []))].slice(0, 40);
+  const base = {unit: Math.max(...units), units, testId: TID, kind, topics};
+  if (kind === 'writing') {
+    const t = partOf('pe').task || {};
+    return Object.assign(base, {task: {fr: t.fr, criteria: t.criteria || []}, answer: S.pe});
+  }
+  return Object.assign(base, {answers: partOf('po').prompts.map((pr, i) => ({prompt: pr.fr, transcript: S.po[i].text}))});
+};
+async function callGrade(kind) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 90000);
+  try {
+    const res = await fetch(location.origin + '/api/grade', {method: 'POST', credentials: 'same-origin', signal: ctl.signal,
+      headers: {'Content-Type': 'application/json'}, body: JSON.stringify(gradeBody(kind))});
+    let j = {}; try { j = await res.json(); } catch (e) {}
+    if (res.status === 401) throw new Error('Votre session a expiré : reconnectez-vous (dans un autre onglet), puis réessayez.');
+    if (!res.ok || j.error || typeof j.score !== 'number') throw new Error(j.error || 'Correction indisponible.');
+    return j;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Le tuteur met trop de temps à répondre.');
+    if (e instanceof TypeError) throw new Error('Pas de connexion. Vérifiez votre réseau.');
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+function runGrade(kind) {
+  G[kind] = {status: 'pending'};
+  const empty = kind === 'writing' ? countWords(S.pe) < 5 : S.po.every(s => !s.text.trim());
+  const job = empty
+    ? Promise.resolve({score: 0, max: 20, sub: {}, well_en: kind === 'writing' ? 'You wrote too little for the tutor to mark.' : 'Nothing was recorded for the speaking part.',
+        tips_en: [], corrected: '', mistakes: []})
+    : callGrade(kind);
+  job.then(res => { G[kind] = {status: 'ok', res}; }, err => { G[kind] = {status: 'err', msg: String(err.message || err)}; })
+    .then(afterGrade);
+}
+function afterGrade() {
+  if (!S || S.finalized) return;
+  const states = [G.writing.status, G.speaking.status];
+  if (states.includes('pending')) { renderResults(); return; }
+  if (states.every(s => s === 'ok')) { finalize(); return; }
+  renderResults();
+}
+function submit() {
+  clearInterval(startExam.tick);
+  stopRec(); stopAudio(); stopSay();
+  S.mins = Math.max(1, Math.round((Date.now() - S.t0) / 60000));
+  S.auto = gradeAuto();
+  G = {writing: {status: 'pending'}, speaking: {status: 'pending'}};
+  S.sent = true;
+  renderResults(true);
+  runGrade('writing'); runGrade('speaking');
+}
+function retry(kind) { G[kind] = {status: 'pending'}; renderResults(); runGrade(kind); }
+function saveWithout() {
+  dialog(`<p><b>Enregistrer sans ${[G.writing.status === 'err' ? "l'écrit" : '', G.speaking.status === 'err' ? "l'oral" : ''].filter(Boolean).join(' ni ')} ?</b> Cette partie comptera 0 point.</p>
+    <p class="en">The part that couldn't be marked will count as 0.</p>`,
+    [{label: 'Attendre', ghost: true, fn() {}}, {label: 'Enregistrer', fn() {
+      ['writing', 'speaking'].forEach(k => { if (G[k].status === 'err') G[k] = {status: 'skipped'}; });
+      finalize();
+    }}]);
+}
+
+function partScores() {
+  const wr = G.writing, sp = G.speaking, pe = partOf('pe'), po = partOf('po');
+  const scale = (g, p) => g.status === 'ok' ? Math.round(g.res.score / (g.res.max || 20) * pointsOf(p) * 100) / 100 : 0;
+  const parts = {};
+  AUTO.forEach(k => { parts[k] = {got: S.auto[k].got, max: S.auto[k].max}; });
+  parts.pe = {got: scale(wr, pe), max: pointsOf(pe)}; if (wr.status !== 'ok') parts.pe.skipped = true;
+  parts.po = {got: scale(sp, po), max: pointsOf(po)}; if (sp.status !== 'ok') parts.po.skipped = true;
+  return parts;
+}
+function finalize() {
+  if (S.finalized) return;
+  S.finalized = true; S.live = false;
+  const parts = partScores();
+  const got = PART_KEYS.reduce((s, k) => s + parts[k].got, 0), max = PART_KEYS.reduce((s, k) => s + parts[k].max, 0);
+  const pct = max ? Math.round(got / max * 100) : 0;
+  S.result = {parts, pct, got, max, passed: pct >= PASS};
+  persist(parts, pct);
+  renderResults();
+}
+
+/* ---- enregistrement : store.tests + carnet d'erreurs ---- */
+function unitOfTopic(topic) {
+  const cov = (T.covers && T.covers.length) ? T.covers : [1];
+  for (const u of cov) if ((TOPICS[u] || []).includes(topic)) return u;
+  return cov[0];
+}
+function persist(parts, pct) {
+  store = readStore();                                   // un autre appareil a pu synchroniser entre-temps
+  if (!store.tests || typeof store.tests !== 'object') store.tests = {};
+  const rec = store.tests[TID] || {passed: false, attempts: []};
+  const now = Date.now();
+  if (rec.manual) { delete rec.manual; if (!(rec.attempts || []).length) rec.best = null; }     // « marqué à la main » (app.html) : le vrai résultat remplace le 100 % de façade (sauf s'il y avait de vrais essais) ; « réussi » reste acquis
+  rec.attempts = (rec.attempts || []).concat([{at: now, pct, mins: S.mins, parts}]).slice(-10);
+  if (pct >= PASS) rec.passed = true;
+  if (!rec.best || pct >= rec.best.pct) rec.best = {pct, at: now};
+  rec.passed = !!rec.passed;
+  store.tests[TID] = rec;
+  try{ DuduSync.markActive(store); }catch(e){}   // série 🔥
+
+  const M = window.DuduMistakes;
+  if (M) {
+    try {
+      AUTO.forEach(key => S.auto[key].rows.forEach(r => {
+        const mk = `test:${TID}:${key}:${r.i}`;
+        if (r.q) { M.fix(store, mk); return; }
+        const it = r.it;
+        M.log(store, {key: mk, unit: unitOfTopic(it.topic), src: 'test', ref: 'test:' + TID, tab: '', topic: it.topic || 'Autre',
+          q: it.q, said: r.given || '(sans réponse)', better: r.right, why: it.why || ''});
+      }));
+      const llm = (g, label, ctx) => {
+        if (g.status !== 'ok') return;
+        (g.res.mistakes || []).forEach(m => {
+          if (!m || !m.better) return;
+          const topic = m.topic || 'Autre';
+          const key = M.keyOf ? M.keyOf('test', m.better) : 'test:' + String(m.better).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 80);
+          M.log(store, {key, unit: unitOfTopic(topic), src: 'test', ref: 'test:' + TID, tab: '', topic,
+            q: ctx ? label + ' — ' + ctx : label, said: m.said, better: m.better, why: m.why_en || ''});
+        });
+      };
+      llm(G.writing, 'Production écrite', (partOf('pe').task || {}).fr || '');
+      llm(G.speaking, 'Production orale', '');
+    } catch (e) { /* le carnet d'erreurs ne doit jamais empêcher d'enregistrer le test */ }
+  }
+  save();
+}
+
+/* ------------------------------ résultats ------------------------------ */
+function barHTML(p, got, max, extra) {
+  const pct = max ? got / max * 100 : 0, weak = pct < WEAK;
+  return `<div class="bar${weak ? ' weak' : ''}"><div class="top"><span>${esc(p.title)}${weak && !extra ? '<span class="t-pill t-pill--tomato tp-flag">à revoir</span>' : ''}${extra || ''}</span><b>${num(got)} / ${max}</b></div>
+    <span class="t-progress" style="--v:${Math.round(pct)}%"><i></i></span></div>`;
+}
+function wrongHTML(key, p, A) {
+  const bad = A.rows.filter(r => !r.q), acc = A.rows.filter(r => r.q === 1);
+  if (!bad.length && !acc.length) return '';
+  const qline = r => r.it.type === 'gap' ? esc(r.it.q).replace('___', '<b>＿＿＿</b>') : esc(r.it.q);
+  return `<details class="fold t-card t-card--flat"${bad.length ? ' open' : ''}><summary>${esc(p.title)} — ${bad.length ? `${bad.length} à revoir` : 'attention aux accents'}</summary><div class="inner">
+    ${bad.map(r => `<div class="wrong"><p class="qtx">${r.i + 1}. ${qline(r)}${enPair(r.it.qEn)}</p>
+      <p class="vs">${r.given ? `<span class="bad">${esc(r.given)}</span>` : '<em>(sans réponse)</em>'} → <span class="good">${esc(r.right)}</span> ${r.it.type === 'gap' ? speakBtn(r.it.q.replace('___', r.right)) : ''}</p>
+      ${r.it.why ? `<p class="why">${esc(r.it.why)}</p>` : ''}</div>`).join('')}
+    ${acc.length ? `<p class="accents">${icon('pencil')} <b>Attention aux accents</b> — comptées justes, mais écrivez-les : ${acc.map(r => `« ${esc(r.given)} » → « <b>${esc(r.right)}</b> »`).join(' ; ')}<span class="en">Counted as correct, but mind the accents and hyphens.</span></p>` : ''}
+  </div></details>`;
+}
+
+function transcriptsHTML() {
+  const p = partOf('co');
+  const list = (p && p.audios || []).filter(a => a.transcript && a.transcript.length);
+  if (!list.length) return '';
+  return `<details class="fold t-card t-card--flat"><summary>Transcriptions de l'audio</summary><div class="inner">
+    ${list.map((a, ai) => `<div class="tr" data-tr><h3 class="t-h3">${esc(a.title || 'Audio ' + (ai + 1))}</h3>
+      <button type="button" class="enb" data-act="tren" aria-pressed="false" style="margin:0 0 4px">EN</button>
+      ${a.transcript.map(l => `<div class="tr-line"><p class="fr"><span class="who">${esc(l.who || '')}</span><br>${esc(l.fr)}<span class="enx">${esc(l.en || '')}</span></p>${speakBtn(l.fr)}</div>`).join('')}</div>`).join('')}
+  </div></details>`;
+}
+
+function subsHTML(kind, g) {
+  const labels = kind === 'writing' ? [['task', 'Tâche', 6], ['vocab', 'Vocabulaire', 5], ['grammar', 'Grammaire', 6], ['coherence', 'Cohérence', 3]]
+    : [['task', 'Contenu', 8], ['vocab', 'Vocabulaire', 6], ['grammar', 'Grammaire', 6]];
+  return `<div class="subs">${labels.filter(([k]) => g.res.sub && g.res.sub[k] != null).map(([k, l, m]) => `<span class="sub">${l} <b>${g.res.sub[k]}/${m}</b></span>`).join('')}</div>`;
+}
+function mistakesHTML(g) {
+  const ms = g.res.mistakes || [];
+  if (!ms.length) return '<p class="fb">Aucune erreur importante relevée. <span class="en">No important mistakes found.</span></p>';
+  return `<div style="margin-top:10px">${ms.map(m => `<div class="mist"><span class="bad">${esc(m.said)}</span> → <span class="good">${esc(m.better)}</span> ${speakBtn(m.better)}
+    <small>${esc(m.why_en || '')}${m.topic && m.topic !== 'Autre' ? ` · ${esc(m.topic)}` : ''}</small></div>`).join('')}</div>`;
+}
+function tutorBlock(kind, g, title, enTitle) {
+  const head = `<h2 class="t-h3">${title}</h2><p class="en">${enTitle}</p>`;
+  if (g.status === 'pending') return `<section class="section">${head}<div class="pending" role="status"><span class="tp-spin" aria-hidden="true"></span><span>Le tuteur corrige…<span class="en" style="display:block">The tutor is marking…</span></span></div></section>`;
+  if (g.status === 'err') return `<section class="section">${head}<div class="fail-box t-card t-card--flat" role="alert"><p><b>Correction indisponible</b><span class="en" style="display:block">Marking unavailable.</span></p><p style="margin-top:6px;font:600 14px/1.4 var(--t-font-b)">${esc(g.msg)}</p>
+    <div class="acts"><button type="button" class="t-btn t-btn--sm" data-act="retry" data-kind="${kind}">${icon('redo')} Réessayer</button></div></div></section>`;
+  if (g.status === 'skipped') return `<section class="section">${head}<p class="fb">Cette partie n'a pas été corrigée : elle compte 0 point.<span class="en">Not marked — it counts as 0.</span></p></section>`;
+  const r = g.res;
+  if (kind === 'writing') {
+    const mine = `<div class="paper"><h4>Votre texte</h4>${esc(S.pe) || '<em>(vide)</em>'}</div>`;
+    const fixed = r.corrected ? `<div class="paper fixed"><h4>Corrigé</h4>${esc(r.corrected)}</div>` : '';
+    return `<section class="section">${head}
+      <p style="margin:6px 0 0;font:800 20px/1.1 var(--t-font-d)">${r.score} / ${r.max}</p>${subsHTML('writing', g)}
+      ${r.well_en ? `<p class="fb well">${esc(r.well_en)}</p>` : ''}
+      <div class="sidebyside">${mine}${fixed}</div>
+      ${mistakesHTML(g)}
+      ${(r.tips_en || []).length ? `<ul class="tips">${r.tips_en.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}</section>`;
+  }
+  const answers = partOf('po').prompts.map((pr, i) => `<div class="ans-mine"><small class="en">${esc(pr.fr)}</small>${esc(S.po[i].text) || '<em>(rien)</em>'}</div>`).join('');
+  const typedAny = S.po.some(s => s.typed && s.text.trim());
+  return `<section class="section">${head}
+    <p style="margin:6px 0 0;font:800 20px/1.1 var(--t-font-d)">${r.score} / ${r.max}</p>${subsHTML('speaking', g)}
+    ${r.well_en ? `<p class="fb well">${esc(r.well_en)}</p>` : ''}
+    <div style="margin-top:10px">${answers}</div>
+    ${typedAny ? `<p class="disclaimer">${icon('pencil')} ${S.srRefused ? 'La reconnaissance vocale était indisponible : vous avez écrit vos réponses.' : 'Certaines réponses ont été écrites plutôt que dites.'}<span class="en">${S.srRefused ? 'Speech recognition was unavailable, so you typed your answers.' : 'Some answers were typed rather than spoken.'}</span></p>` : ''}
+    ${mistakesHTML(g)}
+    ${(r.tips_en || []).length ? `<ul class="tips">${r.tips_en.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    <p class="disclaimer">${icon('mic')} La prononciation n'est pas notée : le tuteur lit la transcription de votre voix, pas votre accent.<span class="en">Pronunciation isn't graded — the tutor reads a transcript of your speech.</span></p></section>`;
+}
+
+/* l'en-tête des résultats : bravo avec toute la troupe, ou Dubois (déçu / qui corrige) */
+function heroHTML(state, R, S0) {
+  const titleEn = esc(T.titleEn || '');
+  const scoreInner = R ? `<div class="tp-pct" aria-label="${R.pct} pour cent">${R.pct} %</div>
+      <p class="tp-verdict">${R.passed ? icon('check') + ' Réussi' : `Pas encore (${PASS} % pour réussir)`}</p>
+      <p class="en">${R.passed ? 'Passed!' : `Not yet — ${PASS}% is needed to pass.`}</p>
+      <p class="tp-pts">${num(R.got)} / ${R.max} points · ${S0.mins} min</p>` : '';
+  if (state === 'pass') {
+    return `<section class="tp-res t-card is-pass">
+      <div class="t-confetti" aria-hidden="true"></div>
+      <div class="tp-res__in">
+        <h1 class="t-h1">Bravo !</h1>
+        <p class="en">Résultats · Your results — ${titleEn}</p>
+        <div class="tp-troupe">${['lea', 'dubois', 'jo'].map(c => `<figure><div class="tp-c" role="button" tabindex="0" data-react data-host aria-label="${HAS_CAST ? esc(Cast.NAMES[c]) : c} — touchez pour une réaction" data-c="${c}">${HAS_CAST ? Cast.svg(c, {mood: 'idle', label: ''}) : ''}</div><figcaption>${HAS_CAST ? esc(Cast.NAMES[c]) : ''}</figcaption></figure>`).join('')}</div>
+        ${scoreInner}
+      </div></section>`;
+  }
+  const line = state === 'fail' ? ['Presque ! On révise et on réessaie.', "Almost! Let's review and try again."]
+    : state === 'stuck' ? ["Oups, une partie n'a pas pu être corrigée.", "Oops, one part couldn't be marked."]
+    : ['Je lis ton travail… un instant !', "I'm reading your work… one moment!"];
+  const score = state === 'fail' ? `<div class="tp-score t-card t-card--flat is-fail">${scoreInner}</div>`
+    : state === 'stuck' ? `<div class="tp-score t-card t-card--flat"><div class="tp-pct" aria-hidden="true">?</div><p class="tp-verdict">Correction incomplète</p><p class="en">Marking incomplete — one part couldn't be marked.</p></div>`
+    : `<div class="tp-score t-card t-card--flat"><div class="tp-pct" aria-hidden="true">…</div><p class="tp-verdict">Correction en cours</p><p class="en">Marking in progress — the tutor is reading your writing and speaking.</p></div>`;
+  return `<h1 class="t-h2" style="margin-top:6px">Résultats</h1><p class="en">Your results — ${titleEn}</p>
+    ${hostRow(line[0], line[1], state === 'fail' ? 'sad' : 'idle', state !== 'fail')}${score}`;
+}
+
+function renderResults(first) {
+  const A = S.auto, R = S.result, done = !!R;
+  const wr = G.writing, sp = G.speaking;
+  const stuck = !done && [wr.status, sp.status].every(x => x !== 'pending') && [wr.status, sp.status].includes('err');
+  const parts = done ? R.parts : null;
+  const part = k => partOf(k);
+  const barsDone = !done ? '' : PART_KEYS.map(k => barHTML(part(k), parts[k].got, parts[k].max, parts[k].skipped ? '<span class="t-pill tp-flag">non corrigé</span>' : '')).join('');
+  const barsLive = AUTO.map(k => barHTML(part(k), A[k].got, A[k].max)).join('') +
+    ['pe', 'po'].map(k => { const g = k === 'pe' ? wr : sp; return `<div class="bar"><div class="top"><span>${esc(part(k).title)}</span><b>${g.status === 'pending' ? '…' : '—'}</b></div><span class="t-progress" style="--v:0%"><i></i></span></div>`; }).join('');
+  const nextHref = FROM_PLAN ? `<a class="t-btn t-btn--secondary" href="plan">${icon('cal')} Plan du jour</a>` : '';
+  const unit = (T.covers || [1])[T.covers.length - 1] || 1;
+  const prev = done && store.tests && store.tests[TID] ? store.tests[TID] : null;
+  const compare = done && prev && prev.attempts.length > 1 ? `<p class="hist" style="text-align:center;margin-top:12px">Meilleur résultat : <b>${prev.best.pct} %</b> · ${prev.attempts.length} essais</p>` : '';
+  const weakParts = done ? PART_KEYS.filter(k => parts[k].max && parts[k].got / parts[k].max * 100 < WEAK && !parts[k].skipped) : [];
+  const state = done ? (R.passed ? 'pass' : 'fail') : (stuck ? 'stuck' : 'wait');
+  clearTimeout(moodT);
+  view.innerHTML = `<section class="hero">
+    ${heroHTML(state, R, S)}${compare}
+    ${stuck ? `<div class="fail-box t-card t-card--flat"><p>Une partie n'a pas pu être corrigée. Réessayez ci-dessous, ou enregistrez le test sans elle (elle comptera 0).<span class="en" style="display:block">A part couldn't be marked. Retry below, or save without it (it counts as 0).</span></p>
+      <div class="acts"><button type="button" class="t-btn t-btn--secondary t-btn--sm" data-act="savepartial">Enregistrer sans ces parties</button></div></div>` : ''}
+    <div class="bars">${done ? barsDone : barsLive}</div>
+    ${weakParts.length ? `<p class="hist" style="margin-top:12px">À revoir : ${weakParts.map(k => esc(part(k).title)).join(', ')}.</p>` : ''}
+    <section class="section"><h2 class="t-h2">Corrections</h2><p class="en">Your mistakes in parts 1–3.</p>
+      ${AUTO.map(k => wrongHTML(k, part(k), A[k])).join('') || ''}
+      ${AUTO.every(k => A[k].rows.every(r => r.q === 2)) ? '<p class="fb well">Aucune erreur dans les épreuves 1 à 3 — bravo ! <span class="en">No mistakes in parts 1–3 — well done!</span></p>' : ''}
+      ${transcriptsHTML()}
+    </section>
+    ${tutorBlock('writing', wr, 'Production écrite', 'Writing — marked by the tutor')}
+    ${tutorBlock('speaking', sp, 'Production orale', 'Speaking — marked by the tutor')}
+    ${done ? `<div class="actions">
+      <a class="t-btn t-btn--teal" href="faibles">${icon('target')} Mes points faibles</a>
+      <button class="t-btn t-btn--secondary" type="button" data-act="retake">${icon('redo')} Repasser le test</button>
+      ${nextHref}<a class="t-btn t-btn--ghost" href="revision?u=${unit}">← Unité ${unit}</a></div>` : ''}
+  </section>`;
+  /* effets du résultat (une seule fois par passage : la correction du tuteur re-dessine la page) */
+  if (done) {
+    if (R.passed) {
+      const cf = view.querySelector('.t-confetti'); if (cf && HAS_CAST) guard(() => Cast.confetti(cf));
+    } else {
+      const g = view.querySelector('.tp-fig g[data-char]');
+      if (g && HAS_CAST) moodT = setTimeout(() => guard(() => Cast.setMood(g, 'idle')), 2400);
+    }
+    if (!S.fx) {
+      S.fx = true;
+      sfx(R.passed ? 'pass' : 'fail', {char: 'dubois'});     // M. Dubois, l'hôte du test, annonce le résultat
+    }
+  }
+  if (first) { window.scrollTo(0, 0); focusTitle(); }
+}
+
+/* ------------------------------ événements ------------------------------ */
+view.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'start') { sfx('tap'); startExam(); }
+  else if (act === 'next') { sfx('tap'); go(S.part + 1); }
+  else if (act === 'prev') { sfx('tap'); go(S.part - 1); }
+  else if (act === 'goto') { sfx('tap'); go(+b.dataset.i); }
+  else if (act === 'submit') { sfx('tap'); trySubmit(); }
+  else if (act === 'en') { const x = b.parentElement.querySelector('.enx'); const open = x.hidden; x.hidden = !open; b.setAttribute('aria-expanded', String(open)); }
+  else if (act === 'tren') { const tr = b.closest('.tr'); const on = tr.classList.toggle('show-en'); b.setAttribute('aria-pressed', String(on)); }
+  else if (act === 'say') say(b.dataset.say);
+  else if (act === 'mcq' || act === 'tf') {
+    const k = b.dataset.k, i = +b.dataset.i;
+    S.ans[k][i] = act === 'mcq' ? +b.dataset.o : b.dataset.v === '1';
+    b.parentElement.querySelectorAll('.opt').forEach(o => o.setAttribute('aria-checked', String(o === b)));
+    sfx('select');
+  }
+  else if (act === 'play') playAudio(+b.dataset.ai, b);
+  else if (act === 'mic') micToggle(+b.dataset.p);
+  else if (act === 'usetype') { stopRec(); S.po[+b.dataset.p].typed = true; renderPart(); }
+  else if (act === 'usemic') { S.po[+b.dataset.p].typed = false; renderPart(); }
+  else if (act === 'retry') retry(b.dataset.kind);
+  else if (act === 'savepartial') saveWithout();
+  else if (act === 'retake') { sfx('tap'); showStart(); }
+});
+view.addEventListener('input', e => {
+  const t = e.target, act = t.dataset && t.dataset.act;
+  if (act === 'gap') S.ans[t.dataset.k][+t.dataset.i] = t.value;
+  else if (act === 'pe') { S.pe = t.value; updatePeCount(); }
+  else if (act === 'potype') S.po[+t.dataset.p].text = t.value;
+});
+window.addEventListener('beforeunload', e => { if (S && S.live) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('pagehide', () => { stopAudio(); stopSay(); });
+if (TTS_OK) try { speechSynthesis.getVoices(); } catch (e) {}
+
+/* Quelles unités sont ouvertes (unlock.js) : tout de suite si la carte exercice → unité est en cache, sinon après un seul chargement du cours. */
+let LK = null;
+Unlock.ready(store).then(st => { LK = st; show(); });
+</script>
+</body>
+</html>

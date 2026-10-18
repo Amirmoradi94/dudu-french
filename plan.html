@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFF5E8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DuDu">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/v4/icon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="icons/v4/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/v4/apple-touch-icon.png">
+<title>DuDu — plan du jour</title>
+<script src="content/meta.js"></script>
+<script>
+/* Thème avant le premier affichage : le même réglage que les autres pages (store.theme = 'light' | 'dark',
+   absent = automatique, c'est alors le système qui décide). nav.js le réapplique ensuite. */
+(function () {
+  try {
+    var st = JSON.parse(localStorage.getItem('dudu-a1-u1') || '{}') || {};
+    if (st.theme === 'light' || st.theme === 'dark') document.documentElement.setAttribute('data-theme', st.theme);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="troupe.css">
+<style>
+/* =====================================================================
+   plan.html — « Plan du jour », en La Troupe. Tout est page-local ; les composants viennent de troupe.css
+   (t-card, t-btn, t-chip, t-pill, t-progress, t-bubble, t-input, t-confetti…) et les couleurs des jetons --t-* / --u*.
+   ===================================================================== */
+[hidden]{display:none!important}
+.pl-main{max-width:552px;margin:0 auto;padding:4px 16px 28px}
+.pl-en{margin:2px 0 0;font:italic 600 13px/1.35 var(--t-font-b);color:var(--t-ink-2)}
+.pl-sec{margin-top:22px}
+.pl-sec>.pl-en{margin-top:4px}
+
+/* ---- en-tête : Léa + bulle, titre, avancement ---- */
+.pl-head{position:relative;padding-bottom:2px}
+.pl-hero{position:relative;z-index:2;display:flex;align-items:center;gap:16px}
+.pl-lea{flex:none;width:104px;height:98px;cursor:pointer;border-radius:24px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pl-lea svg{display:block;width:100%;height:100%;overflow:visible}
+.pl-bubble{flex:1;min-width:0;padding:11px 14px 12px}
+.pl-bubble .pl-fr{font:800 18px/1.15 var(--t-font-d);letter-spacing:-.005em;overflow-wrap:anywhere}
+.pl-today{position:relative;z-index:2;margin-top:14px}
+.pl-today .t-label{display:block;margin-bottom:6px}
+.pl-sum{margin:10px 0 0;font:800 15px/1.3 var(--t-font-d);color:var(--t-ink);overflow-wrap:anywhere}
+.pl-dayprog{position:relative;z-index:2;margin-top:14px}
+.pl-dayprog__top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:7px}
+.pl-dayprog__top span{font:800 12px/1 var(--t-font-d);letter-spacing:.14em;text-transform:uppercase;color:var(--t-ink-2)}
+.pl-dayprog__top b{font:800 20px/1 var(--t-font-d);letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--t-ink)}
+.pl-head .t-confetti{z-index:3}
+
+/* ---- réglages : temps disponible + unité ---- */
+.pl-choose{padding:16px;display:grid;gap:16px}
+.pl-lab{display:block;margin-bottom:8px;font:800 12px/1.2 var(--t-font-d);letter-spacing:.14em;text-transform:uppercase;color:var(--t-ink-2)}
+.pl-lab i{font:italic 600 12px/1 var(--t-font-b);letter-spacing:0;text-transform:none}
+.pl-seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.pl-opt{justify-content:center;min-height:48px;padding:0 4px;font-size:16px;font-variant-numeric:tabular-nums;cursor:pointer;margin:0 0 4px;
+  box-shadow:0 4px 0 var(--t-line);border-color:var(--t-line);touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none;
+  transition:transform .09s,box-shadow .09s,background .15s}
+.pl-opt:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-line)}
+.pl-opt[aria-pressed="true"]{background:var(--t-mustard);color:#2B2230;border-color:var(--t-rim);box-shadow:0 4px 0 var(--t-edge)}
+.pl-opt[aria-pressed="true"]:active{box-shadow:0 1px 0 var(--t-edge)}
+.pl-selwrap{position:relative}
+.pl-selwrap::after{content:"";position:absolute;right:18px;top:50%;width:9px;height:9px;border-right:3px solid var(--t-ink-2);border-bottom:3px solid var(--t-ink-2);
+  transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.pl-select{min-height:52px;padding:12px 44px 12px 16px;border-radius:18px;cursor:pointer;font-weight:800;text-overflow:ellipsis}
+
+/* ---- bandeau « unité terminée » ---- */
+.pl-banner{margin-top:16px;background:var(--t-mustard-l);border-color:var(--t-mustard-d);box-shadow:0 5px 0 var(--t-mustard-d);margin-bottom:5px}
+.pl-banner__t{margin:0;font:800 17px/1.25 var(--t-font-d);color:var(--t-ink)}
+.pl-banner .t-btn{margin-top:12px;white-space:normal;text-align:center;line-height:1.15}
+
+/* ---- liste des activités ---- */
+.pl-list{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:16px}
+.pl-item{display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;padding:14px 14px 10px}
+.pl-k-memoire{--k-bg:var(--t-teal-l);--k-fg:var(--t-teal-ink);--k-tx:var(--t-teal-ink)}
+.pl-k-learn{--k-bg:var(--u1-l);--k-fg:var(--u1-ink);--k-tx:var(--u1-ink)}
+.pl-k-speak{--k-bg:var(--t-tomato-l);--k-fg:var(--t-tomato-ink);--k-tx:var(--t-tomato-ink)}
+.pl-k-cahier{--k-bg:var(--u2-l);--k-fg:var(--u2-ink);--k-tx:var(--u2-ink)}
+.pl-k-listen{--k-bg:var(--u3-l);--k-fg:var(--u3-ink);--k-tx:var(--u3-ink)}
+.pl-k-review{--k-bg:var(--u5-l);--k-fg:var(--u5-ink);--k-tx:var(--u5-ink)}
+.pl-k-test{--k-bg:var(--t-mustard);--k-fg:#2B2230;--k-tx:var(--t-mustard-ink)}
+.pl-k-write{--k-bg:var(--u4-l);--k-fg:var(--u4-ink);--k-tx:var(--u4-ink)}
+.pl-ic{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--k-bg,var(--t-cream));color:var(--k-fg,var(--t-ink))}
+.pl-ic svg{width:26px;height:26px}
+.pl-tx{min-width:0}
+.pl-kind{margin:0 0 3px;font:800 11.5px/1.2 var(--t-font-d);letter-spacing:.12em;text-transform:uppercase;color:var(--k-tx,var(--t-ink-2))}
+.pl-tx h3{font-size:18px;line-height:1.18;overflow-wrap:anywhere}
+.pl-why{margin:5px 0 0;font:600 14px/1.4 var(--t-font-b);color:var(--t-ink-2);overflow-wrap:anywhere}
+.pl-tx .pl-en{font-size:12.5px}
+.pl-meta{margin:9px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+.pl-item.t-card--done .pl-ic{background:var(--t-paper)}
+.pl-item.t-card--done .pl-why,.pl-item.t-card--done .pl-en{opacity:.8}
+.pl-acts{grid-column:1 / -1;display:flex;align-items:center;gap:12px;margin-top:2px}
+.pl-acts .pl-go{flex:1;min-width:0;white-space:normal;text-align:center;line-height:1.1;margin-bottom:5px}
+.pl-acts .pl-go svg{width:18px;height:18px}
+.pl-tick{flex:none;width:52px;height:52px;margin:0 0 5px;padding:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  background:var(--t-paper);color:var(--t-ink-3);border:2px solid var(--t-line);box-shadow:0 4px 0 var(--t-line);
+  transition:transform .09s,box-shadow .09s,background .15s,color .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.pl-tick svg{width:26px;height:26px}
+.pl-tick:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-line)}
+.pl-tick[aria-pressed="true"]{background:var(--t-teal);color:#fff;border-color:var(--t-teal-d);box-shadow:0 4px 0 var(--t-teal-d)}
+.pl-tick[aria-pressed="true"]:active{box-shadow:0 1px 0 var(--t-teal-d)}
+.pl-tick[aria-disabled="true"]{cursor:default}
+.pl-tick[aria-disabled="true"]:active{transform:none;box-shadow:0 4px 0 var(--t-teal-d)}
+
+.pl-cheer{margin-top:18px;text-align:center;background:var(--t-teal-l);border-color:var(--t-teal-d);box-shadow:0 5px 0 var(--t-teal-d);margin-bottom:5px;padding:18px 16px}
+.pl-cheer b{display:block;color:var(--t-teal-ink)}
+
+/* ---- parcours ---- */
+.pl-parcours{display:grid;gap:14px;margin-top:12px}
+.pl-pu{padding:14px 16px 16px}
+.pl-pu.t-card--unit{margin-bottom:5px}
+.pl-pu__h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pl-pu__h h3{flex:1 1 auto;min-width:0;font-size:17px;overflow-wrap:anywhere}
+.pl-dot{display:inline-block;vertical-align:-1px;width:12px;height:12px;border-radius:50%;background:var(--t-unit);margin-right:8px;border:2px solid var(--t-unit-d)}
+.pl-row{display:grid;grid-template-columns:4.6rem minmax(0,1fr) 2.8rem;gap:10px;align-items:center;margin-top:10px;font:700 13.5px/1.2 var(--t-font-b)}
+.pl-row__l{color:var(--t-ink-2)}
+.pl-row__v{text-align:right;font:800 12.5px/1 var(--t-font-d);color:var(--t-ink-2);font-variant-numeric:tabular-nums}
+.pl-bar-leaf{--bar:var(--u2)}
+.pl-bar-mustard{--bar:var(--t-mustard)}
+.pl-test{display:flex;align-items:center;gap:8px;margin:12px 0 0;font:700 13.5px/1.3 var(--t-font-b);color:var(--t-ink-2)}
+.pl-test svg{width:18px;height:18px;flex:none}
+.pl-test.ok{color:var(--t-teal-ink)}
+.pl-test b{font:800 14px/1 var(--t-font-d);font-variant-numeric:tabular-nums;color:var(--t-ink)}
+
+/* ---- 14 jours ---- */
+.pl-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px 6px;margin-top:14px}
+.dot{text-align:center;min-width:0}
+.dot i{display:grid;place-items:center;aspect-ratio:1;width:100%;max-width:40px;margin:0 auto;border-radius:50%;border:2px solid var(--t-line);background:var(--t-paper);color:#fff}
+.dot i svg{width:58%;height:58%}
+.dot.on i{background:var(--t-teal);border-color:var(--t-teal-d)}
+.dot.today i{border-color:var(--t-tomato);box-shadow:0 0 0 3px var(--t-tomato-l)}
+.dot span{display:block;margin-top:4px;font:800 11px/1 var(--t-font-d);color:var(--t-ink-2)}
+.dot.today span{color:var(--t-tomato-ink)}
+.pl-streak{margin-top:14px}
+.pl-streak svg{color:var(--t-tomato)}
+
+.pl-foot{margin-top:22px;text-align:center}
+.pl-foot .t-btn{margin-bottom:0}
+
+/* ---- chargement / erreur ---- */
+.pl-state{margin-top:18px;padding:22px 16px;text-align:center;color:var(--t-ink-2)}
+.pl-state b{display:block;font:800 18px/1.2 var(--t-font-d);color:var(--t-ink)}
+.pl-state .t-btn{margin-top:12px}
+.pl-spin{display:inline-block;width:18px;height:18px;border-radius:50%;vertical-align:-3px;margin-right:10px;border:3px solid var(--t-track);border-top-color:var(--t-tomato);animation:pl-sp .8s linear infinite}
+@keyframes pl-sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.pl-spin{animation:none}}
+
+@media (min-width:700px){
+  .pl-lea{width:128px;height:120px}
+  .pl-bubble .pl-fr{font-size:21px}
+}
+@media (max-width:359px){
+  .pl-lea{width:88px;height:82px}
+  .pl-hero{gap:12px}
+  .pl-bubble .pl-fr{font-size:16.5px}
+  .pl-row{grid-template-columns:4.2rem minmax(0,1fr) 2.6rem;gap:8px}
+}
+</style>
+</head>
+<body class="t-page">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.8l4.6 4.6L19.2 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M4 5h16v11.2H11L6.2 20v-3.8H4z"/><path d="M8 9.6h8M8 12.6h5"/></g></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><rect x="5.5" y="3" width="13.5" height="18" rx="2.4"/><path d="M9 8h7M9 12h7M9 16h4"/><path d="M3 7h3M3 12h3M3 17h3"/></g></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L8.5 19z"/><path d="M14.5 6l3.5 3.5"/></g></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11M17 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5"/><path d="M12 14v3.5M8.5 20.5h7M9.5 17.5h5"/></g></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2 6.3 20.3l1.2-6.4L2.8 9.5l6.4-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <!-- icônes propres au plan, dans le même trait (2,4 · arrondi) que celles du parcours -->
+  <symbol id="i-cards" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="8" width="13" height="12" rx="2.6"/><path d="M7.5 4.5h11a2 2 0 0 1 2 2V16"/><path d="M7 12.5h6M7 16h3.5"/></g></symbol>
+  <symbol id="i-headphones" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 15.5V12a7.8 7.8 0 0 1 15.6 0v3.5"/><rect x="3" y="14" width="4.6" height="6.4" rx="2.1"/><rect x="16.4" y="14" width="4.6" height="6.4" rx="2.1"/></g></symbol>
+  <symbol id="i-loop" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3.5l3.5 3.5L17 10.5"/><path d="M3.5 12V10.5A3.5 3.5 0 0 1 7 7h13.5"/><path d="M7 20.5L3.5 17 7 13.5"/><path d="M20.5 12v1.5A3.5 3.5 0 0 1 17 17H3.5"/></g></symbol>
+  <symbol id="i-write" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h8.5M3.5 11h5.5M3.5 15.5h4"/><path d="M20.4 8.6l-7.6 7.6-3.4.9.9-3.4 7.6-7.6a2 2 0 0 1 2.5 2.5z"/><path d="M18.3 10.7l-1.9-1.9"/></g></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12.4 2.6c.5 3.3-2.7 5-2.7 8.3 0 1.1.4 1.9 1 2.5-.1-1.5.9-2.4 1.8-3.4 1.4 1.8 3.4 2.9 3.4 5.5a4.7 4.7 0 0 1-9.4 0c0-5.4 6.4-7.4 5.9-12.9z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<main class="pl-main" id="main">
+  <div id="loading" class="t-card t-card--flat pl-state" role="status"><span class="pl-spin" aria-hidden="true"></span>Préparation de votre plan…
+    <p class="pl-en">Preparing your plan…</p></div>
+  <div id="error" class="t-card t-card--flat pl-state" role="alert" hidden>
+    <b>Impossible de charger le cours.</b>
+    <p class="pl-en">Couldn't load the course content — check your connection.</p>
+    <button class="t-btn t-btn--sm" id="retryBtn" type="button">Réessayer</button>
+  </div>
+
+  <div id="planRoot" class="pl-root" hidden>
+    <!-- 1. entête du jour : Léa présente le plan -->
+    <section class="pl-head" aria-labelledby="todayH">
+      <div class="t-confetti" id="confetti" aria-hidden="true"></div>
+      <div class="pl-hero">
+        <div class="pl-lea" id="leaHost" data-react role="button" tabindex="0" aria-label="Léa — touchez pour une réaction"></div>
+        <div class="t-bubble t-bubble--l pl-bubble" role="status" aria-live="polite">
+          <p class="pl-fr" id="leaLine">Voici ton plan pour aujourd'hui !</p>
+          <p class="pl-en" id="leaEn">Here is your plan for today!</p>
+        </div>
+      </div>
+      <div class="pl-today">
+        <span class="t-label" id="dateLine"></span>
+        <h1 class="t-h1" id="todayH">Aujourd'hui</h1>
+        <p class="pl-en">Today — what to do, in what order, for how long.</p>
+        <p class="pl-sum" id="sumLine"></p>
+      </div>
+      <div class="pl-dayprog">
+        <div class="pl-dayprog__top"><span>avancement du jour</span><b id="dayCount">0 / 0</b></div>
+        <div class="t-progress t-progress--unit" role="presentation"><i id="dayFill"></i></div>
+      </div>
+    </section>
+
+    <!-- 2. choix -->
+    <section class="t-card t-card--flat pl-choose pl-sec" aria-label="Réglages du plan">
+      <div class="pl-chooser">
+        <span class="pl-lab" id="budgetLab">Temps disponible <i>· time available</i></span>
+        <div class="pl-seg" id="budgetChips" role="group" aria-labelledby="budgetLab"></div>
+      </div>
+      <div class="pl-chooser">
+        <label class="pl-lab" for="unitSel">Unité <i>· unit</i></label>
+        <div class="pl-selwrap"><select class="t-input pl-select" id="unitSel" aria-describedby="lockHint"></select></div>
+        <div id="lockHint" hidden></div>
+      </div>
+    </section>
+
+    <div class="t-card pl-banner" id="banner" hidden>
+      <p class="pl-banner__t" id="bannerText"></p>
+      <p class="pl-en" id="bannerEn">Unit finished — move on to the next one?</p>
+      <button class="t-btn t-btn--sm t-btn--teal" id="nextUnitBtn" type="button">Unité suivante →</button>
+      <a class="t-btn t-btn--sm" id="testBannerBtn" href="test" hidden>Passer le test →</a>
+    </div>
+
+    <!-- 3. liste -->
+    <ol class="pl-list" id="list" aria-label="Activités du jour"></ol>
+    <div class="t-card pl-cheer" id="cheer" hidden>
+      <b class="t-h2">Séance terminée — à demain !</b>
+      <p class="pl-en">All done for today — see you tomorrow!</p>
+    </div>
+
+    <!-- 4. parcours -->
+    <section class="pl-sec" aria-labelledby="parcoursH">
+      <h2 class="t-h2" id="parcoursH">Mon parcours</h2>
+      <p class="pl-en">My progress, unit by unit.</p>
+      <div class="pl-parcours" id="parcours"></div>
+    </section>
+
+    <!-- 5. 14 jours -->
+    <section class="pl-sec" aria-labelledby="daysH">
+      <h2 class="t-h2" id="daysH">Les 14 derniers jours</h2>
+      <p class="pl-en">Days when you finished the whole plan.</p>
+      <div class="pl-days" id="days"></div>
+      <p class="t-chip t-chip--fire pl-streak" id="streak" hidden></p>
+    </section>
+
+    <!-- 6. refaire -->
+    <div class="pl-foot"><button class="t-btn t-btn--ghost t-btn--sm" id="redoBtn" type="button">Refaire mon plan</button>
+      <p class="pl-en">Rebuild today's plan</p></div>
+  </div>
+</main>
+
+<script src="content/videos.js"></script>
+<script src="sync.js"></script>
+<script src="cast.js"></script>
+<script src="sfx.js"></script>
+<script src="mistakes.js"></script>
+<script src="nav.js"></script>
+<script src="content/ateliers.js" onerror="void 0"></script>
+<script src="course.js"></script>
+<script src="unlock.js"></script>
+<script>
+/* ============================================================
+   PLAN DU JOUR — une liste fixe pour la journée, construite à
+   partir de la progression (store 'dudu-a1-u1') et de la structure
+   du cours, lue en direct dans Unite1_Revision.html.
+   Rien n'est écrit en dur sur le contenu des unités : si une unité
+   ou un exercice est ajouté à la page de révision, le plan le suit.
+   ============================================================ */
+const LS = Course.LS;
+const readStore = Course.readStore;
+let store = readStore();
+/* Les clés que cette page écrit. Tout le reste du store (thème, son, voix…) appartient à nav.js / sfx.js / aux autres pages :
+   on le relit juste avant d'écrire, pour ne jamais l'écraser avec une copie périmée. */
+const PLAN_KEYS = ['plan', 'planPrefs', 'plan_days'];
+const save = () => {
+  const cur = readStore();
+  PLAN_KEYS.forEach(k => { if (store[k] === undefined) delete cur[k]; else cur[k] = store[k]; });
+  store = cur;
+  try { localStorage.setItem(LS, JSON.stringify(store)); } catch(e){}
+  DuduSync.schedulePush(store);
+};
+
+/* La barre du haut (retour, titre, son, avatar → Moi), la barre d'onglets et le thème : nav.js. */
+DuduNav.mount({active: 'plan', title: 'Plan du jour', back: 'app', topbar: 'page', tabbar: true});
+
+/* ------------------------------ utilitaires ------------------------------ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DAY = 86400000;
+const BOX_DAYS = [0, 1, 2, 4, 9, 18, 35];            // les mêmes intervalles que Memoire.html
+const BUDGETS = [15, 30, 45, 60];
+const UNIT_TITLES = Object.fromEntries(Object.values(COURSE.units).map(u => [u.n, u.titre]));   // content/meta.js
+const unitTitle = n => UNIT_TITLES[n] || `Unité ${n}`;
+const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+const pad = n => String(n).padStart(2, '0');
+const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;   // date LOCALE
+const todayKey = () => dateKey(new Date());
+const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+
+/* ------------------------------ structure du cours ------------------------------ */
+/* L'analyse du cours (étapes, exercices, état « fait ») vit dans course.js (window.Course), partagé avec
+   la page d'accueil et le mode leçon ; ici on ne garde que des raccourcis liés au store de la page. */
+let course = null;      // { N: {docs:[step], gram:[], voc:[], phon:[], parler:[], cahier:[]} } — course.exWhere : data-id → {unit, panel}
+let courseUnits = [];   // [1,2,3,4,5]
+async function loadCourse() {
+  course = await Course.loadCourse();
+  courseUnits = Course.unitsOf(course);
+  Unlock.remember(course);          // la carte exercice → unité, pour les pages qui ne chargent pas le cours
+}
+/* Les unités ouvertes (unlock.js) : le plan ne propose jamais rien d'une unité verrouillée — ni leçon, ni test, ni atelier, ni révision. */
+const lockState = () => Unlock.state(store);
+
+/* ------------------------------ lecture de la progression ------------------------------ */
+const rec = id => Course.rec(store, id);
+const isDone = id => Course.isDone(store, id);
+const score = id => Course.score(store, id);
+const isWeak = id => Course.isWeak(store, id);
+const sig = id => Course.sig(store, id);
+const stepDone = s => Course.stepDone(store, s);
+
+/* le plan ne propose pas les étapes bonus (chapitres facultatifs du livre de grammaire) : seulement ce qui fait avancer l'unité */
+const tracksOf = n => { const t = Course.tracksOf(course, n); return Object.assign({}, t, {learn: t.learn.filter(s => !s.bonus)}); };
+const unitStats = n => Course.unitStats(course, store, n);
+/* leçons et Parler faits (le test de fin d'unité n'est pas compté ici) */
+const unitLessonsDone = n => Course.unitLessonsDone(course, store, n);
+/* Les tests de tests.js : une unité en a un jusqu'à TEST_MAX_UNIT (les bilans 1–2 et 3–4 sont proposés après les unités 2 et 4). */
+const BILANS = Course.BILANS;
+const testRec = id => Course.testRec(store, id);
+const testPassed = id => Course.testPassed(store, id);
+const testToday = id => { const r = testRec(id); return !!(r && (r.attempts || []).some(a => a.at >= startOfToday())); };
+const hasTest = Course.hasTest;
+const unitFinished = n => Course.unitFinished(course, store, n);
+
+/* Mémoire : une carte révisée aujourd'hui ? Memoire.html écrit due = maintenant + BOX_DAYS[box] jours
+   (ou due = maintenant après une erreur, boîte 0) : on retrouve donc l'instant de la dernière révision. */
+function memoireReviewedToday() {
+  const t0 = startOfToday(), mem = store.memoire || {};
+  return Object.keys(mem).some(k => {
+    const c = mem[k];
+    if (!c || !c.due) return false;
+    const last = c.due - (BOX_DAYS[c.box] || 0) * DAY;
+    return last >= t0 && last <= Date.now() + 60000;
+  });
+}
+
+/* ------------------------------ construction du plan ------------------------------ */
+const href = (n, tab, go) => `revision?u=${n}&tab=${tab}&go=${encodeURIComponent(go)}&from=plan`;
+const stepLabel = s => s.panel === 'docs' ? (s.letter ? `Document ${s.letter} · ${s.title}` : s.title)
+                     : s.panel === 'phon' ? `Phonétique · ${s.title.replace(/^\d+\s*·\s*/, '')}` : s.title;
+
+/* exercices faibles d'une étape, du plus mal réussi au mieux (au plus 3) */
+function weakIds(step, any) {
+  const ids = step.exIds.filter(id => isDone(id) && (any || isWeak(id)));
+  ids.sort((a, b) => score(a) - score(b));
+  return ids.slice(0, 3);
+}
+function reviewItem(step, prefix, exIds) {
+  return {
+    kind: 'review', title: `${prefix} : ${step.title}`, unit: step.unit,
+    why: 'Quelques exercices à refaire pour mieux les retenir.',
+    en: 'A few exercises to redo so they stick.',
+    href: href(step.unit, step.panel, exIds[0]), exIds,
+    snap: Object.fromEntries(exIds.map(id => [id, sig(id)])),
+    est: step.panel === 'parler' ? 3 * exIds.length : 2 + 2 * exIds.length, manual: false,
+  };
+}
+/* le point faible : étapes des unités ≤ n, la moins récemment travaillée d'abord */
+function pickWeakStep(n, skip) {
+  const cands = [];
+  courseUnits.filter(u => u <= n).forEach(u => {
+    const c = course[u];
+    [].concat(c.docs, c.gram, c.voc, c.phon, c.parler, c.cahier).forEach(s => {
+      if (skip && skip.includes(s)) return;
+      const w = weakIds(s, false);
+      if (!w.length) return;
+      const oldest = Math.min(...w.map(id => (rec(id).last || 0)));
+      const avg = w.reduce((a, id) => a + score(id), 0) / w.length;
+      cands.push({s, oldest, avg, w});
+    });
+  });
+  cands.sort((a, b) => a.oldest - b.oldest || a.avg - b.avg);
+  return cands[0] || null;
+}
+
+/* Le thème le plus lourd du carnet d'erreurs (mistakes.js) dont les erreurs viennent d'exercices du cours :
+   « À retravailler : <thème> (n erreurs) », avec jusqu'à 3 exercices à refaire. */
+function mistakeReview(unit, skip) {
+  if (typeof DuduMistakes === 'undefined') return null;
+  const where = new Map(Object.entries(course.exWhere));
+  const skipIds = new Set((skip || []).flatMap(s => s.exIds));
+  const groups = DuduMistakes.byTopic(store, {maxUnit: unit, open: true});
+  for (const g of groups) {
+    const ids = [];
+    g.items.forEach(e => {                       // le plus récent d'abord
+      if (ids.length < 3 && e.ref && where.has(e.ref) && !skipIds.has(e.ref) && !ids.includes(e.ref)) ids.push(e.ref);
+    });
+    if (!ids.length) continue;
+    const step = where.get(ids[0]);
+    return {
+      kind: 'review', title: `À retravailler : ${g.topic} (${plural(g.n, 'erreur')})`, unit: step.unit,
+      why: 'Des erreurs qui reviennent : on les reprend pour de bon.',
+      en: 'Mistakes that keep coming back — let\'s fix them for good.',
+      href: href(step.unit, step.panel, ids[0]), exIds: ids,
+      snap: Object.fromEntries(ids.map(id => [id, sig(id)])),
+      est: step.panel === 'parler' ? 3 * ids.length : 2 + 2 * ids.length, manual: false,
+    };
+  }
+  return null;
+}
+/* le test de fin d'unité (et le bilan après les unités 2 et 4) */
+function testItems(unit) {
+  const out = [], s = unitStats(unit);
+  if (hasTest(unit) && s.learnTot > 0 && s.learnDone >= Math.ceil(0.8 * s.learnTot) && !testPassed(String(unit))) {
+    out.push({kind: 'test', testId: String(unit), title: 'Test de fin d\'unité', unit,
+      why: `Écoute, lecture, grammaire, écrit et oral : pour savoir si l'unité ${unit} est vraiment acquise.`,
+      en: `Listening, reading, grammar, writing and speaking — is unit ${unit} really learned?`,
+      href: `test?u=${unit}&from=plan`, exIds: [], est: 25, manual: false});
+  }
+  /* bilan : proposé tant que le test des deux unités n'est pas réussi, pour l'unité où l'on arrive ou la suivante */
+  Object.keys(BILANS).map(Number).sort((a, b) => b - a).some(last => {
+    const b = BILANS[last];
+    if (unit < last || unit > last + 1 || !testPassed(String(last)) || testPassed(b.id)) return false;
+    out.push({kind: 'test', testId: b.id, title: `Bilan ${b.label}`, unit,
+      why: `Un test qui reprend les deux unités, pour vérifier que rien ne s'est effacé.`,
+      en: 'A test covering both units — to check that nothing has faded.',
+      href: `test?id=${b.id}&from=plan`, exIds: [], est: 25, manual: false});
+    return true;
+  });
+  return out.slice(0, 1);        // un seul test par jour dans le plan
+}
+
+/* ------------------------------ Atelier d'écriture (ateliers.js, atelier.html) ------------------------------ */
+const ateliersOf = n => (typeof ATELIERS !== 'undefined' && ATELIERS && Array.isArray(ATELIERS[n])) ? ATELIERS[n] : [];
+const atelierRec = id => (store.atelier && store.atelier[id]) || null;
+const atelierTaskDone = t => !!(atelierRec(t.id) && atelierRec(t.id).done);
+const atelierDrafts = () => Object.values(store.atelier || {}).flatMap(r => (r && Array.isArray(r.drafts)) ? r.drafts : []);
+const atelierWroteToday = () => atelierDrafts().some(d => d.at >= startOfToday());
+/* une version envoyée hier ou avant-hier : on laisse souffler (une séance d'écriture tous les 3 jours au plus) */
+const atelierRecent = () => atelierDrafts().some(d => d.at >= startOfToday() - 2 * DAY && d.at < startOfToday());
+function atelierItem(unit, budget, t) {
+  const todo = ateliersOf(unit).find(x => !atelierTaskDone(x));
+  if (!todo || budget < 30) return null;
+  if (!t.learn.length || t.learn.filter(stepDone).length * 2 < t.learn.length) return null;   // au moins la moitié de la leçon
+  if (atelierRecent()) return null;
+  return {kind: 'write', title: `Atelier d'écriture : ${todo.title}`, unit, taskId: todo.id,
+    why: 'Un petit texte corrigé par le tuteur, puis vous le réécrivez.',
+    en: 'A short text corrected by the tutor, then you rewrite it.',
+    href: `atelier?u=${unit}&from=plan#${todo.id}`, exIds: [], est: 15, manual: false};
+}
+
+function buildPlan(unit, budget) {
+  const t = tracksOf(unit), items = [], skipSteps = [];
+  let used = 0;
+  const add = it => { items.push(it); used += it.est; };
+  const fits = est => used + est <= budget;
+
+  /* 1 · Mémoire — toujours */
+  add({kind: 'memoire', title: 'Réviser le vocabulaire (Mémoire)', unit,
+       why: 'Les cartes dues aujourd\'hui, avant qu\'elles ne s\'effacent.',
+       en: 'Review today\'s due vocabulary cards before you forget them.',
+       href: `memoire?u=${unit}`, exIds: [], est: budget >= 45 ? 10 : 5, manual: false});
+
+  /* 2 · la suite de la leçon — toujours (sinon : revoir l'étape la plus faible) */
+  const todo = t.learn.filter(s => !stepDone(s));
+  if (todo.length) {
+    todo.slice(0, budget >= 45 ? 2 : 1).forEach(s => {
+      skipSteps.push(s);        // l'exercice faible sera revu pendant cette leçon : pas de doublon « à retravailler »
+      const nEx = s.exIds.length;
+      const kindFr = s.panel === 'docs' ? (s.letter ? `document ${s.letter}` : 'document')
+                   : s.panel === 'voc' ? 'vocabulaire' : s.panel === 'phon' ? 'phonétique' : 'grammaire';
+      const kindEn = s.panel === 'docs' ? (s.letter ? `document ${s.letter}` : 'document')
+                   : s.panel === 'voc' ? 'vocabulary' : s.panel === 'phon' ? 'pronunciation' : 'grammar';
+      const first = s.exIds.find(id => !isDone(id)) || s.exIds[0];
+      const done = s.exIds.filter(isDone).length;
+      add({kind: 'learn', title: stepLabel(s), unit,
+           why: `${done ? 'On continue' : 'Nouveau'} : ${kindFr} — ${s.nAudio ? 'écoute + ' : ''}${plural(nEx, 'exercice')}`,
+           en: `${done ? 'Keep going' : 'New'}: ${kindEn} — ${s.nAudio ? 'listening + ' : ''}${nEx} exercise${nEx > 1 ? 's' : ''}`,
+           href: href(unit, s.panel, first), exIds: s.exIds.slice(), est: s.est, manual: false});
+    });
+  } else {
+    /* tout est fait : on revoit l'étape où le score est le plus bas */
+    const ranked = t.learn.map(s => ({s, avg: s.exIds.reduce((a, id) => a + score(id), 0) / s.exIds.length}))
+                          .sort((a, b) => a.avg - b.avg);
+    if (ranked.length) {
+      const s = ranked[0].s, ids = weakIds(s, true);
+      if (ids.length) { add(reviewItem(s, 'Réviser', ids)); skipSteps.push(s); }
+    }
+  }
+
+  /* 2 bis · le test de fin d'unité, dès que la leçon est (presque) finie */
+  testItems(unit).forEach(it => items.push(it));       // hors budget : un test de 25 min ne doit pas chasser le reste de la séance
+
+  /* 3 · Parler — les 2 (ou 3) prochains exercices, en un seul bloc */
+  const sp = t.parlerEx.filter(e => !isDone(e.id)).slice(0, budget >= 45 ? 3 : 2);
+  if (sp.length) {
+    const n = sp.length;
+    add({kind: 'speak', title: `Parler — ${sp[0].sec} (${plural(n, 'exercice')})`, unit,
+         why: 'À voix haute : c\'est ce qui fait progresser le plus vite.',
+         en: 'Out loud — the fastest way to improve.',
+         href: href(unit, 'parler', sp[0].id), exIds: sp.map(e => e.id), est: 3 * n, manual: false});
+  }
+
+  /* 4 · cahier — dès qu'un tiers de la leçon est fait */
+  const cah = t.cahier.find(s => !stepDone(s));
+  if (cah && t.learn.length && t.learn.filter(stepDone).length * 3 >= t.learn.length && fits(cah.est)) {
+    const first = cah.exIds.find(id => !isDone(id)) || cah.exIds[0];
+    add({kind: 'cahier', title: `Cahier — ${cah.title}`, unit,
+         why: `Pour s'entraîner : ${plural(cah.exIds.length, 'exercice')} du cahier d'activités.`,
+         en: `Practice: ${cah.exIds.length} workbook exercise${cah.exIds.length > 1 ? 's' : ''}.`,
+         href: href(unit, 'cahier', first), exIds: cah.exIds.slice(), est: cah.est, manual: false});
+  }
+
+  /* 4 bis · l'atelier d'écriture — hors budget, comme le test : 15 minutes de plus, pas à la place du reste */
+  const wr = atelierItem(unit, budget, t);
+  if (wr) items.push(wr);
+
+  /* 5 · une vidéo d'Écoute de cette unité */
+  if (typeof VIDEOS !== 'undefined' && VIDEOS[unit] && fits(8)) {
+    const v = VIDEOS[unit].find(x => !(store.ecoute && store.ecoute[x.id]));
+    if (v) add({kind: 'listen', title: `Écouter : ${v.title}`, unit,
+                why: v.why || 'Une vidéo pour habituer l\'oreille.',
+                en: 'Watch one video to train your ear.',
+                href: `ecoute#u${unit}`, exIds: [], videoId: v.id, est: 8, manual: false});
+  }
+
+  /* 6 · un point faible : d'abord le thème le plus lourd du carnet d'erreurs, sinon l'étape la moins bien réussie */
+  const mr = mistakeReview(unit, skipSteps);
+  if (mr && fits(mr.est)) add(mr);
+  else {
+    const weak = pickWeakStep(unit, skipSteps);
+    if (weak && fits(2 + 2 * weak.w.length)) add(reviewItem(weak.s, 'À retravailler', weak.w));
+  }
+
+  return {date: todayKey(), unit, budget, items};
+}
+
+/* ------------------------------ état d'une activité ------------------------------ */
+function autoDone(it) {
+  if (it.kind === 'memoire') return memoireReviewedToday();
+  if (it.kind === 'listen') return !!(store.ecoute && store.ecoute[it.videoId]);
+  if (it.kind === 'write') return atelierWroteToday();        // une version envoyée aujourd'hui
+  if (it.kind === 'test') return testToday(it.testId);       // une tentative aujourd'hui, réussie ou non
+  /* refaire = l'enregistrement de chaque exercice a changé depuis la création du plan */
+  if (it.kind === 'review') return it.exIds.length > 0 && it.exIds.every(id => sig(id) !== (it.snap || {})[id]);
+  return it.exIds.length > 0 && it.exIds.every(isDone);
+}
+const itemDone = it => !!it.manual || autoDone(it);
+
+/* ------------------------------ plan du jour ------------------------------ */
+function ensurePlan(force) {
+  const prefs = store.planPrefs || {};
+  const p = store.plan;
+  const sameDay = p && p.date === todayKey();
+  const L = lockState();
+  let unit = +prefs.unit, budget = +prefs.budget;
+  if (sameDay && !force) {
+    /* plan figé : on ne le refait que si le choix de l'utilisateur a changé — ou si l'unité (ou un de ses éléments) est verrouillée */
+    if (!unit) unit = p.unit;
+    if (!budget) budget = p.budget;
+    if (L.locked(unit)) unit = L.clamp(unit);
+    if (p.unit === unit && p.budget === budget && !(p.items || []).some(it => it.unit && L.locked(it.unit))) {
+      if (!store.planPrefs || store.planPrefs.unit !== unit || store.planPrefs.budget !== budget) {
+        store.planPrefs = {unit, budget}; save();
+      }
+      return;
+    }
+  }
+  if (!unit || !course[unit]) unit = course[+store.unit] ? +store.unit : courseUnits[0];
+  unit = L.clamp(unit);
+  if (!BUDGETS.includes(budget)) budget = 30;
+  store.planPrefs = {unit, budget};
+  store.plan = buildPlan(unit, budget);
+  save();
+}
+function setPrefs(unit, budget) {
+  const cur = store.planPrefs || {};
+  if (unit) unit = lockState().clamp(unit);
+  store.planPrefs = {unit: unit || cur.unit, budget: budget || cur.budget};
+  ensurePlan(true);
+  render();
+}
+
+/* ------------------------------ affichage ------------------------------ */
+/* icône (symboles du sprite en haut de la page, même langage que les arrêts du parcours) + étiquette */
+const KIND = {
+  memoire: {ic: 'i-cards',      fr: 'Mémoire'},
+  learn:   {ic: 'i-book',       fr: 'Leçon'},
+  speak:   {ic: 'i-chat',       fr: 'Parler'},
+  cahier:  {ic: 'i-pencil',     fr: 'Cahier'},
+  listen:  {ic: 'i-headphones', fr: 'Écoute'},
+  review:  {ic: 'i-loop',       fr: 'Révision'},
+  test:    {ic: 'i-trophy',     fr: 'Test'},
+  write:   {ic: 'i-write',      fr: 'Écriture'},
+};
+const svgUse = (id, cls) => `<svg${cls ? ` class="${cls}"` : ''} aria-hidden="true"><use href="#${id}"/></svg>`;
+const unitCls = u => 't-u' + ((((+u || 1) - 1) % 5) + 1);
+const sfx = (n, o) => { try { if (window.Sfx) Sfx.play(n, o); } catch (e) {} };
+
+/* ---- Léa, l'hôte de la page ---- */
+const leaG = () => document.querySelector('#leaHost g[data-char]');
+let leaMoodT = null;
+/* même mécanique que app.html : Léa saute (humeur « happy ») pendant ms, puis retrouve son humeur d'avant */
+function leaHop(ms) {
+  const g = leaG(); if (!g || !window.Cast) return;
+  if (g._was === undefined) g._was = g.dataset.mood;
+  Cast.setMood(g, 'happy'); clearTimeout(g._st);
+  g._st = setTimeout(() => { Cast.setMood(g, g._was || 'idle'); g._was = undefined; }, ms);
+}
+function initHero() {
+  const host = $('leaHost');
+  if (window.Cast) Cast.mount(host, {char: 'lea', prop: 'notebook', label: ''});
+  const poke = () => {
+    sfx('mascot', {char: 'lea'});
+    const g = leaG(); if (!g || g.dataset.mood !== 'idle') return;
+    leaHop(900);
+  };
+  host.addEventListener('click', poke);
+  host.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); poke(); } });
+}
+/* une voix de Léa (Sfx) : elle bouge pendant qu'elle parle */
+window.addEventListener('dudu:speak', e => {
+  const d = e.detail || {};
+  if (d.char !== 'lea') return;
+  leaHop(Math.max(300, (d.duration || 1) * 1000) + 200);
+});
+let confettiT = null;
+function celebrate() {
+  const el = $('confetti'); if (!el || !window.Cast) return;
+  Cast.confetti(el, {count: 44});
+  clearTimeout(confettiT); confettiT = setTimeout(() => { el.innerHTML = ''; }, 4200);
+}
+
+let justTicked = -1;       // l'activité qu'on vient de cocher à la main : sa coche « pop »
+
+function render() {
+  const plan = store.plan, prefs = store.planPrefs;
+  if (!plan) return;
+
+  /* l'état « fait » de chaque activité est écrit dans le plan : la page d'accueil le lit tel quel */
+  let changed = false;
+  plan.items.forEach(it => {
+    const dn = itemDone(it);
+    if (it.done !== dn) { it.done = dn; changed = true; }
+  });
+  if (changed) save();
+
+  /* entête */
+  const d = new Date().toLocaleDateString('fr-FR', {weekday: 'long', day: 'numeric', month: 'long'});
+  $('dateLine').textContent = d.charAt(0).toUpperCase() + d.slice(1);
+  const total = plan.items.reduce((a, it) => a + it.est, 0);
+  $('sumLine').textContent = `≈ ${total} min · Unité ${plan.unit} — ${unitTitle(plan.unit)}`;
+  const k = plan.items.filter(itemDone).length, n = plan.items.length;
+  const all = n > 0 && k === n;
+  $('dayCount').textContent = `${k} / ${n} faits`;
+  $('dayFill').style.width = (n ? 100 * k / n : 0) + '%';
+  $('planRoot').className = 'pl-root ' + unitCls(plan.unit);
+  $('leaLine').textContent = all ? 'Tout est fait, bravo !' : 'Voici ton plan pour aujourd\'hui !';
+  $('leaEn').textContent = all ? 'All done — well done!' : 'Here is your plan for today!';
+
+  /* choix */
+  $('budgetChips').innerHTML = BUDGETS.map(b =>
+    `<button class="t-chip pl-opt" type="button" data-b="${b}" aria-pressed="${b === prefs.budget}">${b} min</button>`).join('');
+  const L = lockState();
+  $('unitSel').innerHTML = courseUnits.map(u => L.locked(u)
+    ? `<option value="${u}" disabled>🔒 Unité ${u} — ${esc(unitTitle(u))} · verrouillée</option>`
+    : `<option value="${u}"${u === prefs.unit ? ' selected' : ''}>Unité ${u} — ${esc(unitTitle(u))}</option>`).join('');
+  const lh = $('lockHint'), hintHtml = Unlock.hint(L);
+  lh.innerHTML = hintHtml; lh.hidden = !hintHtml;
+
+  /* bandeau « unité terminée » */
+  const nextU = prefs.unit + 1;
+  const lastStep = unitLessonsDone(prefs.unit) && !unitFinished(prefs.unit);      // tout fait, sauf le test
+  const showBanner = lastStep || (unitFinished(prefs.unit) && course[nextU]);
+  $('banner').hidden = !showBanner;
+  $('nextUnitBtn').hidden = lastStep;
+  $('testBannerBtn').hidden = !lastStep;
+  if (lastStep) {
+    $('bannerText').textContent = `Dernière étape : réussir le test de l'unité ${prefs.unit}`;
+    $('bannerEn').textContent = `Last step: pass the unit ${prefs.unit} test (70 % to pass).`;
+    $('testBannerBtn').href = `test?u=${prefs.unit}&from=plan`;
+  } else if (showBanner) {
+    $('bannerText').textContent = `Unité ${prefs.unit} terminée 🎉 — passer à l'unité ${nextU} ?`;
+    $('bannerEn').textContent = 'Unit finished — move on to the next one?';
+  }
+
+  /* liste : la prochaine activité à faire a le bouton principal, les autres un bouton discret */
+  const firstTodo = plan.items.findIndex(it => !itemDone(it));
+  $('list').innerHTML = plan.items.map((it, i) => {
+    const auto = autoDone(it), done = !!it.manual || auto;
+    const kd = KIND[it.kind] || KIND.learn;
+    const bilan = it.kind === 'test' && it.testId && !/^\d+$/.test(String(it.testId));
+    const startLabel = done ? 'Revoir' : 'Commencer';
+    const tickLabel = done ? 'Fait' : 'Marquer comme fait';
+    const goCls = done ? 't-btn--ghost' : (i === firstTodo ? '' : 't-btn--secondary');
+    return `<li class="t-card pl-item pl-k-${it.kind}${done ? ' t-card--done' : ''}${done ? ' done' : ''}" data-kind="${it.kind}">
+      <span class="pl-ic" aria-hidden="true">${svgUse(bilan ? 'i-star' : kd.ic)}</span>
+      <div class="pl-tx">
+        <p class="pl-kind">${kd.fr}</p>
+        <h3 class="t-h3">${esc(it.title)}</h3>
+        <p class="pl-why">${esc(it.why)}</p>
+        ${it.en ? `<p class="pl-en">${esc(it.en)}</p>` : ''}
+        <p class="pl-meta"><span class="t-pill${done ? ' t-pill--teal' : ''}">≈ ${it.est} min${done ? ' · fait' : ''}</span>${it.unit && it.unit !== plan.unit ? `<span class="t-pill t-pill--unit ${unitCls(it.unit)}">Unité ${it.unit}</span>` : ''}</p>
+      </div>
+      <div class="pl-acts">
+        <a class="t-btn t-btn--sm pl-go ${goCls}" href="${esc(it.href)}">${startLabel} ${svgUse('i-arrow')}</a>
+        <button class="pl-tick tick${i === justTicked ? ' t-pop' : ''}" type="button" data-i="${i}" aria-pressed="${done}"
+          ${auto && !it.manual ? 'aria-disabled="true" title="Coché automatiquement"' : 'title="Marquer comme fait"'}>${svgUse('i-check')}<span class="t-sr">${tickLabel}</span></button>
+      </div>
+    </li>`;
+  }).join('');
+  justTicked = -1;
+
+  /* tout est fait ? → on garde une trace du jour */
+  $('cheer').hidden = !all;
+  if (all) {
+    store.plan_days = store.plan_days || [];
+    if (!store.plan_days.includes(plan.date)) {
+      store.plan_days.push(plan.date);
+      store.plan_days.sort();
+      store.plan_days = store.plan_days.slice(-120);
+      save();
+    }
+  }
+
+  renderParcours(prefs.unit);
+  renderDays();
+}
+
+const BAR = {'': ' t-progress--unit', rose: '', leaf: ' pl-bar-leaf', teal: ' t-progress--teal'};
+function bar(done, tot, cls) {
+  return `<span class="t-progress t-progress--sm${BAR[cls] || ''}"><i style="width:${tot ? 100 * done / tot : 0}%"></i></span>`;
+}
+function testLine(u) {
+  if (!hasTest(u)) return '';
+  const r = testRec(String(u));
+  if (r && r.passed) return `<p class="pl-test ok">${svgUse('i-trophy')}<span>Test : <b>${(r.best && r.best.pct) || 70} %</b> ✓</span></p>`;
+  if (r && r.best && r.best.pct != null) return `<p class="pl-test">${svgUse('i-trophy')}<span>Test : pas encore passé <b>(meilleur : ${r.best.pct} %)</b></span></p>`;
+  return `<p class="pl-test">${svgUse('i-trophy')}<span>Test : pas encore passé</span></p>`;
+}
+function renderParcours(cur) {
+  $('parcours').innerHTML = courseUnits.map(u => {
+    const s = unitStats(u);
+    const row = (lbl, d, t, cls) => t ? `<div class="pl-row"><span class="pl-row__l">${lbl}</span>${bar(d, t, cls)}<span class="pl-row__v">${d}/${t}</span></div>` : '';
+    return `<div class="t-card ${u === cur ? 't-card--unit' : 't-card--flat'} pl-pu ${unitCls(u)}${u === cur ? ' cur' : ''}">
+      <div class="pl-pu__h">
+        <h3 class="t-h3"><span class="pl-dot" aria-hidden="true"></span>Unité ${u} — ${esc(unitTitle(u))}</h3>${u === cur ? '<span class="t-pill t-pill--unit">en cours</span>' : ''}
+      </div>
+      ${row('Leçons', s.learnDone, s.learnTot, '')}
+      ${row('Parler', s.parlerDone, s.parlerTot, 'rose')}
+      ${row('Cahier', s.cahierDone, s.cahierTot, 'leaf')}
+      ${row('Écriture', ateliersOf(u).filter(atelierTaskDone).length, ateliersOf(u).length, 'teal')}
+      ${testLine(u)}
+    </div>`;
+  }).join('');
+}
+function renderDays() {
+  const set = new Set(store.plan_days || []);
+  const now = new Date(), cells = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const key = dateKey(d);
+    cells.push(`<div class="dot${set.has(key) ? ' on' : ''}${i === 0 ? ' today' : ''}" title="${key}${set.has(key) ? ' — plan terminé' : ''}"><i>${set.has(key) ? svgUse('i-check') : ''}</i><span>${d.getDate()}</span></div>`);
+  }
+  $('days').innerHTML = cells.join('');
+  /* série : jours consécutifs, en comptant depuis aujourd'hui (ou hier si la journée n'est pas encore finie) */
+  let streak = 0;
+  const cur = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (!set.has(dateKey(cur))) cur.setDate(cur.getDate() - 1);
+  while (set.has(dateKey(cur))) { streak++; cur.setDate(cur.getDate() - 1); }
+  const el = $('streak');
+  el.hidden = streak < 2;
+  if (streak >= 2) el.innerHTML = `${svgUse('i-flame')}${streak} jours de suite`;
+}
+
+/* ------------------------------ interactions ------------------------------ */
+/* render() refait tout le DOM : on rend le focus au même contrôle (clavier, lecteur d'écran) */
+const refocus = sel => { const el = document.querySelector(sel); if (el) try { el.focus({preventScroll: true}); } catch (e) {} };
+
+$('budgetChips').addEventListener('click', e => {
+  const b = e.target.closest('.pl-opt'); if (!b) return;
+  const v = +b.dataset.b;
+  if (v !== store.planPrefs.budget) {
+    sfx('select');
+    setPrefs(null, v);
+    refocus(`#budgetChips [data-b="${v}"]`);
+  }
+});
+$('unitSel').addEventListener('change', e => { sfx('select'); setPrefs(+e.target.value, null); refocus('#unitSel'); });
+$('nextUnitBtn').onclick = () => { sfx('select'); setPrefs(store.planPrefs.unit + 1, null); };
+$('redoBtn').onclick = () => { sfx('tap'); ensurePlan(true); render(); };
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('.tick'); if (!b) return;
+  const i = +b.dataset.i, it = store.plan.items[i];
+  if (!it) return;
+  if (!it.manual && autoDone(it)) return;       // déjà coché automatiquement : rien à basculer
+  const wasAll = store.plan.items.length > 0 && store.plan.items.every(itemDone);
+  it.manual = !it.manual;
+  if (it.manual) { justTicked = i; try{ DuduSync.markActive(store); }catch(e){} }   // série 🔥
+  save(); render();
+  refocus(`#list .tick[data-i="${i}"]`);
+  if (!it.manual) { sfx('tap'); return; }
+  const nowAll = store.plan.items.every(itemDone);
+  if (nowAll && !wasAll) { sfx('complete', {char: 'lea'}); leaHop(2600); celebrate(); }   // la dernière activité, cochée par l'utilisateur
+  else sfx('correct', {char: 'lea', quiet: true});         // cocher une activité : le « ding » seulement (Léa ne parle qu'à la fin du plan)
+});
+
+/* On revient d'une autre page (bouton retour, autre onglet) : la progression a pu changer. */
+function refresh() {
+  if (!course) return;
+  store = readStore();
+  ensurePlan(false);
+  render();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+window.addEventListener('focus', refresh);
+window.addEventListener('pageshow', e => { if (e.persisted) refresh(); });
+
+/* ------------------------------ démarrage ------------------------------ */
+async function start() {
+  $('error').hidden = true; $('loading').hidden = false; $('planRoot').hidden = true;
+  try {
+    await loadCourse();
+  } catch (err) {
+    console.warn('plan: cours illisible', err);
+    $('loading').hidden = true; $('error').hidden = false;
+    return;
+  }
+  store = readStore();
+  ensurePlan(false);
+  $('loading').hidden = true; $('planRoot').hidden = false;
+  render();
+}
+$('retryBtn').onclick = start;
+initHero();
+start();
+</script>
+</body>
+</html>

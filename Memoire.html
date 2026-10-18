@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FFF5E8" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DuDu">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/v4/icon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="icons/v4/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/v4/apple-touch-icon.png">
+<title>DuDu — Mémoire</title>
+<script src="content/meta.js"></script>
+<script>
+/* Thème avant le premier affichage : store.theme = 'light' | 'dark', absent = automatique (le système décide). */
+(function () {
+  try {
+    var st = JSON.parse(localStorage.getItem('dudu-a1-u1') || '{}') || {};
+    if (st.theme === 'light' || st.theme === 'dark') document.documentElement.setAttribute('data-theme', st.theme);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="troupe.css">
+<style>
+/* =====================================================================
+   Memoire.html — « La Troupe ». Tout est page-local ; les composants viennent de troupe.css
+   (t-card, t-btn, t-bubble, t-feedback, t-progress, t-input…). Jetons --t-* uniquement.
+   ===================================================================== */
+[hidden]{display:none!important}
+.mem-main{max-width:560px;margin:0 auto;padding:6px 16px 28px}
+
+/* ---- l'hôte : Mamie Jo + sa bulle ---- */
+.host{display:grid;grid-template-columns:88px minmax(0,1fr);gap:16px;align-items:center;margin:4px 0 20px}
+.host__av{width:88px;height:88px;padding:0;margin:0;border:2px solid var(--t-rim);background:var(--t-mustard-l);cursor:pointer;display:block;overflow:hidden;border-radius:50%;box-shadow:0 4px 0 var(--t-edge);transition:transform .09s,box-shadow .09s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.host__av svg{display:block;width:100%;height:100%}
+.host__av:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-edge)}
+.host .t-bubble{padding:11px 14px}
+.host .t-bubble--l::before{top:50%;margin-top:-8px}
+.host__say{font:800 18px/1.2 var(--t-font-d);letter-spacing:-.005em;margin:0}
+.host--compact{grid-template-columns:60px minmax(0,1fr);gap:14px;margin-bottom:14px}
+.host--compact .host__av{width:60px;height:60px;box-shadow:0 3px 0 var(--t-edge)}
+.host--compact .host__say{font-size:16px}
+
+.screen{display:none}
+.screen.active{display:block}
+.mem-lede{margin-top:8px}
+.mem-lede strong{color:var(--t-ink)}
+
+/* ---- accueil : paquets, chiffres, démarrer ---- */
+.groups{display:flex;flex-wrap:wrap;gap:8px 8px;margin-top:18px}
+.grp{min-height:44px;padding:0 13px 0 15px;margin:0 0 3px;border-radius:99px;border:2px solid var(--t-line);background:var(--t-paper);color:var(--t-ink-2);
+  box-shadow:0 3px 0 var(--t-line);font:800 14px/1 var(--t-font-d);display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap;
+  transition:transform .09s,box-shadow .09s,background .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.grp:active{transform:translateY(3px);box-shadow:0 0 0 var(--t-line)}
+.grp .n{min-width:24px;height:24px;padding:0 6px;border-radius:99px;display:inline-grid;place-items:center;background:var(--t-cream);color:var(--t-ink-2);font-size:13px;font-variant-numeric:tabular-nums}
+.grp.is-locked{background:transparent;border-style:dashed;box-shadow:none;cursor:not-allowed}
+.grp.is-locked:active{transform:none}
+.grp.is-locked .ul-ico{font-size:16px}
+.grp.on{background:var(--t-tomato);border-color:var(--t-rim);color:var(--t-on-accent);box-shadow:0 3px 0 var(--t-tomato-d)}
+.grp.on:active{box-shadow:0 0 0 var(--t-tomato-d)}
+.grp.on .n{background:rgba(255,255,255,.26);color:var(--t-on-accent)}
+
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:20px}
+.stat{padding:12px 8px 11px;text-align:center}
+.stat b{display:block;font:800 32px/1 var(--t-font-d);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--t-tomato-ink)}
+.stat span{display:block;margin-top:7px;font:700 12px/1.25 var(--t-font-b);color:var(--t-ink-2)}
+.stat--new b{color:var(--t-teal-ink)}
+.stat--mastered b{color:var(--t-mustard-ink)}
+
+.cta{margin-top:22px;display:grid;gap:10px}
+.home__pick{text-align:center;margin:2px 0 14px}
+.home__sel{font:800 17px/1 var(--t-font-d);color:var(--t-ink);background:var(--t-paper);border:2px solid var(--t-line);border-radius:99px;
+  padding:11px 38px 11px 18px;-webkit-appearance:none;appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 20px) 50%,calc(100% - 15px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+.home__card{padding:22px 20px;text-align:center}
+.home__card p{margin:0}
+.home__k{font:700 14px/1.2 var(--t-font-b);color:var(--t-ink-2)}
+.home__big{font:800 42px/1.1 var(--t-font-d);letter-spacing:-.02em;margin:6px 0 4px!important;color:var(--t-ink)}
+.home__sub{font:600 15px/1.3 var(--t-font-b);color:var(--t-ink-2)}
+.home__card .cta{margin-top:18px}
+.home__card .empty-note{text-align:left}
+.home__links{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 22px;margin-top:18px}
+.home__link{border:0;background:none;padding:10px 4px;font:800 15px/1 var(--t-font-d);color:var(--t-teal-ink);cursor:pointer}
+/* mode paquet (memoire?u=N&pack=i&of=K) : rien d'autre que les mots du paquet et le bouton */
+.intro.is-pack > :not(.pack):not(.cta):not(.empty-note){display:none}
+.intro.is-pack .cta__row{display:none}
+.pack__list{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:6px}
+.pack__list li{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--t-line,#e8dccb);border-radius:14px;background:var(--t-card,#fff)}
+.pack__list .fr{font-weight:800}
+.pack__list .en{color:var(--t-ink-2,#7a6a5c);text-align:right}
+.pack__list li.is-seen .fr::after{content:" ✓";color:var(--t-teal,#1b7a72)}
+.cta__row{display:flex;flex-wrap:wrap;gap:10px}
+.cta__row .t-btn{flex:1 1 150px}
+.mem-start{flex-direction:column;gap:4px;white-space:normal;text-align:center}
+.mem-start__t{font:800 20px/1.1 var(--t-font-d)}
+.mem-start__n{font:700 14px/1.1 var(--t-font-b);opacity:.92}
+.mem-start__n:empty{display:none}
+.empty-note{margin-top:16px;border-left:5px solid var(--t-mustard);padding:12px 14px}
+
+.mem-how{margin-top:26px;padding:0}
+.mem-how summary{list-style:none;cursor:pointer;min-height:52px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;font:800 17px/1.2 var(--t-font-d);color:var(--t-ink);border-radius:22px}
+.mem-how summary::-webkit-details-marker{display:none}
+.mem-how summary::after{content:"+";font:800 24px/1 var(--t-font-d);color:var(--t-tomato-ink)}
+.mem-how[open] summary::after{content:"–"}
+.mem-how ol{margin:0;padding:0 18px 16px 36px;color:var(--t-ink-2);font:600 14.5px/1.5 var(--t-font-b)}
+.mem-how li{margin:9px 0}
+.mem-how strong{color:var(--t-ink)}
+.mem-how .lvl{display:inline-block;font:800 11.5px/1 var(--t-font-d);letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:99px;background:var(--t-mustard-l);color:var(--t-mustard-ink);margin-right:2px}
+
+/* ---- séance : haut, carte, réponses ---- */
+.sess-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sess-quit{flex:none;padding-inline:12px;margin-bottom:0;min-height:44px;font-size:14px}
+.sess-top .t-progress{flex:1;min-width:0}
+.sess-count{font:800 14px/1 var(--t-font-d);color:var(--t-ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.mem-stage{position:relative;perspective:1100px}
+.mem-card{min-height:310px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 18px 28px;position:relative;
+  border-radius:28px;background:var(--t-paper);transform-origin:50% 60%;backface-visibility:hidden}
+.mem-card.flippable{outline-offset:4px}
+.mem-card.is-back{background:var(--t-teal-l)}
+.mem-card.is-flipin{animation:mem-in .34s .15s cubic-bezier(.2,.9,.3,1.15) both}
+.mem-card.is-enter{animation:mem-enter .32s cubic-bezier(.2,.9,.3,1.1) both}
+.mem-ghost{position:absolute;inset:0;z-index:3;pointer-events:none;animation:mem-out .15s ease-in both}
+@keyframes mem-in{from{transform:rotateY(-90deg)}to{transform:rotateY(0)}}
+@keyframes mem-out{from{transform:rotateY(0)}to{transform:rotateY(90deg)}}
+@keyframes mem-enter{from{transform:translateY(14px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+.mem-badge{position:absolute;top:14px;left:14px;max-width:calc(100% - 78px);overflow:hidden;text-overflow:ellipsis}
+.mem-spk{position:absolute;top:9px;right:9px;z-index:2;margin:0}
+.mem-spk::before{content:"";width:22px;height:22px;background:currentColor;-webkit-mask:var(--t-ic-sound) center/contain no-repeat;mask:var(--t-ic-sound) center/contain no-repeat}
+.mem-card .fr{font:800 clamp(34px,10.5vw,50px)/1.05 var(--t-font-d);letter-spacing:-.02em;overflow-wrap:anywhere;color:var(--t-ink)}
+.mem-card .fr--sm{font-size:clamp(26px,7.6vw,36px)}
+.mem-card .en{font:800 21px/1.25 var(--t-font-d);color:var(--t-teal-ink);margin-top:12px;overflow-wrap:anywhere}
+.mem-card .hint,.mem-card .ask{margin-top:20px;font:800 11.5px/1.35 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase;color:var(--t-ink-2)}
+.mem-card .sent{font:800 clamp(21px,6vw,27px)/1.4 var(--t-font-d);max-width:22ch;overflow-wrap:anywhere}
+.mem-card .sent .gap{display:inline-block;min-width:4.6ch;height:1.05em;border-bottom:4px solid var(--t-tomato);vertical-align:baseline;margin:0 2px}
+.mem-card .sent-en{margin-top:14px;font:600 14.5px/1.4 var(--t-font-b);color:var(--t-ink-2);max-width:34ch}
+.mem-card .sent-en[style]{color:var(--t-ink)}
+.mem-card .sent-en--tr{margin-top:4px}
+
+.answer-row{display:flex;gap:10px;margin-top:18px;align-items:flex-start}
+.answer-row .t-input{flex:1 1 auto;min-height:54px}
+.answer-row .t-btn{flex:none;padding-inline:20px}
+.grade-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.grade-row .t-btn{padding-inline:10px;min-width:0}
+.grade-row .no{--fg:var(--t-tomato-ink)}
+.grade-row .t-btn svg{width:20px;height:20px}
+
+/* verdict = t-feedback du bas (le bouton « Continuer » est dans la feuille) */
+.verdict .head{font:800 22px/1.1 var(--t-font-d);letter-spacing:-.01em}
+.verdict .sol{margin-top:4px;font:800 20px/1.2 var(--t-font-d);color:#2B2230;display:inline-block;padding:1px 8px;border-radius:8px;background:rgba(255,255,255,.72)}
+.verdict .note{margin-top:5px;font:700 14.5px/1.3 var(--t-font-b)}
+.verdict .full{margin-top:5px;font:600 14px/1.35 var(--t-font-b)}
+.t-feedback__btn[hidden]{display:none!important}
+.mem-fbwrap{display:contents}
+
+/* ---- mes mots ---- */
+.manage .t-field{margin-top:16px}
+.manage .t-field .opt{font-weight:600;letter-spacing:0;text-transform:none}
+.field .help{margin-top:6px;font:600 13px/1.4 var(--t-font-b);color:var(--t-ink-2)}
+.manage .cta{margin-top:22px}
+.form-msg{margin-top:16px;border-left:5px solid var(--t-teal);padding:12px 14px;font:700 14.5px/1.4 var(--t-font-b);color:var(--t-ink)}
+.form-msg.is-bad{border-left-color:var(--t-tomato)}
+.mywords{margin-top:30px}
+.mywords h2{display:flex;align-items:center;gap:10px}
+.mywords .sess-count{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 8px;border-radius:99px;background:var(--t-teal-l);color:var(--t-teal-ink)}
+.mywords .sess-count:empty{display:none}
+#mwList{display:grid;gap:10px;margin-top:12px}
+.mw-item{display:flex;gap:12px;align-items:center;padding:12px 12px 12px 16px}
+.mw-item .txt{flex:1;min-width:0}
+.mw-item .w{font:800 19px/1.15 var(--t-font-d);overflow-wrap:anywhere}
+.mw-item .m{font:700 14px/1.3 var(--t-font-b);color:var(--t-teal-ink);margin-top:2px}
+.mw-item .s{font:600 13.5px/1.35 var(--t-font-b);color:var(--t-ink-2);margin-top:3px;font-style:italic}
+.mw-item .del{flex:none}
+.mw-empty{margin:8px 0 0}
+
+/* ---- fin ---- */
+.mem-done{position:relative;overflow:hidden;text-align:center;padding:26px 18px 24px;display:grid;gap:12px;justify-items:center}
+.mem-done > *{position:relative;z-index:2}
+.mem-done .t-confetti{z-index:1}
+.mem-done p{max-width:30ch}
+
+@media (max-width:359px){
+  .host{grid-template-columns:72px minmax(0,1fr);gap:12px}
+  .host__av{width:72px;height:72px}
+  .host__say{font-size:16px}
+  .stat b{font-size:27px}
+  .grade-row .t-btn{font-size:16px}
+  .answer-row .t-btn{padding-inline:14px}
+}
+</style>
+</head>
+<body class="t-page">
+
+<main class="mem-main" id="main">
+
+  <!-- L'hôte : Mamie Jo -->
+  <div class="host" id="host">
+    <button class="host__av" id="hostAv" type="button" aria-label="Mamie Jo — touchez pour une réaction"></button>
+    <div class="t-bubble t-bubble--l"><p class="host__say" id="hostSay">Une petite carte avec moi ?</p></div>
+  </div>
+
+  <!-- ============================== ACCUEIL ============================== -->
+  <section class="screen intro active" id="intro">
+    <!-- Arrivée depuis un arrêt « Mots » du chemin : seulement les mots de ce paquet -->
+    <div class="pack" id="packView" hidden>
+      <h1 class="t-h2" id="packTitle"></h1>
+      <p class="t-small mem-lede" id="packSub"></p>
+      <ul class="pack__list" id="packList"></ul>
+    </div>
+    <!-- Accueil : un paquet, un chiffre, un bouton -->
+    <div class="home" id="home">
+      <div class="home__pick"><select class="home__sel" id="groupSel" aria-label="Paquet de mots"></select></div>
+      <div class="t-card home__card">
+        <p class="home__k">Aujourd'hui</p>
+        <p class="home__big" id="homeBig">–</p>
+        <p class="home__sub" id="homeSub"></p>
+        <div class="cta">
+          <button class="t-btn t-btn--block mem-start" id="startBtn" type="button"><span class="mem-start__t">Commencer <span aria-hidden="true">→</span></span> <span class="mem-start__n" id="startCount"></span></button>
+        </div>
+        <p class="t-small empty-note" id="emptyNote" hidden></p>
+      </div>
+      <div class="home__links">
+        <button class="home__link" id="manageBtn" type="button">✏️ Mes mots</button>
+        <button class="home__link" id="howBtn" type="button">❔ Comment ça marche</button>
+      </div>
+    </div>
+
+    <details class="t-card t-card--flat mem-how" id="memHow" hidden>
+      <summary>Comment ça marche</summary>
+      <ol>
+        <li>Un mot revient à intervalles qui s'allongent (1 jour, puis 2, 4, 9, 18, 35…). Réussi, il
+        s'éloigne ; manqué, il revient tout de suite.</li>
+        <li><span class="lvl">Niveau 1 · reconnaître / deviner</span> — les deux sens alternent au hasard :
+        tantôt le mot français s'affiche et vous dites la traduction, tantôt c'est l'inverse — le sens
+        s'affiche et vous devinez le mot français — <strong>avant</strong> de retourner la carte.
+        C'est l'effort de mémoire qui fait retenir.</li>
+        <li><span class="lvl">Niveau 2 · la phrase</span> — une fois le mot connu, il revient
+        <strong>dans une phrase à trou</strong> : c'est là qu'on apprend à s'en servir, pas seulement à le reconnaître.</li>
+        <li><span class="lvl">Niveau 3 · produire</span> — enfin, on vous donne le sens en anglais et
+        vous <strong>écrivez le français vous-même</strong>, sans aucun indice.</li>
+        <li>15 mots nouveaux maximum par jour, pour ne jamais se sentir submergé.</li>
+      </ol>
+    </details>
+  </section>
+
+  <!-- ============================== SESSION ============================== -->
+  <section class="screen session" id="session">
+    <div class="sess-top">
+      <button class="t-btn t-btn--ghost t-btn--sm sess-quit" id="quitBtn" type="button">✕ arrêter</button>
+      <div class="t-progress t-progress--teal" role="progressbar" aria-label="Avancement de la séance"><i id="sessFill"></i></div>
+      <span class="sess-count" id="sessCount">0 / 0</span>
+    </div>
+
+    <div class="mem-stage" id="stage">
+      <div class="t-card mem-card" id="card">
+        <span class="t-pill t-pill--unit mem-badge" id="cardBadge"></span>
+        <div id="cardBody"></div>
+      </div>
+      <button class="t-iconbtn t-iconbtn--round mem-spk" id="spkBtn" type="button" title="Écouter" aria-label="Écouter"></button>
+    </div>
+
+    <div class="answer-row" id="answerRow" hidden>
+      <input class="t-input" id="answerIn" type="text" autocomplete="off" autocorrect="off" autocapitalize="none"
+             spellcheck="false" placeholder="en français…" aria-label="Votre réponse en français">
+      <button class="t-btn t-btn--teal" id="checkBtn" type="button">Vérifier</button>
+    </div>
+
+    <div class="grade-row" id="gradeRow" hidden>
+      <button class="t-btn t-btn--secondary no" id="gradeNo" type="button" aria-label="À revoir — je ne savais pas">✗ À revoir</button>
+      <button class="t-btn t-btn--teal yes" id="gradeYes" type="button" aria-label="Je savais — à revoir plus tard">✓ Je savais</button>
+    </div>
+  </section>
+
+  <!-- ============================== MES MOTS ============================== -->
+  <section class="screen manage" id="manage">
+    <h1 class="t-h2">Mes mots</h1>
+    <p class="t-small mem-lede">Un mot ou une expression croisée ailleurs — dans une série, au travail, dans la rue.
+    Ajoutez-le ici et il rejoint vos révisions comme les mots du livre.</p>
+
+    <div class="field">
+      <label class="t-field" for="mwFr">Le français
+        <input class="t-input" id="mwFr" type="text" autocomplete="off" autocapitalize="none" placeholder="le covoiturage · avoir envie de · ça marche"></label>
+      <p class="help">Un mot, une expression, un bout de phrase — comme vous l'avez entendu.</p>
+    </div>
+    <div class="field">
+      <label class="t-field" for="mwEn">Ce que ça veut dire
+        <input class="t-input" id="mwEn" type="text" autocomplete="off" placeholder="car sharing"></label>
+    </div>
+    <div class="field">
+      <label class="t-field" for="mwEx">Une phrase d'exemple <span class="opt">(facultatif)</span>
+        <input class="t-input" id="mwEx" type="text" autocomplete="off" autocapitalize="none" placeholder="Je fais du covoiturage tous les jours."></label>
+      <p class="help">Sans phrase, le mot passe quand même en révision — mais sans l'étape « phrase à trou ».</p>
+    </div>
+    <div class="field">
+      <label class="t-field" for="mwExEn">La phrase en anglais <span class="opt">(facultatif)</span>
+        <input class="t-input" id="mwExEn" type="text" autocomplete="off" placeholder="I car-share every day."></label>
+    </div>
+
+    <div class="cta">
+      <button class="t-btn t-btn--block" id="mwSave" type="button">Ajouter le mot</button>
+      <div class="cta__row">
+        <button class="t-btn t-btn--secondary t-btn--sm" id="mwGen" type="button">✨ Écrire la phrase avec le tuteur</button>
+        <button class="t-btn t-btn--ghost t-btn--sm" id="mwBack" type="button">← Retour</button>
+        <button class="t-btn t-btn--ghost t-btn--sm" id="resetGroupBtn" type="button">↺ Recommencer ce paquet</button>
+      </div>
+    </div>
+    <p class="t-card t-card--flat form-msg" id="mwMsg" hidden></p>
+
+    <div class="mywords">
+      <h2 class="t-h3">Déjà ajoutés <span class="sess-count" id="mwCount"></span></h2>
+      <div id="mwList"></div>
+    </div>
+  </section>
+
+  <!-- ============================== FIN ============================== -->
+  <section class="screen done" id="done">
+    <div class="t-card mem-done">
+      <div class="t-confetti" id="confetti" aria-hidden="true"></div>
+      <h1 class="t-h1">Session terminée</h1>
+      <p class="t-body" id="doneSummary"></p>
+      <button class="t-btn t-btn--block" id="againBtn" type="button">Retour à l'accueil <span aria-hidden="true">→</span></button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Verdict des réponses écrites : feuille du bas (t-feedback) -->
+<div class="t-feedback t-feedback--ok" id="fb" role="status" aria-live="polite">
+  <div class="t-feedback__in">
+    <div class="t-feedback__char" id="fbChar" aria-hidden="true"></div>
+    <div class="t-feedback__body"><div class="verdict" id="verdict" hidden></div></div>
+    <div class="mem-fbwrap" id="nextRow" hidden><button class="t-btn t-btn--block t-feedback__btn" id="nextBtn" type="button">Continuer <span aria-hidden="true">→</span></button></div>
+  </div>
+</div>
+
+<script src="sync.js"></script>
+<script src="unlock.js"></script>
+<script src="cast.js"></script>
+<script src="sfx.js"></script>
+<script src="nav.js"></script>
+<script src="content/lexique.js"></script>
+<script src="lexique.js"></script>
+<script src="content/vocab.js"></script>
+<script src="vocab.js"></script>
+<script>
+const LS='dudu-a1-u1';
+const store=(()=>{try{return JSON.parse(localStorage.getItem(LS)||'{}');}catch(e){return {};}})();
+addEventListener('dudu:ttsvoice', e => { store.ttsVoice = e.detail; });   // voix choisie dans « Moi » (nav.js)
+/* La page ne possède que ces clés. Le thème, le son et les voix sont écrits par nav.js / sfx.js pendant que la page
+   est ouverte : save() relit donc le store avant d'écrire et n'y remet que SES clés (sinon un « store » gardé en
+   mémoire depuis le chargement écraserait le thème ou le son choisis entre-temps). */
+const OWNED=['memoire','vocabPerso','memPerso','memMeta'];
+const save=()=>{
+  /* On garde l'objet « store » vivant (c'est lui que sync.js réécrit après l'envoi), mais on y ramène d'abord les clés
+     qui ne sont pas à nous, relues dans le stockage. */
+  let fresh = {};
+  try{ fresh = (window.DuduNav && DuduNav.readStore) ? DuduNav.readStore() : JSON.parse(localStorage.getItem(LS)||'{}'); }catch(e){}
+  Object.keys(store).forEach(k=>{ if(!OWNED.includes(k) && !(k in fresh)) delete store[k]; });
+  Object.keys(fresh).forEach(k=>{ if(!OWNED.includes(k)) store[k]=fresh[k]; });
+  try{localStorage.setItem(LS,JSON.stringify(store));}catch(e){}
+  DuduSync.schedulePush(store);
+};
+const sfx=(n,o)=>{ try{ if(window.Sfx) Sfx.play(n,o); }catch(e){} };
+
+/* Thème, son, compte et déconnexion : barre du haut et feuille « Moi » de nav.js. */
+
+/* ============================================================
+   SYSTÈME DE LEITNER — 7 boîtes, l'intervalle double presque à
+   chaque bonne réponse. Une carte manquée retombe en boîte 0 et
+   revient tout de suite, dans la même session.
+
+   La boîte décide aussi de CE QU'ON DEMANDE : reconnaître dans les
+   deux sens, français→anglais ou l'inverse (0-1), compléter une
+   phrase (2-3), écrire le mot de mémoire (4+). Un
+   mot déjà travaillé garde sa boîte : la progression continue là
+   où elle en était, elle demande simplement plus qu'avant.
+   ============================================================ */
+const DAY = 86400000;
+const BOX_DAYS = [0, 1, 2, 4, 9, 18, 35];
+const MAX_BOX = BOX_DAYS.length - 1;
+const NEW_DAILY_LIMIT = 15;
+const SESSION_CAP = 30;
+
+store.memoire = store.memoire || {};      // { clé: {box, due} }
+store.vocabPerso = store.vocabPerso || []; // vos propres mots, synchronisés avec le compte
+store.memPerso = store.memPerso || {};     // mots ajoutés depuis Écoute (« ＋ Mémoire ») : { clé: {fr, en, u, src} }
+const today = new Date().toISOString().slice(0,10);
+if(!store.memMeta || store.memMeta.date !== today){
+  store.memMeta = {date:today, newToday:0, group:(store.memMeta&&store.memMeta.group)||'all'};
+}
+save();
+
+let group = store.memMeta.group || 'all';
+// Arrivée depuis le menu d'une unité (memoire?u=2) : on ouvre directement sur
+// cette unité, plutôt que sur le dernier paquet choisi la fois précédente.
+const uParam = new URLSearchParams(location.search).get('u');
+/* Arrivée depuis un arrêt « Mots de l'unité i/K » du chemin (memoire?u=N&pack=i&of=K) : les mots NOUVEAUX de ce
+   paquet passent en premier (même découpage que app.html : vocabPacks, dans vocab.js ; les mots ajoutés à la main
+   vont dans le dernier paquet). Les révisions dues restent celles de toute l'unité. */
+const PACK = (() => {
+  const q = new URLSearchParams(location.search), i = +q.get('pack'), K = +q.get('of');
+  if (!['1','2','3','4','5'].includes(uParam) || !(i >= 1 && i <= K) || typeof vocabPacks !== 'function') return null;
+  const P = vocabPacks(uParam, K);
+  if (P.length !== K) return null;
+  const keys = new Set(P[i - 1]);
+  if (i === K) {
+    const inBook = new Set([].concat.apply([], P));
+    Object.keys(store.memPerso).forEach(k => { const w = store.memPerso[k]; if (w && w.fr && String(w.u) === uParam && !inBook.has(k)) keys.add(k); });
+  }
+  return {i, K, keys};
+})();
+/* VERROUILLAGE (unlock.js) : un paquet d'une unité verrouillée n'existe pas — aucun mot nouveau n'en est introduit, aucune carte n'en revient,
+   et ?u=4 d'une unité verrouillée n'ouvre rien. LK est rempli (applyLocks) avant le premier affichage. */
+let LK = null;
+const isLockedUnit = u => !!LK && /^[1-5]$/.test(String(u)) && LK.locked(+u);
+function applyLocks(st){
+  LK = st;
+  if(isLockedUnit(group)){ group = 'all'; store.memMeta.group = 'all'; }     // (en mémoire : le prochain save() écrira une valeur permise)
+  if(['1','2','3','4','5'].includes(uParam)){
+    if(isLockedUnit(uParam)) setTimeout(()=>Unlock.notice(+uParam), 250);
+    else { group = uParam; store.memMeta.group = uParam; save(); }
+  }
+}
+const now = Date.now();
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+
+/* Le paquet = les mots du livre + les vôtres. En cas de doublon, votre version
+   gagne : c'est vous qui avez choisi cette formulation-là. */
+function buildDeck(){
+  const out = [], byKey = {};
+  VOCAB.forEach(w => { if(isLockedUnit(w.u)) return; const k = gkey(w.fr); byKey[k] = {...w, key:k}; });
+  /* Les mots ajoutés depuis Écoute rejoignent « Mes mots » ; un mot déjà dans le livre
+     (vocab.js) garde sa version du livre, et vos propres mots (ci-dessous) gagnent sur tout. */
+  Object.keys(store.memPerso).forEach(k => {
+    const w = store.memPerso[k];
+    if(!w || !w.fr || byKey[k]) return;
+    /* rangé dans le paquet de son unité (Unité 3…) quand on la connaît ; il reste aussi listé dans « Mes mots » */
+    const unit = /^[1-5]$/.test(String(w.u)) && !isLockedUnit(w.u) ? String(w.u) : 'perso';
+    byKey[k] = {fr:w.fr, en:w.en, ex:w.ex, exEn:w.exEn, u:unit, fromUnit:w.u, key:k, fromEcoute:true};
+  });
+  store.vocabPerso.forEach(w => { const k = gkey(w.fr); byKey[k] = {...w, u:'perso', key:k}; });
+  for(const k in byKey) out.push(byKey[k]);
+  return out;
+}
+let DECK = buildDeck();
+const inGroup = w => group === 'all' || String(w.u) === String(group) || (group === 'perso' && w.fromEcoute);
+
+const GROUPS = [
+  {id:'all',   label:'Tout'},
+  ...Object.keys(COURSE.units).map(n => ({id: n, label: 'Unité ' + n})),   // content/meta.js
+  {id:'perso', label:'Mes mots'},
+];
+
+let queue = [], sessionTotal = 0, doneCount = 0, current = null, cardMode = 'reco';
+
+function boxOf(w){ return store.memoire[w.key] ? store.memoire[w.key].box : 0; }
+function hasGap(w){ return !!(w.ex && /\{[^}]+\}/.test(w.ex)); }
+
+/* Ce que la carte demande, selon la boîte. Aux boîtes 0-1, on alterne au
+   hasard le sens (français → anglais, ou l'inverse) : sinon, un mot tout
+   juste découvert ne fait QUE se faire reconnaître pendant des jours avant
+   de jamais demander l'effort inverse (deviner le mot depuis son sens). */
+function modeFor(w){
+  const b = boxOf(w);
+  if(b <= 1) return Math.random() < 0.5 ? 'reco' : 'recall';
+  if(b <= 3 && hasGap(w)) return 'cloze';
+  return 'prod';
+}
+
+function computeStats(){
+  if(PACK){
+    const pool = DECK.filter(w => PACK.keys.has(w.key));
+    const seen = pool.filter(w => store.memoire[w.key]);
+    const due = seen.filter(w => store.memoire[w.key].due <= now);
+    const unseen = pool.filter(w => !store.memoire[w.key]);
+    return {pool, due, unseen, mastered: seen.filter(w => store.memoire[w.key].box >= 4).length, newLeft: unseen.length};
+  }
+  const pool = DECK.filter(inGroup);
+  const seen = pool.filter(w => store.memoire[w.key]);
+  const due = seen.filter(w => store.memoire[w.key].due <= now);
+  let unseen = pool.filter(w => !store.memoire[w.key]);
+  if(group === 'all'){
+    // Dans « Tout », les mots non vus suivent par défaut l'ordre du livre
+    // (unité 1 puis 2 puis 3). Avec 15 mots nouveaux/jour et 300+ mots
+    // dans les premières unités, ça repousserait l'unité 3 de plusieurs
+    // semaines — alors qu'on est peut-être déjà en train de la réviser
+    // dans le classeur. On fait donc remonter en premier les mots de
+    // l'unité actuellement ouverte dans le classeur (store.unit), sans
+    // toucher aux révisions dues (`due` ci-dessus), qui elles restent
+    // mélangées entre toutes les unités.
+    const bookUnit = String(store.unit || 1);
+    unseen = unseen.slice().sort((a,b) =>
+      (String(a.u)===bookUnit?0:1) - (String(b.u)===bookUnit?0:1));
+  }
+  if(PACK && String(group) === uParam){
+    unseen = unseen.slice().sort((a,b) => (PACK.keys.has(a.key)?0:1) - (PACK.keys.has(b.key)?0:1));
+  }
+  const mastered = seen.filter(w => store.memoire[w.key].box >= 4).length;
+  const newLeft = Math.max(0, NEW_DAILY_LIMIT - store.memMeta.newToday);
+  return {pool, due, unseen, mastered, newLeft};
+}
+
+function buildQueue(){
+  /* Paquet : tous ses mots nouveaux (pas de limite du jour — un paquet fait 10 à 25 mots) + ses mots à revoir ;
+     s'il n'y a rien de dû, on peut quand même s'entraîner sur tout le paquet. */
+  if(PACK){
+    const {pool, due, unseen} = computeStats();
+    const q = due.concat(unseen);
+    return shuffle(q.length ? q : pool.slice());
+  }
+  const {due, unseen, newLeft} = computeStats();
+  due.sort((a,b)=> store.memoire[a.key].due - store.memoire[b.key].due);
+  let q = due.slice(0, SESSION_CAP);
+  // Les mots neufs du jour ne doivent jamais être éclipsés par un gros paquet
+  // de révisions dues. Avec des intervalles courts au début (1 jour, puis 2…),
+  // on dépasse vite dix cartes à revoir — dès le 2e jour d'utilisation — et
+  // l'ancien seuil (`q.length < 10`) arrêtait alors d'introduire tout mot
+  // nouveau : la session tournait en boucle sur les mêmes quinze premiers
+  // mots, donnant l'impression que le vocabulaire ne suit plus l'unité
+  // étudiée. On garde donc toujours de la place pour le quota du jour,
+  // seulement borné par la taille totale de la session.
+  if(newLeft > 0){
+    const room = Math.min(newLeft, Math.max(0, SESSION_CAP - q.length), unseen.length);
+    // `unseen` garde l'ordre du livre (buildDeck ne mélange rien) : on
+    // introduit donc les mots nouveaux dans CET ordre-là — une unité
+    // commence par ses mots de base (les commerces avant le dessert, pour
+    // l'unité 3), pas par un mot pioché au hasard plus loin dedans. Seul
+    // l'ORDRE D'AFFICHAGE de la session (mélangé juste en dessous) doit
+    // être aléatoire, pas le CHOIX des mots eux-mêmes.
+    q = q.concat(unseen.slice(0, Math.max(0, room)));
+  }
+  return shuffle(q);
+}
+
+function renderGroups(){
+  const sel = document.getElementById('groupSel');
+  sel.innerHTML = '';
+  GROUPS.forEach(g => {
+    const o = document.createElement('option');
+    o.value = g.id;
+    if(isLockedUnit(g.id)){ o.disabled = true; o.textContent = `${g.label} 🔒`; sel.appendChild(o); return; }
+    const saved = group; group = g.id;
+    const {due, unseen, newLeft} = computeStats();
+    group = saved;
+    const n = due.length + Math.min(unseen.length, newLeft);
+    o.textContent = g.id === 'all' ? `Toutes les unités · ${n}` : `${g.label} · ${n}`;
+    sel.appendChild(o);
+  });
+  sel.value = group;
+}
+document.getElementById('groupSel').onchange = e => {
+  group = e.target.value; store.memMeta.group = group; save(); refreshIntro();
+};
+
+function renderPack(){
+  const {pool, due, unseen} = computeStats();
+  const n = pool.length, seenN = n - unseen.length;
+  document.getElementById('intro').classList.add('is-pack');
+  const cta = document.querySelector('#intro .cta');          // le bouton juste sous le titre, pas sous une longue liste
+  if(cta) document.getElementById('packView').insertBefore(cta, document.getElementById('packList'));
+  document.getElementById('packView').hidden = false;
+  document.getElementById('packTitle').textContent = `Unité ${uParam} · Mots ${PACK.i}/${PACK.K}`;
+  document.getElementById('packSub').textContent = unseen.length
+    ? `${n} mots à apprendre${seenN ? ` · ${seenN} déjà vus` : ''}.`
+    : due.length ? `${due.length} mot${due.length>1?'s':''} à revoir aujourd'hui.` : `Tous vus — vous pouvez vous entraîner encore.`;
+  const ul = document.getElementById('packList');
+  ul.innerHTML = '';
+  pool.forEach(w => {
+    const li = document.createElement('li');
+    if(store.memoire[w.key]) li.className = 'is-seen';
+    const fr = document.createElement('span'); fr.className = 'fr'; fr.textContent = w.fr;
+    const en = document.createElement('span'); en.className = 'en'; en.textContent = w.en || '';
+    li.append(fr, en); ul.appendChild(li);
+  });
+  document.querySelector('#startBtn .mem-start__t').firstChild.textContent =
+    unseen.length ? 'Apprendre ces mots ' : due.length ? 'Réviser ' : 'S\'entraîner encore ';
+  say(unseen.length ? `${unseen.length} mots, ensemble ?` : 'On révise ?');
+}
+
+function refreshIntro(){
+  DECK = buildDeck();
+  if(PACK && !isLockedUnit(uParam)){
+    renderPack();
+    queue = buildQueue(); sessionTotal = queue.length;
+    const startBtn = document.getElementById('startBtn');
+    startBtn.disabled = sessionTotal === 0;
+    document.getElementById('startCount').textContent = sessionTotal ? `(${sessionTotal} carte${sessionTotal>1?'s':''})` : '';
+    document.getElementById('emptyNote').hidden = true;
+    return;
+  }
+  renderGroups();
+  const {due, unseen, mastered, newLeft} = computeStats();
+  document.getElementById('resetGroupBtn').disabled = !DECK.filter(inGroup).some(w => store.memoire[w.key]);
+
+  queue = buildQueue();
+  sessionTotal = queue.length;
+  const startBtn = document.getElementById('startBtn');
+  const emptyNote = document.getElementById('emptyNote');
+  const startCount = document.getElementById('startCount');
+  startBtn.disabled = sessionTotal === 0;
+  startCount.textContent = '';
+  document.getElementById('homeBig').textContent = sessionTotal ? `${sessionTotal} carte${sessionTotal>1?'s':''}` : 'Tout est à jour';
+  const nNew = Math.min(unseen.length, newLeft);
+  document.getElementById('homeSub').textContent = sessionTotal
+    ? [due.length && `${due.length} à revoir`, nNew && `${nNew} nouveau${nNew>1?'x':''} mot${nNew>1?'s':''}`].filter(Boolean).join(' · ')
+    : '';
+  document.getElementById('resetGroupBtn').textContent = `↺ Recommencer ${GROUP_NAME[group] || 'ce paquet'}`;
+  emptyNote.hidden = sessionTotal !== 0;
+  if(sessionTotal === 0){
+    emptyNote.textContent = (group === 'perso' && DECK.filter(inGroup).length === 0)
+      ? `Vous n'avez pas encore de mot à vous. Ajoutez-en avec « Mes mots », ou depuis la page Écoute (« ＋ Mémoire » sous chaque vidéo).`
+      : unseen.length
+        ? `Tout est à jour ici pour aujourd'hui. Revenez demain, ou choisissez un autre paquet ci-dessus.`
+        : `Vous avez vu tous les mots de ce paquet au moins une fois — bravo.`;
+  }
+}
+
+/* ============================================================
+   AFFICHAGE DES CARTES
+   ============================================================ */
+const screens = {
+  intro: document.getElementById('intro'),
+  session: document.getElementById('session'),
+  manage: document.getElementById('manage'),
+  done: document.getElementById('done'),
+};
+const HOST_SAY = {intro:'Une petite carte avec moi ?', manage:'Un mot à me confier ?', done:'Bravo ! À demain.'};
+function show(name){
+  for(const k in screens) screens[k].classList.toggle('active', k === name);
+  hostEl.classList.toggle('host--compact', name === 'session');
+  if(HOST_SAY[name]) say(HOST_SAY[name]);
+  if(name !== 'session'){ verdictEl.hidden = true; nextRow.hidden = true; gradeRow.hidden = true; syncFb(); }
+  window.scrollTo(0,0);
+}
+
+/* ---------- l'hôte (Mamie Jo) : bulle, humeur, voix ---------- */
+const hostEl = document.getElementById('host'), hostAv = document.getElementById('hostAv'), hostSayEl = document.getElementById('hostSay');
+const hostG = () => hostAv.querySelector('g[data-char]');
+const say = t => { hostSayEl.textContent = t; };
+let hostT = null;
+try{ Cast.mount(hostAv, {char:'jo', mood:'idle', crop:'face', label:''}); }catch(e){}
+function hostMood(m, ms){
+  const g = hostG(); if(!g) return;
+  clearTimeout(hostT);
+  try{ Cast.setMood(g, m); }catch(e){}
+  if(m !== 'idle') hostT = setTimeout(()=>{ try{ Cast.setMood(g, 'idle'); }catch(e){} }, ms || 1100);
+}
+hostAv.addEventListener('click', ()=>{ sfx('mascot', {char:'mamie'}); const g = hostG(); if(g && g.dataset.mood === 'idle') hostMood('happy', 900); });
+/* Quand une voix de la troupe parle (Sfx), Mamie saute pendant sa propre réplique. */
+let speakT = null;
+window.addEventListener('dudu:speak', e => {
+  const d = e.detail || {};
+  if(d.char !== 'mamie' && d.char !== 'jo') return;
+  const g = hostG(); if(!g) return;
+  const ms = Math.max(300, (d.duration || 1) * 1000);
+  clearTimeout(hostT); clearTimeout(speakT);
+  try{ Cast.setMood(g, 'happy'); }catch(e){}
+  speakT = setTimeout(()=>{ try{ Cast.setMood(g, 'idle'); }catch(e){} }, ms + 200);
+});
+
+/* Feuille du bas (verdict des réponses écrites) : ouverte quand le verdict est affiché. */
+const fbEl = document.getElementById('fb'), fbChar = document.getElementById('fbChar');
+function syncFb(ok){
+  const open = !verdictEl.hidden && !nextRow.hidden;
+  fbEl.classList.toggle('is-open', open);
+  document.body.classList.toggle('t-has-feedback', open);
+  if(open){
+    fbEl.classList.toggle('t-feedback--ok', !!ok);
+    fbEl.classList.toggle('t-feedback--bad', !ok);
+    try{ Cast.mount(fbChar, {char:'jo', mood: ok ? 'happy' : 'sad', crop:'face', label:''}); }catch(e){}
+  }
+}
+const reduceMotion = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const stageEl = document.getElementById('stage');
+
+const cardEl = document.getElementById('card');
+const cardBody = document.getElementById('cardBody');
+const cardBadge = document.getElementById('cardBadge');
+const answerRow = document.getElementById('answerRow');
+const answerIn = document.getElementById('answerIn');
+const verdictEl = document.getElementById('verdict');
+const gradeRow = document.getElementById('gradeRow');
+const nextRow = document.getElementById('nextRow');
+const sessFill = document.getElementById('sessFill');
+const sessCount = document.getElementById('sessCount');
+let flipped = false, answered = false;
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const gapAnswer = w => (w.ex.match(/\{([^}]+)\}/) || [,''])[1];
+const plainSentence = w => w.ex ? w.ex.replace(/[{}]/g,'') : '';
+
+const BADGE = {reco:'niveau 1 · reconnaître', recall:'niveau 1 · deviner', cloze:'niveau 2 · la phrase', prod:'niveau 3 · produire'};
+const FLIP_MODES = new Set(['reco', 'recall']);
+
+function renderCard(){
+  current = queue[0];
+  cardMode = modeFor(current);
+  flipped = false; answered = false;
+  verdictEl.hidden = true; gradeRow.hidden = true; nextRow.hidden = true; syncFb();
+  stageEl.querySelectorAll('.mem-ghost').forEach(g => g.remove());
+  const flippable = FLIP_MODES.has(cardMode);
+  answerRow.hidden = flippable;
+  cardEl.classList.toggle('flippable', flippable);
+  cardEl.classList.toggle('t-card--tap', flippable);
+  cardEl.classList.remove('is-back', 'is-flipin');
+  if(flippable){ cardEl.setAttribute('role', 'button'); cardEl.tabIndex = 0; cardEl.setAttribute('aria-label', 'Retourner la carte'); }
+  else { cardEl.removeAttribute('role'); cardEl.removeAttribute('tabindex'); cardEl.removeAttribute('aria-label'); }
+  /* la couleur de la carte suit l'unité du mot (les mots perso gardent la couleur neutre) */
+  cardEl.classList.remove('t-u1','t-u2','t-u3','t-u4','t-u5');
+  if(['1','2','3','4','5'].includes(String(current.u))) cardEl.classList.add('t-card--unit', 't-u'+current.u);
+  else cardEl.classList.remove('t-card--unit');
+  cardBadge.textContent = BADGE[cardMode];
+  answerIn.value = '';
+
+  if(cardMode === 'reco'){
+    cardBody.innerHTML = `<div class="fr">${esc(current.fr)}</div>
+      <div class="hint">touchez pour retourner</div>`;
+  } else if(cardMode === 'recall'){
+    // L'inverse de « reconnaître » : le sens s'affiche, on devine le mot
+    // français de tête avant de retourner la carte pour vérifier.
+    cardBody.innerHTML = `<div class="fr fr--sm">${esc(current.en)}</div>
+      <div class="hint">devinez le mot français, puis touchez pour vérifier</div>`;
+  } else if(cardMode === 'cloze'){
+    const sentence = esc(plainSentence(current)).replace(
+      esc(gapAnswer(current)), '<span class="gap"></span>');
+    cardBody.innerHTML = `<div class="sent">${sentence}</div>
+      <div class="sent-en">${esc(current.exEn || '')}</div>
+      <div class="ask">le mot qui manque</div>`;
+  } else {
+    cardBody.innerHTML = `<div class="fr fr--sm">${esc(current.en)}</div>
+      <div class="ask">écrivez-le en français</div>`;
+  }
+  say(SAY[cardMode]);
+  if(!reduceMotion()){ cardEl.classList.remove('is-enter'); void cardEl.offsetWidth; cardEl.classList.add('is-enter'); }
+
+  sessFill.style.width = (doneCount/sessionTotal*100) + '%';
+  sessCount.textContent = `${doneCount} / ${sessionTotal}`;
+  if(!FLIP_MODES.has(cardMode)) setTimeout(()=>answerIn.focus(), 50);
+}
+const SAY = {reco:'Ce mot, vous le connaissez ?', recall:'Quel est le mot français ?', cloze:'Quel mot manque ?', prod:'Écrivez-le en français.'};
+
+/* Cartes « reconnaître » / « deviner » : on retourne pour voir l'autre face. */
+function flip(){
+  if(flipped || !FLIP_MODES.has(cardMode) || !current) return;
+  flipped = true;
+  sfx('flip');
+  /* « fantôme » de la face avant (sans id) qui se tourne pendant que la face arrière arrive */
+  let ghost = null;
+  if(!reduceMotion()){
+    ghost = cardEl.cloneNode(true);
+    ghost.removeAttribute('id'); ghost.removeAttribute('role'); ghost.removeAttribute('tabindex'); ghost.removeAttribute('aria-label');
+    ghost.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+    ghost.classList.remove('is-enter', 'is-flipin', 't-card--tap');
+    ghost.classList.add('mem-ghost'); ghost.setAttribute('aria-hidden', 'true');
+    stageEl.appendChild(ghost);
+    setTimeout(()=>ghost.remove(), 220);
+  }
+  const ex = current.ex
+    ? `<div class="sent-en" style="font-style:italic">${esc(plainSentence(current))}</div>`
+      + (current.exEn ? `<div class="sent-en sent-en--tr">${esc(current.exEn)}</div>` : '') : '';
+  cardBody.innerHTML = `<div class="fr">${esc(current.fr)}</div>
+    <div class="en">${esc(current.en)}</div>${ex}`;
+  gradeRow.hidden = false;
+  cardEl.classList.remove('is-enter');
+  cardEl.classList.add('is-back');
+  if(ghost){ void cardEl.offsetWidth; cardEl.classList.add('is-flipin'); }
+  say('Et alors, vous le saviez ?');
+}
+cardEl.onclick = flip;
+cardEl.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); flip(); } });
+
+/* ============================================================
+   CORRECTION DES RÉPONSES ÉCRITES — tolérante là où il le faut :
+   un accent oublié ou un article manquant, c'est su, mais on le
+   signale ; le reste est faux.
+   ============================================================ */
+const clean = s => (s||'').toLowerCase().trim().replace(/[’`]/g,"'")
+  .replace(/\s+/g,' ').replace(/[.!?;:,]+$/,'');
+const noAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'');
+const noArt = s => s.replace(/^(le |la |les |l'|un |une |des |du |de la |au |aux )/,'');
+
+function judge(given, expected){
+  const g = clean(given), e = clean(expected);
+  if(!g) return {ok:false};
+  if(g === e) return {ok:true};
+  if(noAcc(g) === noAcc(e)) return {ok:true, note:'presque — attention aux accents.'};
+  if(noArt(noAcc(g)) === noArt(noAcc(e))) return {ok:true, note:"presque — n'oubliez pas l'article."};
+  return {ok:false};
+}
+
+function checkAnswer(){
+  if(answered || !current || cardMode === 'reco') return;
+  const expected = cardMode === 'cloze' ? gapAnswer(current) : current.fr;
+  const v = judge(answerIn.value, expected);
+  answered = true;
+  answerRow.hidden = true;
+  verdictEl.hidden = false;
+  verdictEl.className = 'verdict ' + (v.ok ? 'ok' : 'no');
+  const full = current.ex
+    ? `<div class="full">${esc(plainSentence(current))} — <em>${esc(current.exEn||'')}</em></div>` : '';
+  verdictEl.innerHTML =
+    `<div class="head">${v.ok ? '✓ C\'est ça' : '✗ Pas tout à fait'}</div>
+     <div class="sol">${esc(expected)}</div>
+     ${v.note ? `<div class="note">${esc(v.note)}</div>` : ''}
+     ${!v.ok && cardMode === 'prod' ? `<div class="note">${esc(current.en)}</div>` : ''}
+     ${full}`;
+  nextRow.hidden = false;
+  syncFb(v.ok);
+  const voiced = react(v.ok);
+  document.getElementById('nextBtn').focus();
+  /* la voix de Mamie (Sfx), quand elle parle, passe d'abord : on lit la phrase juste après, pas par-dessus */
+  const sentenceToSpeak = current.ex ? plainSentence(current) : current.fr;
+  if(voiced && window.Sfx && !Sfx.muted) setTimeout(()=>speak(sentenceToSpeak), 1100);
+  else speak(sentenceToSpeak);
+  pendingGrade = v.ok;
+}
+let pendingGrade = null;
+document.getElementById('checkBtn').onclick = checkAnswer;
+answerIn.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); checkAnswer(); } });
+document.getElementById('nextBtn').onclick = () => { if(pendingGrade !== null){ const g = pendingGrade; pendingGrade = null; grade(g); } };
+
+function grade(knew){
+  const key = current.key;
+  const wasNew = !store.memoire[key];
+  const st = store.memoire[key] || {box:0, due:0};
+  try{ DuduSync.markActive(store); }catch(e){}   // série 🔥
+  if(knew){
+    st.box = Math.min(st.box+1, MAX_BOX);
+    st.due = now + BOX_DAYS[st.box]*DAY;
+    store.memoire[key] = st;
+    if(wasNew) store.memMeta.newToday++;
+    save();
+    queue.shift();
+    doneCount++;
+  } else {
+    st.box = 0;
+    st.due = now;              // revient dans la même session, en fin de file
+    store.memoire[key] = st;
+    if(wasNew) store.memMeta.newToday++;
+    save();
+    queue.push(queue.shift());
+  }
+  const finishing = queue.length === 0;
+  /* Cartes à retourner : la réaction se fait ici (au clavier aussi). Réponses écrites : déjà faite à la vérification.
+     Sur la toute dernière carte, « complete » prend la place de « correct ». */
+  if(FLIP_MODES.has(cardMode) && !finishing) react(knew);
+  if(finishing){ finishSession(); return; }
+  renderCard();
+}
+/* Réaction de la troupe : bonne réponse → « correct » + Mamie contente ; ratée → « wrong » (doux) + Mamie reste calme. */
+/* Les cartes se suivent vite : le plus souvent seulement le petit son (quiet). Mamie parle une fois sur quatre « je savais »,
+   et sur chaque palier d'une série (3, 5, 10 de suite) ; une carte ratée ne reçoit qu'un son doux, sans voix.
+   Renvoie true si une voix va parler. */
+let knownN = 0, lastVoiced = -9;
+function react(ok){
+  let voiced = false;
+  if(ok){
+    knownN++;
+    voiced = !!(window.Sfx && Sfx.nextIsMilestone) || (knownN % 4 === 0 && knownN - lastVoiced > 1);   // jamais deux voix de suite
+    if(voiced) lastVoiced = knownN;
+    sfx('correct', {char:'mamie', quiet:!voiced});
+  } else {
+    sfx('wrong', {char:'mamie', quiet:true});
+  }
+  hostMood(ok ? 'happy' : 'idle', 1100);
+  return voiced;
+}
+document.getElementById('gradeYes').onclick = ()=>grade(true);
+document.getElementById('gradeNo').onclick = ()=>grade(false);
+document.addEventListener('keydown', e=>{
+  if(!screens.session.classList.contains('active')) return;
+  if(document.activeElement === answerIn) return;
+  if(e.code==='Space' && FLIP_MODES.has(cardMode)){ e.preventDefault(); flip(); }
+  if(flipped && FLIP_MODES.has(cardMode) && (e.key==='1'||e.key==='ArrowLeft')) grade(false);
+  if(flipped && FLIP_MODES.has(cardMode) && (e.key==='2'||e.key==='ArrowRight')) grade(true);
+});
+
+function finishSession(){
+  show('done');
+  document.getElementById('doneSummary').textContent =
+    `${sessionTotal} carte${sessionTotal>1?'s':''} revue${sessionTotal>1?'s':''}. Revenez demain pour la suite.`;
+  hostMood('happy', 3200);
+  sfx('complete', {char:'mamie'});
+  const c = document.getElementById('confetti');
+  try{ c.innerHTML = ''; Cast.confetti(c); }catch(e){}
+}
+
+document.getElementById('startBtn').onclick = ()=>{
+  queue = buildQueue();
+  sessionTotal = queue.length;
+  doneCount = 0; knownN = 0; lastVoiced = -9;
+  try{ if(window.Sfx && Sfx.resetStreak) Sfx.resetStreak(); }catch(e){}
+  if(!sessionTotal) return;
+  show('session');
+  renderCard();
+};
+document.getElementById('quitBtn').onclick = ()=>{ show('intro'); refreshIntro(); };
+document.getElementById('againBtn').onclick = ()=>{ show('intro'); refreshIntro(); };
+
+/* ============================================================
+   MES MOTS — vos ajouts vivent dans le compte (store.vocabPerso),
+   pas dans vocab.js : ils suivent donc d'un appareil à l'autre.
+   ============================================================ */
+const mwFr=document.getElementById('mwFr'), mwEn=document.getElementById('mwEn');
+const mwEx=document.getElementById('mwEx'), mwExEn=document.getElementById('mwExEn');
+const mwMsg=document.getElementById('mwMsg');
+
+function msg(text, ok){
+  mwMsg.hidden = !text;
+  mwMsg.textContent = text || '';
+  mwMsg.classList.toggle('is-bad', ok === false);
+}
+
+/* Entoure le mot cible d'accolades dans la phrase, comme dans vocab.js —
+   sans ça, pas d'étape « phrase à trou » pour ce mot. */
+function markGap(sentence, word){
+  if(!sentence || !word) return sentence || '';
+  const target = noArt(noAcc(clean(word)));
+  if(!target) return sentence;
+  const hay = noAcc(sentence.toLowerCase().replace(/[’`]/g,"'"));
+  const i = hay.indexOf(target);
+  if(i < 0 || hay.length !== sentence.length) return sentence;
+  return sentence.slice(0,i) + '{' + sentence.slice(i, i+target.length) + '}' + sentence.slice(i+target.length);
+}
+
+/* Vos mots (📇, Écoute, « Mes mots ») arrivent souvent sans phrase d'exemple : le tuteur en écrit une, niveau A1,
+   avec sa traduction (/api/examples, 20 mots par appel). Une seule tentative par chargement de page ; rien ne bloque. */
+let examplesAsked = false;
+async function fillExamples(){
+  if(examplesAsked) return;
+  examplesAsked = true;
+  const todo = [];
+  Object.keys(store.memPerso).forEach(k => { const w = store.memPerso[k]; if(w && w.fr && !w.ex) todo.push({fr:w.fr, en:w.en || '', k, src:'mem'}); });
+  store.vocabPerso.forEach(w => { if(w && w.fr && !w.ex) todo.push({fr:w.fr, en:w.en || '', k:gkey(w.fr), src:'perso'}); });
+  for(let i = 0; i < todo.length; i += 20){
+    const batch = todo.slice(i, i + 20);
+    let data;
+    try{
+      const r = await fetch('/api/examples', {method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+        body: JSON.stringify({words: batch.map(w => ({fr:w.fr, en:w.en}))})});
+      data = await r.json();
+    }catch(e){ return; }
+    if(!data || !Array.isArray(data.items)) return;
+    const byFr = {};
+    data.items.forEach(it => { if(it && it.fr && it.ex) byFr[gkey(it.fr)] = it; });
+    let changed = false;
+    batch.forEach(w => {
+      const it = byFr[gkey(w.fr)];
+      if(!it) return;
+      const ex = markGap(it.ex, w.fr), exEn = it.en || '';
+      const tgt = w.src === 'mem' ? store.memPerso[w.k] : store.vocabPerso.find(v => gkey(v.fr) === w.k);
+      if(!tgt || tgt.ex) return;
+      tgt.ex = ex; tgt.exEn = exEn; changed = true;
+      /* les cartes déjà construites (paquet, file de la séance) en profitent tout de suite */
+      DECK.concat(queue).forEach(c => { if(c.key === w.k && !c.ex){ c.ex = ex; c.exEn = exEn; } });
+    });
+    if(changed) save();
+  }
+}
+
+function renderMyWords(){
+  const list = document.getElementById('mwList');
+  /* vos mots + ceux ajoutés depuis Écoute (un mot présent dans les deux = votre version) */
+  const mine = store.vocabPerso.map(w => ({w, kind:'perso'}));
+  const taken = new Set(store.vocabPerso.map(w => gkey(w.fr)));
+  Object.keys(store.memPerso).forEach(k => {
+    const w = store.memPerso[k];
+    if(w && w.fr && !taken.has(k)) mine.push({w, kind:'ecoute', key:k});
+  });
+  document.getElementById('mwCount').textContent = mine.length ? `${mine.length}` : '';
+  if(!mine.length){
+    list.innerHTML = `<p class="mw-empty">Rien pour l'instant.</p>`;
+    return;
+  }
+  list.innerHTML = '';
+  mine.slice().reverse().forEach(({w, kind, key}) => {
+    const row = document.createElement('div');
+    row.className = 'mw-item t-card t-card--flat';
+    row.innerHTML = `<div class="txt">
+        <div class="w">${esc(w.fr)}</div>
+        <div class="m">${esc(w.en)}</div>
+        ${w.ex ? `<div class="s">${esc(w.ex.replace(/[{}]/g,''))}</div>` : ''}
+        ${kind === 'ecoute' ? `<div class="s">ajouté depuis ${String(w.src||'').startsWith('page') ? 'une leçon' : 'Écoute'}${/^[1-5]$/.test(String(w.u)) ? ' · unité ' + esc(w.u) : ''}</div>` : ''}
+      </div>
+      <button class="del t-iconbtn" type="button" title="Supprimer" aria-label="Supprimer">✕</button>`;
+    row.querySelector('.del').onclick = () => {
+      if(kind === 'ecoute'){
+        delete store.memPerso[key]; delete store.memoire[key];
+        save(); renderMyWords(); refreshIntro();
+        return;
+      }
+      const i = store.vocabPerso.indexOf(w);
+      if(i >= 0){ store.vocabPerso.splice(i,1); save(); renderMyWords(); refreshIntro(); }
+    };
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('howBtn').onclick = ()=>{
+  const d = document.getElementById('memHow');
+  d.hidden = !d.hidden; d.open = !d.hidden;
+  if(!d.hidden) d.scrollIntoView({behavior:'smooth', block:'start'});
+};
+document.getElementById('manageBtn').onclick = ()=>{ msg(''); renderMyWords(); show('manage'); };
+
+const GROUP_NAME = {all:'tous les paquets', 1:"l'unité 1", 2:"l'unité 2", 3:"l'unité 3", 4:"l'unité 4", 5:"l'unité 5", perso:'« Mes mots »'};
+document.getElementById('resetGroupBtn').onclick = ()=>{
+  const words = DECK.filter(inGroup);
+  const started = words.filter(w => store.memoire[w.key]);
+  if(!started.length){ return; }
+  const label = GROUP_NAME[group] || group;
+  const sure = confirm(
+    `Effacer votre progression sur ${started.length} mot${started.length>1?'s':''} de ${label} ?\n\n`+
+    `Les mots restent — seul l'historique de révision est remis à zéro. Ils reviendront comme des mots `+
+    `jamais vus, dans l'ordre du livre.`
+  );
+  if(!sure) return;
+  started.forEach(w => delete store.memoire[w.key]);
+  // On remet aussi le compteur du jour à zéro : sans ça, les mots qu'on
+  // vient d'effacer resteraient comptés dans la limite quotidienne et la
+  // prochaine session pourrait se retrouver avec moins de mots que prévu.
+  store.memMeta.newToday = 0;
+  save();
+  refreshIntro();
+};
+document.getElementById('mwBack').onclick = ()=>{ show('intro'); refreshIntro(); };
+
+document.getElementById('mwSave').onclick = ()=>{
+  const fr = mwFr.value.trim(), en = mwEn.value.trim();
+  if(!fr || !en){ msg('Il faut au moins le français et ce que ça veut dire.', false); return; }
+  const key = gkey(fr);
+  if(store.vocabPerso.some(w => gkey(w.fr) === key) || store.memPerso[key]){
+    msg('Ce mot est déjà dans vos mots.', false); return;
+  }
+  const inBook = VOCAB.find(w => gkey(w.fr) === key);
+  const entry = {fr, en, added: Date.now()};
+  const ex = mwEx.value.trim();
+  if(ex){ entry.ex = markGap(ex, fr); entry.exEn = mwExEn.value.trim(); }
+  store.vocabPerso.push(entry);
+  save();
+  mwFr.value = mwEn.value = mwEx.value = mwExEn.value = '';
+  renderMyWords();
+  refreshIntro();
+  // Sans le mot tel quel dans la phrase, impossible d'en faire un trou : on le
+  // dit, plutôt que de sauter l'étape « phrase » sans explication.
+  const noGap = ex && !/\{/.test(entry.ex);
+  msg(inBook
+    ? `Ajouté — ce mot est aussi dans le livre (unité ${inBook.u}), c'est votre version qui sera révisée.`
+    : noGap
+      ? `Ajouté. Votre phrase ne contient pas « ${fr} » tel quel (elle le conjugue ?) : l'étape « phrase à trou » sera sautée pour ce mot. Réécrivez la phrase avec « ${fr} » à l'identique si vous la voulez.`
+      : `Ajouté. « ${fr} » entrera dans la prochaine session du paquet « Mes mots ».`);
+};
+
+/* Le tuteur écrit la phrase d'exemple à votre place — une seule fois, puis
+   elle est enregistrée avec le mot et la page n'a plus besoin du réseau. */
+document.getElementById('mwGen').onclick = async ()=>{
+  const fr = mwFr.value.trim(), en = mwEn.value.trim();
+  if(!fr){ msg('Écrivez d\'abord le mot français.', false); return; }
+  const btn = document.getElementById('mwGen');
+  btn.disabled = true; const label = btn.textContent; btn.textContent = '✨ le tuteur écrit…';
+  msg('');
+  try{
+    const r = await fetch('/api/ask', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        unit: 1,
+        question: `Write ONE very short example sentence (4-10 words, CEFR A1, present tense) using the French `
+          + `expression "${fr}"${en ? ` (it means: ${en})` : ''}. The sentence must contain "${fr}" exactly as written. `
+          + `Reply with exactly two lines and nothing else: line 1 = the French sentence wrapped in «guillemets», `
+          + `line 2 = its English translation, with no guillemets.`
+      })
+    });
+    const data = await r.json();
+    if(data.error){ msg(`Le tuteur n'a pas pu répondre : ${data.error}`, false); return; }
+    const answer = data.answer || '';
+    const frMatch = answer.match(/«\s*([^»]+?)\s*»/);
+    const enLine = answer.split('\n').map(l=>l.replace(/^[-*\s]+/,'').trim())
+      .filter(l => l && !l.includes('«') && /[a-z]/i.test(l)).pop();
+    if(frMatch) mwEx.value = frMatch[1];
+    if(enLine) mwExEn.value = enLine;
+    msg(frMatch ? 'Phrase proposée — relisez-la, corrigez si besoin, puis ajoutez le mot.'
+                : "Le tuteur a répondu, mais sans phrase claire. Écrivez-la à la main.", !!frMatch);
+  }catch(e){
+    msg("Pas de réponse du tuteur (connexion ?). Vous pouvez écrire la phrase à la main.", false);
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
+};
+
+/* ============================================================
+   PRONONCIATION — même réglage de voix/vitesse que la page de
+   révision (stockage partagé), sans le sélecteur de voix complet.
+   ============================================================ */
+const TTS_OK = 'speechSynthesis' in window;
+let VOICES = [];
+function loadVoices(){ if(TTS_OK) VOICES = speechSynthesis.getVoices().filter(v=>(v.lang||'').toLowerCase().startsWith('fr')); }
+if(TTS_OK){ loadVoices(); speechSynthesis.addEventListener('voiceschanged', loadVoices); }
+function speak(text){
+  if(!TTS_OK || !text) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const v = VOICES.find(x=>x.voiceURI===(store.ttsVoice||'')) || VOICES[0];
+  if(v){ u.voice = v; u.lang = v.lang || 'fr-FR'; } else u.lang = 'fr-FR';
+  u.rate = parseFloat(store.ttsRate || 0.5);
+  u.pitch = parseFloat(store.ttsPitch || 1);
+  speechSynthesis.speak(u);
+}
+document.getElementById('spkBtn').onclick = e=>{
+  e.stopPropagation();
+  if(!current) return;
+  // Avant de répondre, on ne souffle pas la solution : on lit la phrase
+  // seulement une fois la réponse donnée (ou sur une carte « reconnaître »).
+  // Sur « deviner », le mot français n'est justement pas encore affiché —
+  // le lire à voix haute reviendrait à donner la réponse avant le retournement.
+  if(cardMode === 'reco') speak(current.fr);
+  else if(cardMode === 'recall'){ if(flipped) speak(current.fr); }
+  else if(answered) speak(current.ex ? plainSentence(current) : current.fr);
+  else if(cardMode === 'cloze') speak(plainSentence(current).replace(gapAnswer(current), '…'));
+};
+
+DuduNav.mount({active:null, title:'Mémoire', back:'app', topbar:'page', tabbar:true});
+Unlock.ready(store).then(st => { applyLocks(st); refreshIntro(); fillExamples(); });
+
+</script>
+</body>
+</html>

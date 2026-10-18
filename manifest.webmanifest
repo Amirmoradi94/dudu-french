@@ -1,0 +1,18 @@
+{
+  "name": "DuDu — Mes révisions",
+  "short_name": "DuDu",
+  "description": "Révisions interactives de français (niveau A1) : leçons, grammaire, vocabulaire, phonétique, tests.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FFF5E8",
+  "theme_color": "#FFF5E8",
+  "lang": "fr",
+  "icons": [
+    { "src": "icons/v4/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/v4/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/v4/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/v4/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

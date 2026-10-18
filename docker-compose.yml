@@ -1,0 +1,118 @@
+# Deux services :
+#   caddy   — mot de passe, sert la page et les médias, renvoie /api/* au tuteur.
+#             Il n'écoute QUE sur 127.0.0.1:8080 : un nginx (ou un autre proxy) sur
+#             le serveur garde les ports 80/443 et fait le HTTPS (voir nginx-example.conf).
+#   tuteur  — l'API du tuteur (OpenRouter). Jamais exposée directement.
+#
+# Le cours lui-même (leçons, exercices, vocabulaire, tests…) n'est pas dans le
+# dépôt : c'est un dossier de contenu, monté en /srv/content (Caddy) et
+# /app/content (tuteur). Par défaut, l'unité d'exemple de content.sample/ ;
+# CONTENT_DIR=./content dans .env pour le vôtre (voir README.md). Les médias
+# du contenu (audio, images) ne sont pas non plus dans les images Docker :
+# montez-les dans un docker-compose.override.yml (lu automatiquement par compose).
+
+services:
+  tuteur:
+    build: .
+    image: dudu-tuteur:latest
+    container_name: dudu-tuteur
+    restart: unless-stopped
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?définissez OPENROUTER_API_KEY dans .env}
+      TUTEUR_MODEL: ${TUTEUR_MODEL:-mistralai/mistral-small-3.2-24b-instruct}
+      TUTEUR_PROVIDER: openrouter
+      # Facultatif : avec cette clé, les réponses texte passent par Claude
+      # (TUTEUR_CLAUDE_MODEL, claude-haiku-5-5 par défaut) ; l'audio reste sur OpenRouter.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      TUTEUR_CLAUDE_MODEL: ${TUTEUR_CLAUDE_MODEL:-claude-haiku-5-5}
+      TUTEUR_MAX_TOKENS: ${TUTEUR_MAX_TOKENS:-700}
+      # Plafond quotidien d'appels payants au modèle (voir .env.example).
+      TUTEUR_DAILY_AI_CALLS: ${TUTEUR_DAILY_AI_CALLS:-150}
+      TUTEUR_DAILY_AI_CALLS_TOTAL: ${TUTEUR_DAILY_AI_CALLS_TOTAL:-3000}
+      TUTEUR_DAILY_LOOKUPS: ${TUTEUR_DAILY_LOOKUPS:-300}
+      TUTEUR_DAILY_LOOKUPS_TOTAL: ${TUTEUR_DAILY_LOOKUPS_TOTAL:-10000}
+      TUTEUR_SITE_URL: ${SITE_URL:-}
+      # Signe les cookies de session — écrit une seule fois par ./set-password.sh.
+      # Les comptes eux-mêmes (un par personne) vivent dans la base SQLite ci-
+      # dessous ; créez-les avec manage_users.py (voir ce fichier).
+      SESSION_SECRET: ${SESSION_SECRET:?lancez ./set-password.sh une fois pour le générer}
+      # Cookie de session marqué Secure par défaut (le VPS n'est servi qu'en
+      # HTTPS). Mettre à 0 dans .env seulement pour tester en local sur http.
+      TUTEUR_COOKIE_SECURE: ${TUTEUR_COOKIE_SECURE:-1}
+      # /signup : SIGNUP_OPEN=1 = ouvert à tous, sans code ; sinon le code
+      # d'invitation ; les deux vides = inscriptions fermées.
+      SIGNUP_OPEN: ${SIGNUP_OPEN:-}
+      SIGNUP_INVITE_CODE: ${SIGNUP_INVITE_CODE:-}
+    volumes:
+      # Le dossier de contenu : le tuteur y lit tutor.json (ce que couvre chaque unité).
+      - ${CONTENT_DIR:-./content.sample}:/app/content:ro
+      # Comptes + progression de chaque personne — survit aux reconstructions
+      # du conteneur (« docker compose up --build » ne l'efface jamais).
+      - tuteur_data:/app/data
+    expose:
+      - "8765"
+    networks: [dudu]
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: dudu-caddy
+    restart: unless-stopped
+    depends_on: [tuteur]
+    ports:
+      # Uniquement en local sur le serveur : rien n'est exposé sur Internet
+      # directement, tout passe par le nginx de l'hôte.
+      - "127.0.0.1:${BIND_PORT:-8080}:80"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    # Au démarrage, caddy-entrypoint.sh assemble les pages (/srv-src → /srv) : chaque ligne
+    # <!--@include content/…--> est remplacée par le fichier du dossier de contenu. Le contenu
+    # change ? « docker compose restart caddy » (deploy.sh le fait toujours).
+    entrypoint: ["/bin/sh", "/caddy-entrypoint.sh"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-entrypoint.sh:/caddy-entrypoint.sh:ro
+      - ${CONTENT_DIR:-./content.sample}:/srv/content:ro
+      - ./login.html:/srv-src/login.html:ro
+      - ./signup.html:/srv-src/signup.html:ro
+      - ./Unite1_Revision.html:/srv-src/Unite1_Revision.html:ro
+      - ./Ecoute.html:/srv-src/Ecoute.html:ro
+      - ./Memoire.html:/srv-src/Memoire.html:ro
+      - ./plan.html:/srv-src/plan.html:ro
+      - ./test.html:/srv-src/test.html:ro
+      - ./faibles.html:/srv-src/faibles.html:ro
+      - ./carnet.html:/srv-src/carnet.html:ro
+      - ./atelier.html:/srv-src/atelier.html:ro
+      - ./mistakes.js:/srv/mistakes.js:ro
+      - ./lexique.js:/srv/lexique.js:ro
+      - ./vocab.js:/srv/vocab.js:ro
+      - ./sync.js:/srv/sync.js:ro
+      - ./app.html:/srv-src/app.html:ro
+      - ./lesson.js:/srv/lesson.js:ro
+      - ./troupe.css:/srv/troupe.css:ro
+      - ./troupe-classic.css:/srv/troupe-classic.css:ro
+      - ./troupe-widgets.css:/srv/troupe-widgets.css:ro
+      - ./troupe-widgets.js:/srv/troupe-widgets.js:ro
+      - ./nav.js:/srv/nav.js:ro
+      - ./cast.js:/srv/cast.js:ro
+      - ./classic-cast.js:/srv/classic-cast.js:ro
+      - ./sfx.js:/srv/sfx.js:ro
+      - ./places.js:/srv/places.js:ro
+      - ./course.js:/srv/course.js:ro
+      - ./unlock.js:/srv/unlock.js:ro
+      - ./manifest.webmanifest:/srv/manifest.webmanifest:ro
+      # Le service worker (application hors ligne). Ajouter un fichier ici impose de RECRÉER le
+      # conteneur (« docker compose up -d », ce que fait deploy.sh) : un restart ne voit pas un nouveau montage.
+      - ./sw.js:/srv/sw.js:ro
+      - ./icons:/srv/icons:ro
+      - ./voices:/srv/voices:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [dudu]
+
+networks:
+  dudu:
+
+volumes:
+  caddy_data:
+  caddy_config:
+  tuteur_data:

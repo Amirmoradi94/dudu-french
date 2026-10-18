@@ -1,0 +1,153 @@
+# Caddy écoute en clair sur :80 à l'intérieur du conteneur, publié seulement
+# sur 127.0.0.1 du serveur. C'est le nginx de l'hôte qui fait le HTTPS et qui
+# renvoie ici. En local (Docker sur le Mac), on y accède par http://localhost:8080.
+{$SITE_ADDRESS} {
+	encode gzip
+
+	# Pas d'indexation par les moteurs de recherche.
+	header {
+		X-Robots-Tag "noindex, nofollow, noarchive"
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+	}
+
+	handle /robots.txt {
+		respond "User-agent: *
+Disallow: /" 200
+	}
+
+	# Les pages de connexion et d'inscription et leur API sont les seules
+	# choses publiques. (L'inscription exige le code d'invitation, vérifié
+	# par le tuteur — voir SIGNUP_INVITE_CODE dans .env.)
+	handle /login {
+		root * /srv
+		rewrite * /login.html
+		header Cache-Control "no-cache"
+		file_server
+	}
+	handle /api/login {
+		reverse_proxy tuteur:8765
+	}
+	handle /signup {
+		root * /srv
+		rewrite * /signup.html
+		header Cache-Control "no-cache"
+		file_server
+	}
+	handle /api/signup {
+		reverse_proxy tuteur:8765
+	}
+
+	# Le manifeste et les icônes doivent rester publics : ce sont eux que le
+	# téléphone va chercher au moment d'« Ajouter à l'écran d'accueil », et à
+	# cet instant-là on est justement souvent encore sur /login, sans cookie
+	# de session. Aucun des deux ne contient de matériel du livre.
+	handle /manifest.webmanifest {
+		root * /srv
+		header Cache-Control "public, max-age=3600"
+		file_server
+	}
+	handle /icons/* {
+		root * /srv
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# /login et /signup (habillage « La Troupe ») chargent troupe.css et cast.js :
+	# ces deux fichiers-là, et seulement eux, doivent donc être publics. Ils ne
+	# contiennent aucun matériel du livre (troupe.css n'importe que Google Fonts,
+	# en externe ; ses icônes sont des data: URI). Revalidés à chaque fois,
+	# comme tous les *.css / *.js protégés plus bas.
+	handle /troupe.css {
+		root * /srv
+		header Cache-Control "no-cache"
+		file_server
+	}
+	handle /cast.js {
+		root * /srv
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	# Tout le reste est protégé par un mot de passe, y compris /api : le
+	# matériel du livre (audio, images des pages) est sous copyright et ne
+	# doit pas être accessible publiquement, et cela empêche aussi quelqu'un
+	# d'autre de consommer votre crédit OpenRouter. Le tuteur vérifie le
+	# cookie de session posé par /api/login (voir tuteur_serveur.py) ; s'il
+	# est absent ou expiré, on renvoie vers /login en gardant la page visée.
+	handle {
+		forward_auth tuteur:8765 {
+			uri /api/session/check
+			# (pas de copy_headers ici : « Cookie » n'est jamais un en-tête de
+			# réponse, et copy_headers l'aurait écrasé sur la requête qui
+			# continue — /api/whoami et /api/progress ne verraient plus le
+			# cookie du client. Le cookie original suit son chemin tout seul.)
+
+			@denied status 401
+			handle_response @denied {
+				redir * /login?next={http.request.uri} 302
+			}
+		}
+
+		# L'API du tuteur : /api/ask → tuteur:8765/ask
+		handle_path /api/* {
+			reverse_proxy tuteur:8765
+		}
+
+		# La page et les médias.
+		handle {
+			root * /srv
+			# « / » ouvre l'accueil « La Troupe » (le chemin, arrêt par arrêt) ;
+			# l'ancienne page d'accueil n'existe plus : « /ancien » et « /index.html » renvoient (301) vers « / »…
+			@ancien path /ancien /ancien/ /index.html
+			redir @ancien / 301
+			@root path /
+			rewrite @root /app.html
+			# …et « /revision?u=2 » ouvre la page de révision sur la bonne unité.
+			@revision path /revision /revision/
+			rewrite @revision /Unite1_Revision.html
+			# …et « /ecoute » ouvre la page d'écoute libre…
+			@ecoute path /ecoute /ecoute/
+			rewrite @ecoute /Ecoute.html
+			# …et « /memoire » ouvre les cartes de révision espacée du vocabulaire.
+			@memoire path /memoire /memoire/
+			rewrite @memoire /Memoire.html
+			# …et « /plan » ouvre le plan du jour (ce qu'il faut faire aujourd'hui, dans quel ordre).
+			@plan path /plan /plan/
+			rewrite @plan /plan.html
+			# …« /test » ouvre le test de fin d'unité, « /faibles » mes points faibles (les erreurs à revoir).
+			@test path /test /test/
+			rewrite @test /test.html
+			@faibles path /faibles /faibles/
+			rewrite @faibles /faibles.html
+			# …et « /carnet » mon carnet : toutes les règles et tous les verbes appris.
+			@carnet path /carnet /carnet/
+			rewrite @carnet /carnet.html
+			# …et « /atelier » l'atelier d'écriture (rédaction corrigée par le tuteur, puis réécriture).
+			@atelier path /atelier /atelier/
+			rewrite @atelier /atelier.html
+			# …« /app » (liens de lesson.js et des fiches) ouvre la même page que « / ».
+			@app path /app /app/
+			rewrite @app /app.html
+
+			# Les mp3 et les images ne changent jamais : on les met en cache un an.
+			@media path *.mp3 *.jpg *.jpeg *.png *.webp
+			header @media Cache-Control "public, max-age=31536000, immutable"
+			# La page, elle, doit être revalidée à chaque fois
+			# (« / » compris, puisque la réécriture ci-dessus garde le chemin d'origine).
+			# (*.js compris : vocab.js / lexique.js changent à chaque nouvelle unité, et sans en-tête
+			# le navigateur peut garder l'ancienne version — Mémoire n'affichait alors aucun mot de l'unité.
+			# *.css aussi : troupe.css change avec la page, et n'est couvert par aucune règle de cache.)
+			# Les mp3 de voices/v1/ restent sous la règle « un an » : le dossier est versionné — si une voix
+			# change, on crée voices/v2/ au lieu de remplacer un fichier.
+			# sw.js (le service worker, application hors ligne) est couvert par *.js ci-dessous : no-cache,
+			# donc chaque ouverture revérifie s'il a changé. Il reste derrière forward_auth : avec une session
+			# expirée, sa vérification reçoit le 302 vers /login, échoue sans bruit, et l'ancienne version
+			# continue de servir l'appli hors ligne jusqu'à la prochaine connexion. Ne pas le rendre public.
+			@page path / /revision /revision/ /ecoute /ecoute/ /memoire /memoire/ /plan /plan/ /test /test/ /faibles /faibles/ /carnet /carnet/ /atelier /atelier/ /app /app/ *.html *.js *.css
+			header @page Cache-Control "no-cache"
+
+			file_server
+		}
+	}
+}

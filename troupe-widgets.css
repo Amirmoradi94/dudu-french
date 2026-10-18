@@ -1,0 +1,526 @@
+/*!
+ * troupe-widgets.css — « La Troupe » skin for the SPECIAL TOOLS inside the lessons of Unite1_Revision.html
+ * (speaking drills + mini-dialogues, free speaking, tutor conversation, dictation, flashcards, number trainer,
+ *  audio player, tutor side panel, voice settings, image viewer, selection pop-up).
+ *
+ * Loaded in BOTH modes, after troupe.css (tokens) :
+ *   • classic page  → body.troupe-skin   (classic-cast loader)
+ *   • lesson mode   → html.lp-on         (lesson.js; the player lives inside #lessonRoot, the fixed overlays — tutor, image
+ *                                          viewer, voice popup — are siblings of <main> in <body>, so html.lp-on is the anchor)
+ * Pairs with troupe-widgets.js (Léa's face on the tutor's bubbles, mustard SVG stars) — pure decoration: with the JS missing
+ * everything below still works (emoji stars, no avatar).
+ *
+ * SCOPE + SPECIFICITY
+ *   Every selector starts with the same scope prefix  :root:not(#_) :is(body.troupe-skin,.lp-on body)  — i.e. (1,2,1)+ — so it
+ *   beats, without !important, the page's own rules, the old dark mode  :root[data-theme="dark"] .x  (0,3,0), troupe-classic.css
+ *   (0,3,1) and lesson.js's  #lessonRoot .x  (1,1,0)+ whatever the order the files are loaded in. Do not "simplify" it.
+ *   The prefix is written as :root:not(#_) :is(body.troupe-skin,.lp-on body) in the source and expanded at build time.
+ *
+ * RULES FOLLOWED
+ *   • only --t-* tokens (never --ink / --paper / --line / --teal : they exist inside .t-scope only, the overlays are outside it)
+ *   • presentation only: no display on elements the page toggles with [hidden]; no DOM inside buttons the page rewrites with
+ *     textContent (the pulsing ring, equaliser and glyphs are ::before / ::after)
+ *   • light + dark (the --t-* tokens flip by themselves), 44px targets, reduced motion at the end of the file
+ */
+
+/* ============================================================ KEYFRAMES */
+@keyframes tw-listen{0%{box-shadow:0 5px 0 var(--t-tomato-d),0 0 0 0 rgba(224,74,47,.6)}100%{box-shadow:0 5px 0 var(--t-tomato-d),0 0 0 18px rgba(224,74,47,0)}}
+@keyframes tw-listen-sm{0%{box-shadow:0 3px 0 var(--t-tomato-d),0 0 0 0 rgba(224,74,47,.6)}100%{box-shadow:0 3px 0 var(--t-tomato-d),0 0 0 12px rgba(224,74,47,0)}}
+@keyframes tw-eq{0%,100%{background-size:4px 40%,4px 95%,4px 60%}50%{background-size:4px 95%,4px 35%,4px 100%}}
+@keyframes tw-rise{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes tw-pop{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:none}}
+@keyframes tw-dot{0%,80%,100%{transform:none;opacity:.35}40%{transform:translateY(-5px);opacity:1}}
+@keyframes tw-busy{0%,100%{box-shadow:0 4px 0 var(--tw-e,var(--t-line)),0 0 0 0 rgba(23,122,119,.45)}50%{box-shadow:0 4px 0 var(--tw-e,var(--t-line)),0 0 0 7px rgba(23,122,119,0)}}
+@keyframes tw-wave{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
+
+/* ============================================================ [hidden] guard (only where this file sets a display) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) :is(.spk-pill,.spk-start,.speak-rec,.spk-rec,.spk-mini,.spk-bank,.spk-line,.spk-actions,.spk-actions2,.cv-form,.dic-ctl,.audio .au-tools)[hidden]{display:none}
+
+/* ============================================================ SMALL SHARED PIECES */
+/* round 🔈 buttons beside a sentence */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) :is(.spk-drill,.spk-dlg,.spk-conv,.spk-bubble,.dic,.dic-full) .speak{
+  position:relative;display:inline-grid;place-items:center;vertical-align:middle;
+  width:36px;height:36px;margin:0 2px;padding:0;border:2px solid var(--t-line);border-radius:50%;
+  background:var(--t-teal-l);color:var(--t-teal-ink);font-size:15px;line-height:1;opacity:1;cursor:pointer;
+  box-shadow:0 3px 0 var(--t-line);transition:transform .09s,box-shadow .09s,background .15s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) :is(.spk-drill,.spk-dlg,.spk-conv,.spk-bubble,.dic,.dic-full) .speak::after{content:"";position:absolute;inset:-6px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) :is(.spk-drill,.spk-dlg,.spk-conv,.spk-bubble,.dic,.dic-full) .speak:active{transform:translateY(2px);box-shadow:0 1px 0 var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) :is(.spk-drill,.spk-dlg,.spk-conv,.spk-bubble,.dic,.dic-full) .speak:hover{color:var(--t-teal-ink);background:var(--t-teal-l)}
+
+/* smaller inside chat bubbles so a line keeps its height */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) :is(.spk-bubble,.dic-full) .speak{width:30px;height:30px;font-size:13px;margin:-2px 0 -2px 4px;box-shadow:0 2px 0 var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) :is(.spk-bubble,.dic-full) .speak::after{inset:-8px}
+
+/* mustard SVG stars (troupe-widgets.js adds data-n; without it the emoji stay) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-stars[data-n]{
+  --ss:20px;position:relative;display:inline-block;vertical-align:-4px;width:calc(var(--ss)*3.45);height:var(--ss);
+  font-size:0;line-height:0;letter-spacing:0;color:transparent;overflow:hidden;white-space:nowrap}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-stars[data-n]::before,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-stars[data-n]::after{
+  content:"";position:absolute;left:0;top:0;height:100%;
+  -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 1.8l3 6.5 7.1.9-5.2 4.9 1.4 7L12 17.6 5.7 21.1l1.4-7L1.9 9.2 9 8.3z' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/></svg>") 0 0/calc(var(--ss)*1.15) var(--ss) repeat-x;
+          mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 1.8l3 6.5 7.1.9-5.2 4.9 1.4 7L12 17.6 5.7 21.1l1.4-7L1.9 9.2 9 8.3z' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/></svg>") 0 0/calc(var(--ss)*1.15) var(--ss) repeat-x}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-stars[data-n]::before{width:100%;background:var(--t-track)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-stars[data-n]::after{background:var(--t-mustard);width:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-stars[data-n="1"]::after{width:calc(var(--ss)*1.15)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-stars[data-n="2"]::after{width:calc(var(--ss)*2.3)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-stars[data-n="3"]::after{width:calc(var(--ss)*3.45)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-verdict .spk-stars[data-n],:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-deb h4 .spk-stars[data-n]{--ss:26px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-srow .spk-stars[data-n]{--ss:18px;flex:none}
+
+/* ============================================================ MIC BUTTONS (drill, free speaking, conversation) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec{
+  position:relative;display:block;width:100%;max-width:100%;min-height:62px;margin:4px 0 8px;padding:12px 18px;
+  border:0;border-radius:99px;background:var(--t-teal);color:#fff;
+  font:800 17px/1.2 var(--t-font-d);letter-spacing:.01em;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 5px 0 var(--t-teal-d);cursor:pointer;
+  transition:transform .09s ease,box-shadow .09s ease,background .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec:hover{transform:none;box-shadow:0 5px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec:disabled{opacity:.5;cursor:default;box-shadow:0 5px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec span{pointer-events:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec.rec{background:var(--t-tomato);box-shadow:0 5px 0 var(--t-tomato-d);animation:tw-listen 1.4s ease-out infinite}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec.rec:active{animation:none;transform:translateY(4px);box-shadow:0 1px 0 var(--t-tomato-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec.rec::before{
+  content:"";display:inline-block;width:22px;height:18px;margin-right:10px;vertical-align:-3px;
+  background:linear-gradient(#fff,#fff) 0 50%/4px 40% no-repeat,linear-gradient(#fff,#fff) 9px 50%/4px 95% no-repeat,linear-gradient(#fff,#fff) 18px 50%/4px 60% no-repeat;
+  animation:tw-eq .9s ease-in-out infinite}
+
+/* ============================================================ SPEAKING DRILL (makeDrill) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-drill,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-dlg,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-conv{min-width:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-q{margin-bottom:8px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-qt{margin:0;font:800 20px/1.25 var(--t-font-d);letter-spacing:-.005em;color:var(--t-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-given{margin:6px 0 0;padding:8px 12px;border-left:5px solid var(--t-mustard);border-radius:0 14px 14px 0;
+  background:var(--t-mustard-l);color:var(--t-ink);font:800 19px/1.3 var(--t-font-d);font-style:normal}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-sub{margin:4px 0 0;color:var(--t-ink-2);font:600 14px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-sub b,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-sub i{color:var(--t-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-done{margin:6px 0 10px;padding:7px 12px;border-radius:12px;background:var(--t-ok-bg);color:var(--t-ok-fg);font:700 13.5px/1.35 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-done[hidden]{display:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-done i{font-style:normal;font-weight:800;color:var(--t-ok-fg)}
+
+/* tiles */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bank{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile{
+  min-height:48px;padding:8px 16px 9px;margin:0 0 4px;border:2px solid var(--t-line);border-radius:16px;
+  background:var(--t-paper);color:var(--t-ink);font:800 18px/1.1 var(--t-font-d);
+  box-shadow:0 4px 0 var(--t-line);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  transition:transform .12s,box-shadow .12s,background .2s,border-color .2s,opacity .2s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile.personal{border-style:dashed;border-color:var(--t-mustard-d);background:var(--t-mustard-l);color:var(--t-mustard-ink);
+  box-shadow:0 4px 0 var(--t-mustard-d);font-weight:700;font-style:italic}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile.opt::after{content:" ?";font:700 12px/1 var(--t-font-b);color:var(--t-ink-3)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile.heard{border-color:var(--t-teal);background:var(--t-teal-l);color:var(--t-teal-ink);box-shadow:0 4px 0 var(--t-teal);transform:translateY(-2px)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile.trapped{border-color:var(--t-tomato);background:var(--t-tomato-l);color:var(--t-tomato-ink);box-shadow:0 4px 0 var(--t-tomato)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile.hinted{opacity:.4}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-gloss{min-height:1.5em;margin:8px 0 0;color:var(--t-ink-2);font:600 13.5px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-gloss b{color:var(--t-ink);font-family:var(--t-font-d)}
+
+/* the line being built */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-line{display:flex;flex-wrap:wrap;gap:10px 8px;align-items:center;margin:10px 0 16px;padding:12px;min-height:66px;
+  border:2px dashed var(--t-line);border-radius:20px;background:var(--t-surface)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot{display:grid;place-items:center;min-width:54px;height:42px;padding:0 10px;
+  border:0;border-bottom:3px solid var(--t-line);border-radius:10px 10px 4px 4px;background:transparent;
+  color:var(--t-ink-2);font:800 18px/1 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.ghost{border-bottom-color:var(--t-mustard);color:var(--t-mustard-ink);background:var(--t-mustard-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.ghost.personal{font-style:italic;font-weight:700}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.ghost.opt{opacity:.55}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.ok{border-bottom-color:var(--t-teal);color:var(--t-ok-fg);background:var(--t-ok-bg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.bad{border-bottom-color:var(--t-tomato);color:var(--t-bad-fg);background:var(--t-bad-bg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.misplaced{border-bottom-color:var(--t-mustard-d);color:var(--t-mustard-ink);background:var(--t-mustard-l)}
+/* glisser-déposer : une case vide par mot qui manque, le mot qu'on déplace, l'endroit où il va tomber */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.spk-empty{min-width:64px;border:2px dashed var(--t-line);border-radius:12px;background:transparent}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.spk-drop{box-shadow:-4px 0 0 var(--t-teal)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-slot.spk-empty.spk-drop{box-shadow:none;border-color:var(--t-teal);background:var(--t-teal-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-line.spk-drop{outline:2px solid var(--t-teal);outline-offset:2px}
+
+/* action row: big mic on its own line, pills share the next one */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-actions,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-actions2{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-actions2{margin-top:12px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-actions .spk-rec{flex:1 1 100%}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-actions .spk-pill,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-actions2 .spk-pill{flex:1 1 0;min-width:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-rec span,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill span{pointer-events:none}
+
+/* pills (secondary chunky buttons) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill{
+  --tw-e:var(--t-line);
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:46px;margin:0 0 4px;padding:8px 14px;
+  border:2px solid var(--t-line);border-radius:99px;background:var(--t-paper);color:var(--t-teal-ink);
+  font:800 14.5px/1.1 var(--t-font-d);white-space:nowrap;box-shadow:0 4px 0 var(--tw-e);cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  transition:transform .09s,box-shadow .09s,background .15s,border-color .15s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill:hover{border-color:var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--tw-e)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill:disabled{opacity:.45;cursor:default;box-shadow:0 4px 0 var(--tw-e)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-hint{--tw-e:var(--t-mustard-d);border-color:var(--t-mustard-d);background:var(--t-mustard-l);color:var(--t-mustard-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-hint:hover{border-color:var(--t-mustard-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-words{--tw-e:var(--t-teal-d);border-color:var(--t-teal);color:var(--t-teal-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-words:hover{border-color:var(--t-teal)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-words.open{background:var(--t-teal-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-accent{--tw-e:var(--t-teal-d);border-color:var(--t-teal);background:var(--t-teal-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill.rec{--tw-e:var(--t-tomato-d);border-color:var(--t-tomato);background:var(--t-tomato);color:#fff;animation:tw-listen-sm 1.4s ease-out infinite}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pips{display:inline-flex;gap:3px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pips i{width:8px;height:8px;border-radius:50%;background:var(--t-track);box-shadow:inset 0 0 0 1.5px var(--t-mustard-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pips i.used{background:var(--t-mustard-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-mini{display:inline-flex;align-items:center;min-height:40px;margin:8px 8px 0 0;padding:6px 14px;border:2px solid var(--t-line);border-radius:99px;
+  background:var(--t-paper);color:var(--t-teal-ink);font:800 13.5px/1.1 var(--t-font-d);box-shadow:0 3px 0 var(--t-line);cursor:pointer}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-mini:active{transform:translateY(2px);box-shadow:0 1px 0 var(--t-line)}
+
+/* status, hints, words */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-status{margin-top:8px;min-height:1.4em;color:var(--t-ink-2);font:600 14px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-status:not(:empty){padding:8px 12px;border:2px dashed var(--t-line);border-radius:14px;background:var(--t-surface)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-status.err{color:var(--t-bad-fg);font-weight:700}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-status.err:not(:empty){background:var(--t-bad-bg);border:2px solid var(--t-tomato)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-status i{color:var(--t-ink);font-style:italic}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-caveat{color:var(--t-ink-2);font-size:12.5px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-hintbox{margin-top:12px;padding:10px 14px;border:0;border-left:6px solid var(--t-mustard);border-radius:0 16px 16px 0;
+  background:var(--t-mustard-l);color:var(--t-ink);font:600 14.5px/1.5 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-hintbox>b{color:var(--t-mustard-ink);font-family:var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-wordbox{margin-top:12px;padding:14px;border:2px solid var(--t-teal);border-radius:20px;background:var(--t-teal-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-wordbox h4{margin:0 0 8px;color:var(--t-teal-ink);font:800 12px/1.2 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-wordbox section+section{margin-top:14px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-w{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:44px;padding:7px 12px 9px;text-align:left;
+  border:2px solid var(--t-line);border-radius:14px;background:var(--t-paper);color:var(--t-ink);box-shadow:0 3px 0 var(--t-line);cursor:pointer}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-w:active{transform:translateY(2px);box-shadow:0 1px 0 var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-w b{font:800 15px/1.2 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-w span{color:var(--t-ink-2);font:600 12.5px/1.3 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-askout{margin-top:8px;color:var(--t-ink)}
+
+/* result */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb{margin-top:14px;padding:12px 14px;border:2px solid var(--t-line);border-radius:20px;background:var(--t-surface);
+  color:var(--t-ink);font:600 14.5px/1.5 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb:has(.spk-verdict.ok){background:var(--t-ok-bg);border-color:var(--t-teal);color:var(--t-ok-fg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb:has(.spk-verdict.bad){background:var(--t-bad-bg);border-color:var(--t-tomato);color:var(--t-bad-fg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb p{margin:5px 0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb ul{margin:6px 0;padding-left:20px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb li{margin:5px 0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb b{font-family:var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-verdict{margin:0;font:800 22px/1.15 var(--t-font-d);letter-spacing:-.01em}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-verdict.ok{color:var(--t-ok-fg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-verdict.bad{color:var(--t-bad-fg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb .spk-pill{background:var(--t-paper)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-fb .spk-accent{background:var(--t-teal-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-accent-out{margin-top:10px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-accent-fb{padding:10px 14px;border:2px solid var(--t-line);border-radius:16px;background:var(--t-paper);color:var(--t-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-listen{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 4px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-listen .spk-pill{flex:1 1 130px}
+
+/* ============================================================ MINI-DIALOGUE + TUTOR CONVERSATION (chat) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-start{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:54px;margin:12px 0 6px;padding:14px 24px;
+  border:0;border-radius:18px;background:var(--t-teal);color:#fff;font:800 17px/1.1 var(--t-font-d);
+  box-shadow:0 5px 0 var(--t-teal-d);cursor:pointer;transition:transform .09s,box-shadow .09s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-start:active{transform:translateY(4px);box-shadow:0 1px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-chat{display:flex;flex-direction:column;gap:14px;margin:16px 0 6px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bubble{
+  position:relative;max-width:calc(100% - 52px);margin:0;padding:10px 14px 11px;
+  border:2px solid var(--t-rim);border-radius:20px;color:var(--t-ink);font:600 16px/1.45 var(--t-font-b);
+  animation:tw-rise .28s cubic-bezier(.2,1.2,.4,1) both}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bubble .who{display:block;margin-bottom:2px;color:var(--t-ink-2);font:800 11px/1.2 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bubble .spk-en{display:block;margin-top:3px;color:var(--t-ink-2);font:600 13px/1.35 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bubble .en{color:var(--t-ink-2)}
+/* the page re-uses the class "tutor" of the side panel for the bubble: every panel property is neutralised here */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bubble.tutor{
+  align-self:flex-start;margin-left:48px;position:relative;width:auto;transform:none;z-index:auto;display:block;
+  border:2px solid var(--t-rim);border-left:2px solid var(--t-rim);border-bottom-left-radius:6px;background:var(--t-paper);box-shadow:0 4px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bubble.me{align-self:flex-end;max-width:86%;border:2px solid var(--t-teal-d);border-bottom-right-radius:6px;
+  background:var(--t-teal-l);color:var(--t-ink);box-shadow:0 4px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bubble.me .who{color:var(--t-teal-ink)}
+/* Léa's face (troupe-widgets.js) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .tw-ava{position:absolute;left:-48px;bottom:0;width:38px;height:38px;overflow:hidden;border:2px solid var(--t-rim);border-radius:50%;background:var(--t-blush-l);box-shadow:0 2px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .tw-ava svg{display:block;width:100%;height:100%}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .tw-ava [data-char] *{animation:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .tw-ava--live [data-char] .c-blink{animation:c-blink 4.4s ease-in-out infinite}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .tw-ava b{display:grid;place-items:center;width:100%;height:100%;color:var(--t-teal-ink);font:800 17px/1 var(--t-font-d)}
+
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-turn{margin-top:12px;padding-top:14px;border-top:2px dashed var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-summary{margin-top:16px;padding:14px;border:2px solid var(--t-rim);border-radius:22px;background:var(--t-paper);box-shadow:0 4px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-summary h4{margin:0 0 8px;font:800 19px/1.2 var(--t-font-d);color:var(--t-ink);display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-srow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:2px solid var(--t-line);color:var(--t-ink);font:600 15px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-srow:last-of-type{border-bottom:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-srow b{font-family:var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-summary .spk-pill{margin-top:12px;width:100%}
+/* conversation */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-goals{list-style:none;margin:8px 0 4px;padding:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-goals li{position:relative;margin:6px 0;padding:8px 12px 8px 42px;border:2px solid var(--t-line);border-radius:14px;
+  background:var(--t-surface);color:var(--t-ink);font:700 14.5px/1.35 var(--t-font-b);transition:background .25s,border-color .25s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-goals .cv-box{position:absolute;left:8px;top:7px;width:26px;text-align:center;font-size:17px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-goals li.ok{border-color:var(--t-teal);background:var(--t-ok-bg);color:var(--t-ok-fg);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-wait{margin:12px 0 0 48px;padding:8px 14px;width:fit-content;max-width:calc(100% - 52px);border:2px dashed var(--t-line);border-radius:18px;
+  color:var(--t-ink-2);font:700 14px/1.4 var(--t-font-b);font-style:italic}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-wait[hidden]{display:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-err{margin-top:12px;padding:12px 14px;border:2px solid var(--t-tomato);border-radius:18px;background:var(--t-bad-bg);color:var(--t-bad-fg);font:700 14.5px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-err .spk-pill{margin:8px 8px 0 0;flex:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-form{display:flex;gap:10px;margin-top:12px;align-items:flex-start}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-text{flex:1;min-width:0;min-height:50px;padding:10px 16px;border:2px solid var(--t-line);border-radius:22px 22px 22px 6px;
+  background:var(--t-surface);color:var(--t-ink);font:700 16px/1.25 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-text::placeholder{color:var(--t-ink-3)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-text:focus{outline:none;border-color:var(--t-teal);box-shadow:0 0 0 4px var(--t-teal-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-text:disabled{opacity:.5}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-send{--tw-e:var(--t-teal-d);flex:none;border-color:var(--t-teal-d);background:var(--t-teal);color:#fff;min-height:50px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-fix{align-self:flex-end;max-width:92%;padding:8px 12px;border:2px dashed var(--t-mustard-d);border-radius:14px;
+  background:var(--t-mustard-l);color:var(--t-ink-2);font:600 14px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-say{border:0;background:none;padding:0;color:var(--t-ink);font:inherit;text-align:left;cursor:pointer}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-fr{color:var(--t-ink);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-deb h5{margin:16px 0 4px;color:var(--t-tomato-ink);font:800 12px/1.3 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-sum{margin:0 0 6px;color:var(--t-ink);font:800 15px/1.3 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-well{margin:6px 0;color:var(--t-ink);font:600 15px/1.5 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-mis{padding:9px 0;border-bottom:2px solid var(--t-line);font:600 15px/1.45 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-bad{color:var(--t-bad-fg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-good,:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-good b{color:var(--t-ok-fg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .cv-why{margin-top:2px;color:var(--t-ink-2);font:600 13.5px/1.4 var(--t-font-b)}
+
+/* ============================================================ FREE SPEAKING CHALLENGE (.speak-q) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-q .qn{margin-bottom:14px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-status{margin-top:8px;color:var(--t-ink-2);font:600 14px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-status:not(:empty){padding:8px 12px;border:2px dashed var(--t-line);border-radius:14px;background:var(--t-surface)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-status.err{color:var(--t-bad-fg);font-weight:700}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-status.err:not(:empty){background:var(--t-bad-bg);border:2px solid var(--t-tomato)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-result{margin-top:16px;padding-top:16px;border-top:2px dashed var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-transcript{margin:0 0 10px;padding:10px 14px;border-left:6px solid var(--t-teal);border-radius:0 16px 16px 0;
+  background:var(--t-teal-l);color:var(--t-teal-ink);font:800 16px/1.4 var(--t-font-d);font-style:italic}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-feedback{padding:12px 14px;border:2px solid var(--t-line);border-radius:20px;background:var(--t-surface);color:var(--t-ink);font:600 14.5px/1.55 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-feedback:empty{display:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-redo{display:inline-flex;align-items:center;min-height:44px;margin:12px 0 4px;padding:8px 18px;border:2px solid var(--t-line);border-radius:99px;
+  background:var(--t-paper);color:var(--t-teal-ink);font:800 14px/1.1 var(--t-font-d);box-shadow:0 4px 0 var(--t-line);cursor:pointer}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-redo:hover{color:var(--t-teal-ink);border-color:var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-redo:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-line)}
+
+/* ============================================================ DICTATION */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-ctl{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 16px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .btn,:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .btn,:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .btn{
+  --tw-bg:var(--t-teal);--tw-e:var(--t-teal-d);--tw-fg:#fff;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;margin:0 0 4px;padding:10px 18px;
+  border:2px solid var(--tw-bg);border-radius:16px;background:var(--tw-bg);color:var(--tw-fg);
+  font:800 15.5px/1.1 var(--t-font-d);letter-spacing:.01em;white-space:nowrap;box-shadow:0 4px 0 var(--tw-e);cursor:pointer;
+  transition:transform .09s,box-shadow .09s,filter .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .btn:hover,:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .btn:hover,:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .btn:hover{transform:none;box-shadow:0 4px 0 var(--tw-e);filter:brightness(1.05)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .btn:active:not(:disabled),:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .btn:active:not(:disabled),:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--tw-e)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .btn:disabled,:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .btn:disabled,:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .btn:disabled{opacity:.5;cursor:default}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .btn.ghost,:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .btn.ghost,:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .btn.ghost{--tw-bg:var(--t-paper);--tw-e:var(--t-line);--tw-fg:var(--t-teal-ink);border-color:var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .btn.dic-check,:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt #ntCheck{--tw-bg:var(--t-tomato);--tw-e:var(--t-tomato-d);--tw-fg:#fff}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-ctl .dic-next{flex:1 1 100%;min-height:58px;font-size:18px;border-radius:18px;box-shadow:0 5px 0 var(--tw-e);--tw-bg:var(--t-tomato);--tw-e:var(--t-tomato-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-ctl .btn:not(.dic-next){flex:1 1 0;min-width:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-ctl .btn.busy,:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-one.busy{animation:tw-busy 1s ease-in-out infinite}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-list{list-style:none;margin:0;padding:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-list li{display:flex;align-items:center;gap:8px;margin:10px 0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-n{flex:none;display:inline-grid;place-items:center;min-width:32px;height:32px;border-radius:11px;
+  background:var(--t-unit,var(--t-mustard));color:#2B2230;font:800 15px/1 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-in{flex:1 1 auto;min-width:0;min-height:48px;padding:9px 14px;border:2px solid var(--t-line);border-radius:16px;
+  background:var(--t-surface);color:var(--t-ink);font:700 16px/1.25 var(--t-font-b);transition:border-color .15s,box-shadow .15s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-in::placeholder{color:var(--t-ink-3)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-in:focus{outline:none;border-color:var(--t-teal);box-shadow:0 0 0 4px var(--t-teal-l);background:var(--t-surface)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-one{flex:none;display:inline-grid;place-items:center;width:46px;height:46px;margin:0 0 3px;padding:0;
+  border:2px solid var(--t-line);border-radius:50%;background:var(--t-teal-l);color:var(--t-teal-ink);font-size:17px;line-height:1;opacity:1;cursor:pointer;
+  box-shadow:0 3px 0 var(--t-line);--tw-e:var(--t-line);transition:transform .09s,box-shadow .09s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-one:hover{border-color:var(--t-line);opacity:1}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-one:active{transform:translateY(2px);box-shadow:0 1px 0 var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .exbar{gap:10px;margin-top:16px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .exbar .score{margin-left:auto}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-res{margin-top:18px;padding-top:16px;border-top:2px dashed var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-sum{margin:0 0 6px;color:var(--t-ink);font:700 16px/1.3 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-sum strong{color:var(--t-tomato-ink);font:800 26px/1.1 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-legend{margin:6px 0 8px;color:var(--t-ink-2);font:600 13px/1.45 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-lines{list-style:none;margin:10px 0;padding:0;counter-reset:dl}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-lines li{position:relative;margin:10px 0;padding:10px 12px 10px 46px;border:2px solid var(--t-line);border-radius:16px;background:var(--t-surface);
+  color:var(--t-ink);font:600 16px/1.9 var(--t-font-b);text-align:left}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-lines li::before{content:counter(dl);position:absolute;left:10px;top:11px;display:grid;place-items:center;width:26px;height:26px;border-radius:9px;
+  background:var(--t-unit,var(--t-mustard));color:#2B2230;font:800 13px/1 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw{display:inline-block;margin:0 1px;padding:0 5px;border-radius:8px;line-height:1.55}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw.ok{color:var(--t-ok-fg);background:var(--t-ok-bg);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw.near{background:var(--t-mustard-l);color:var(--t-mustard-ink);border-bottom:3px solid var(--t-mustard);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw sup{margin-left:3px;color:var(--t-mustard-ink);font:800 9.5px/1 var(--t-font-d);letter-spacing:.04em;text-transform:uppercase}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw.bad{background:var(--t-bad-bg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw.bad s{margin-right:5px;color:var(--t-bad-fg);opacity:.9}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw.bad b{color:var(--t-ok-fg);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw.miss{border:2px dashed var(--t-tomato);color:var(--t-ok-fg);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dw.extra{color:var(--t-ink-3);text-decoration:line-through}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-tips{margin:8px 0;padding-left:20px;color:var(--t-ink);font:600 14.5px/1.5 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-tips li{margin:5px 0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-full{margin-top:16px;padding:14px 16px;border:2px solid var(--t-rim);border-radius:20px;background:var(--t-paper);box-shadow:0 4px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-full h4{margin:0 0 8px;color:var(--t-tomato-ink);font:800 12px/1.2 var(--t-font-d);letter-spacing:.1em;text-transform:uppercase}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-full .rs{margin:.5em 0;color:var(--t-ink);font:600 16px/1.5 var(--t-font-b)}
+
+/* ============================================================ FLASHCARDS */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fcgrid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc{height:104px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc-f,:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc-b{border-radius:20px;padding:10px;font:800 17px/1.25 var(--t-font-d);letter-spacing:-.005em}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc-f{border:2px solid var(--t-rim);background:var(--t-paper);color:var(--t-ink);box-shadow:0 5px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc-b{border:2px solid var(--t-teal-d);background:var(--t-teal);color:#fff;box-shadow:0 5px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc-b small{display:block;margin-top:4px;color:#fff;opacity:.85;font:700 13px/1.3 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc:active .fc-f,:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc:active .fc-b{box-shadow:0 2px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc.known .fc-f{border-color:var(--t-teal-d);background:var(--t-ok-bg);color:var(--t-ok-fg);box-shadow:0 5px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .fc.known .fc-f::after{content:"✓";position:absolute;top:8px;right:8px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;
+  background:var(--t-teal);color:#fff;font:800 14px/1 var(--t-font-d)}
+
+/* ============================================================ NUMBER TRAINER */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt{display:grid;place-items:center;gap:16px;padding:22px 12px;text-align:center}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .big{min-width:150px;padding:6px 30px 8px;border:2px solid var(--t-rim);border-radius:26px;background:var(--t-paper);box-shadow:0 5px 0 var(--t-edge);
+  color:var(--t-tomato-ink);font:800 68px/1.05 var(--t-font-d);letter-spacing:-.03em;-webkit-background-clip:border-box;background-clip:border-box}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .fb{min-height:26px;color:var(--t-ink);font:800 16px/1.3 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .fb span[style*="--green"]{color:var(--t-ok-fg)!important}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .fb span[style*="--gold"]{color:var(--t-mustard-ink)!important}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .fb span[style*="--red"]{color:var(--t-bad-fg)!important}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .exbar{justify-content:center;gap:10px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .fc-tools{justify-content:center;margin:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .inp{min-height:52px;border:2px solid var(--t-line);border-radius:20px 20px 20px 6px;background:var(--t-surface);color:var(--t-ink);font:700 17px/1.2 var(--t-font-b);text-align:center}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .inp:focus{outline:none;border-color:var(--t-teal);box-shadow:0 0 0 4px var(--t-teal-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .inp.ok{border-color:var(--t-teal);background:var(--t-ok-bg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .inp.no{border-color:var(--t-tomato);background:var(--t-bad-bg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .inp.near{border-color:var(--t-mustard-d);background:var(--t-mustard-l)}
+
+/* ============================================================ SMALL CHUNKY CHIPS (.mini : flashcard tools, speeds, voice presets, tutor header) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .mini{
+  --tw-e:var(--t-line);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;margin:0 0 3px;padding:6px 13px;
+  border:2px solid var(--t-line);border-radius:14px;background:var(--t-paper);color:var(--t-teal-ink);
+  font:800 13.5px/1.1 var(--t-font-d);white-space:nowrap;box-shadow:0 3px 0 var(--tw-e);cursor:pointer;
+  transition:transform .09s,box-shadow .09s,background .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .mini:hover{border-color:var(--t-line);color:var(--t-teal-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .mini:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--tw-e)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .mini.on{--tw-e:var(--t-teal-d);border-color:var(--t-teal-d);background:var(--t-teal);color:#fff}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .mini.on:hover{color:#fff}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .mini:disabled{opacity:.5;cursor:default}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .score{color:var(--t-ink-2);font:800 14px/1.2 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .score.good{color:var(--t-ok-fg)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .score.bad{color:var(--t-bad-fg)}
+
+/* ============================================================ AUDIO PLAYER */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .audio{margin:18px 0;padding:14px 16px 16px;border:2px solid var(--t-line);border-radius:24px;background:var(--t-paper);box-shadow:0 4px 0 var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .audio.hi{border-color:var(--t-unit-d,var(--t-teal));box-shadow:0 4px 0 var(--t-unit-d,var(--t-teal-d))}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-row{display:flex;align-items:center;gap:14px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-play{
+  display:grid;place-items:center;flex:none;width:58px;height:58px;margin:0 0 5px;padding:0 0 0 2px;border:0;border-radius:50%;
+  background:var(--t-tomato);color:#fff;font:800 20px/1 var(--t-font-d);box-shadow:0 5px 0 var(--t-tomato-d);cursor:pointer;
+  transition:transform .09s,box-shadow .09s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-play:hover{transform:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-play:active{transform:translateY(4px);box-shadow:0 1px 0 var(--t-tomato-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-mid{flex:1;min-width:0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-title{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin-bottom:8px;color:var(--t-ink);font:800 14px/1.25 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-title .pill{padding:4px 9px;border-radius:99px;background:var(--t-mustard);color:#2B2230;font:800 11px/1 var(--t-font-d);letter-spacing:.05em;text-transform:uppercase}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-bar{position:relative;height:14px;border-radius:99px;background:var(--t-track);overflow:visible;cursor:pointer}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-bar::after{content:"";position:absolute;inset:-14px 0}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:99px;background:var(--t-tomato)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-fill::before{content:"";position:absolute;left:7px;right:7px;top:3px;height:4px;border-radius:4px;background:rgba(255,255,255,.4)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-time{display:flex;justify-content:space-between;margin-top:6px;color:var(--t-ink-2);font:700 12px/1.2 var(--t-font-b);font-variant-numeric:tabular-nums}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .tr{margin-top:14px;padding:14px 16px;border:2px dashed var(--t-line);border-radius:18px;background:var(--t-surface);color:var(--t-ink);font:600 15px/1.55 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .tr b{color:var(--t-tomato-ink)}
+
+/* ============================================================ TUTOR SIDE PANEL (fixed, sibling of <main>) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor{
+  background-color:var(--t-cream);background-image:radial-gradient(circle at 1px 1px,var(--t-dots) 1.2px,transparent 1.6px);background-size:26px 26px;
+  border-left:2px solid var(--t-rim);box-shadow:-10px 0 34px rgba(43,34,48,.2);color:var(--t-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-head{gap:10px;padding:12px 14px;border-bottom:2px solid var(--t-line);background:var(--t-paper)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-head .tw-ava{position:relative;left:auto;bottom:auto;flex:none;width:44px;height:44px;box-shadow:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-head .t{color:var(--t-ink);font:800 17px/1.2 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-head .dot{width:11px;height:11px;border:2px solid var(--t-rim);background:var(--t-ink-3)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-head .dot.on{background:var(--t-teal)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-head .dot.off{background:var(--t-tomato)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-body{gap:16px;padding:18px 14px 14px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg{max-width:calc(100% - 52px);padding:10px 14px;border:2px solid var(--t-rim);border-radius:20px;color:var(--t-ink);font:600 15px/1.55 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.bot{position:relative;margin-left:48px;border-bottom-left-radius:6px;background:var(--t-paper);box-shadow:0 4px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.me{max-width:88%;border-color:var(--t-teal-d);border-bottom-right-radius:6px;background:var(--t-teal-d);color:#fff;box-shadow:0 4px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.me strong,:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.me code{color:inherit}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.err{max-width:100%;border-color:var(--t-tomato);background:var(--t-bad-bg);color:var(--t-bad-fg);font-size:14px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg strong{font-family:var(--t-font-d);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg code{background:var(--t-mustard-l);color:var(--t-mustard-ink);border-radius:6px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.bot em{color:var(--t-tomato-ink);font-style:italic}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.bot .frq{background:var(--t-mustard-l);border-radius:8px;padding:0 3px 0 6px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.bot .frq>.fx{font-family:var(--t-font-d);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.bot .inlisten{display:inline-grid;place-items:center;min-width:26px;min-height:26px;margin:0 0 0 2px;padding:0 4px;border-radius:50%;
+  color:var(--t-teal-ink);font-size:13px;opacity:.9;vertical-align:-5px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.bot .inlisten:hover{background:var(--t-teal-l);opacity:1}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.me .inlisten{display:inline-grid;place-items:center;min-width:26px;min-height:26px;padding:0 4px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:13px;vertical-align:-5px;cursor:pointer}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.bot table.t th{background:var(--t-teal);color:#fff;border-color:var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .msg.bot table.t td{border-color:var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .dots{align-self:flex-start;margin-left:48px;padding:13px 16px;border:2px solid var(--t-rim);border-radius:20px 20px 20px 6px;background:var(--t-paper);gap:6px;box-shadow:0 4px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .dots span{width:8px;height:8px;background:var(--t-teal);animation:tw-dot 1.2s infinite}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .dots span:nth-child(2){animation-delay:.15s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .dots span:nth-child(3){animation-delay:.3s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-foot{border-top:2px solid var(--t-line);background:var(--t-paper)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-ctx{border:2px solid var(--t-mustard-d);border-radius:12px;background:var(--t-mustard-l);color:var(--t-ink-2);font:700 12px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in{gap:10px;align-items:flex-end}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in textarea{padding:12px 15px;border:2px solid var(--t-line);border-radius:22px 22px 22px 6px;background:var(--t-surface);color:var(--t-ink);font:600 16px/1.45 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in textarea::placeholder{color:var(--t-ink-3)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in textarea:focus{outline:none;border-color:var(--t-teal);box-shadow:0 0 0 4px var(--t-teal-l);background:var(--t-surface)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .send{width:52px;height:52px;margin:0 0 4px;border:0;border-radius:50%;background:var(--t-teal);color:#fff;font:800 22px/1 var(--t-font-d);
+  box-shadow:0 4px 0 var(--t-teal-d);transition:transform .09s,box-shadow .09s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .send:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .send:disabled{opacity:.45;box-shadow:0 4px 0 var(--t-teal-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .mic{min-width:52px;height:52px;margin:0 0 4px;border:2px solid var(--t-line);border-radius:50%;background:var(--t-paper);color:var(--t-ink);font-size:20px;
+  box-shadow:0 4px 0 var(--t-line);transition:transform .09s,box-shadow .09s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .mic:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .mic.rec{width:auto;min-width:52px;padding:0 16px;border-color:var(--t-tomato-d);border-radius:99px;background:var(--t-tomato);color:#fff;font:800 14px/1 var(--t-font-d);
+  box-shadow:0 4px 0 var(--t-tomato-d);animation:tw-listen-sm 1.4s ease-out infinite}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .mic:disabled{opacity:.45}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .setup{color:var(--t-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .setup code{border:2px solid var(--t-line);border-radius:12px;background:var(--t-surface);color:var(--t-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-resize:hover::after,:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-resize.dragging::after{background:var(--t-teal)}
+
+/* ============================================================ VOICE SETTINGS POP-UP */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel{padding:16px 16px 18px;border:2px solid var(--t-rim);border-radius:26px;background:var(--t-cream);box-shadow:0 6px 0 var(--t-edge),0 24px 48px rgba(43,34,48,.28);color:var(--t-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel h4{margin:0 0 6px;color:var(--t-tomato-ink);font:800 15px/1.2 var(--t-font-d);letter-spacing:.04em;text-transform:none}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel p{color:var(--t-ink-2)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel label{margin:14px 0 6px;color:var(--t-ink-2);font:800 12.5px/1.3 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel label span{font-family:var(--t-font-d);color:var(--t-ink)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel select{min-height:46px;padding:8px 12px;border:2px solid var(--t-line);border-radius:14px;background:var(--t-surface);color:var(--t-ink);font:700 15px/1.2 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel input[type=range]{accent-color:var(--t-tomato)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel input[type=checkbox]{accent-color:var(--t-teal);width:20px;height:20px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .rowb{display:flex;gap:10px;margin-top:16px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .rowb .btn{flex:1}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .tts-warn{border:2px solid var(--t-tomato);border-radius:14px;background:var(--t-bad-bg);color:var(--t-bad-fg);font:700 12.5px/1.4 var(--t-font-b)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel details summary{color:var(--t-ink-2);font:800 12.5px/1.3 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vlist{margin-top:8px;border:2px solid var(--t-line);border-radius:16px;background:var(--t-surface);overflow-y:auto}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow{gap:10px;min-height:46px;padding:7px 10px;border-bottom:2px solid var(--t-line);cursor:pointer}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow:hover{background:var(--t-cream)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow.sel{background:var(--t-teal-l)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow .nm{color:var(--t-ink);font:800 14px/1.2 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow .tagx{padding:2px 7px;border:2px solid var(--t-line);background:var(--t-paper);color:var(--t-ink-2);font:800 10px/1.2 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow.sel .tagx{background:var(--t-paper);border-color:var(--t-teal)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow .prev{display:grid;place-items:center;min-width:40px;min-height:36px;border:2px solid var(--t-line);border-radius:12px;background:var(--t-paper);color:var(--t-teal-ink);
+  box-shadow:0 3px 0 var(--t-line);font:800 13px/1 var(--t-font-d);cursor:pointer}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow .prev:active{transform:translateY(2px);box-shadow:0 1px 0 var(--t-line)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .vrow .check{color:var(--t-teal);font-weight:800}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .speaking{background:var(--t-mustard-l);border-radius:4px;box-shadow:0 0 0 2px var(--t-mustard-l)}
+
+/* ============================================================ IMAGE VIEWER */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb{background:var(--t-scrim);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb img{max-height:min(88vh,calc(100vh - 230px));border:3px solid var(--t-rim);border-radius:20px;background:var(--t-paper);box-shadow:0 6px 0 var(--t-edge),0 26px 60px rgba(0,0,0,.4)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:calc(100% - 28px);max-width:440px;align-items:stretch}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .nav #lbClose{grid-column:1/-1}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .nav .lbl{grid-column:1/-1;order:-1}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .nav button{min-height:48px;margin:0 0 4px;padding:8px 16px;border:2px solid var(--t-rim);border-radius:16px;background:var(--t-paper);color:var(--t-ink);
+  font:800 14.5px/1.1 var(--t-font-d);box-shadow:0 4px 0 var(--t-edge);cursor:pointer;transition:transform .09s,box-shadow .09s}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .nav button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-edge)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .nav #lbClose{border-color:var(--t-tomato-d);background:var(--t-tomato);color:#fff;box-shadow:0 4px 0 var(--t-tomato-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .nav #lbClose:active{box-shadow:0 1px 0 var(--t-tomato-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .lbl{min-width:44px;padding:7px 14px;border-radius:99px;background:var(--t-mustard);color:#2B2230;font:800 13px/1 var(--t-font-d);opacity:1;text-align:center}
+
+/* ============================================================ SELECTION POP-UP (🔈 Écouter · Traduire · Expliquer) */
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .selpop{padding:5px;border:2px solid #5A4C63;border-radius:16px;background:#2B2230;box-shadow:0 4px 0 #0C080F,0 14px 30px rgba(0,0,0,.35)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .selpop::after{background:#2B2230;border-radius:3px}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .selpop button{min-height:40px;padding:6px 12px;border-radius:11px;color:#FFF5E8;font:800 13.5px/1.1 var(--t-font-d)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .selpop button.spi{min-width:46px;min-height:44px;padding:4px 10px;font-size:21px;line-height:1}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .selpop button:hover{background:rgba(255,245,232,.14)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .selpop button.busy{background:var(--t-mustard);color:#2B2230}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .selpop .sep{background:rgba(255,245,232,.25)}
+:root:not(#_) :is(body.troupe-skin,.lp-on body) .trout{border-radius:12px;background:rgba(255,245,232,.1)}
+
+/* ============================================================ NARROW PHONES */
+@media (max-width:360px){
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec{font-size:14.5px;padding:12px 10px;letter-spacing:0}
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec.rec::before{margin-right:6px}
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill{padding:8px 10px;font-size:13.5px}
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile{padding:8px 13px 9px;font-size:17px}
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .big{font-size:56px;padding:6px 20px 8px}
+}
+
+/* ============================================================ REDUCED MOTION */
+@media (prefers-reduced-motion:reduce){
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec.rec,:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec.rec::before,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill.rec,:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .mic.rec,:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-ctl .btn.busy,:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-one.busy,
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-bubble,:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .dots span{animation:none}
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec.rec::before{background-size:4px 60%,4px 95%,4px 75%}
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-rec,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-pill,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-tile,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-start,:root:not(#_) :is(body.troupe-skin,.lp-on body) .mini,:root:not(#_) :is(body.troupe-skin,.lp-on body) .au-play,:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic .btn,:root:not(#_) :is(body.troupe-skin,.lp-on body) .nt .btn,:root:not(#_) :is(body.troupe-skin,.lp-on body) .ttspanel .btn,:root:not(#_) :is(body.troupe-skin,.lp-on body) .dic-one,:root:not(#_) :is(body.troupe-skin,.lp-on body) .spk-w,:root:not(#_) :is(body.troupe-skin,.lp-on body) .speak-redo,
+  :root:not(#_) :is(body.troupe-skin,.lp-on body) .lb .nav button,:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .send,:root:not(#_) :is(body.troupe-skin,.lp-on body) aside.tutor .tutor-in .mic{transition:none}
+}

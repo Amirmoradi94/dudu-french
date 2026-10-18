@@ -1,0 +1,2 @@
+# Les dossiers de médias de ce contenu (un par ligne), envoyés par deploy.sh sans --code-only
+# et à monter dans Caddy (docker-compose.override.yml). L'unité d'exemple n'en a pas.

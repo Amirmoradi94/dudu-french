@@ -1,0 +1,353 @@
+/*!
+ * troupe.css — « La Troupe » design system for DuDu (derived from design/dir-4.html)
+ *
+ * HOW TO USE
+ *   <link rel="stylesheet" href="/troupe.css">
+ *   Fonts (Bricolage Grotesque for display, Nunito Sans for text) are pulled in by the @import
+ *   below. For a faster first paint a page may instead put, in its <head>:
+ *     <link rel="preconnect" href="https://fonts.googleapis.com">
+ *     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ *     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700&display=swap">
+ *   Without network the system fonts in the stacks below are used (Avenir Next / Trebuchet MS / system-ui).
+ *
+ * SAFE NEXT TO THE OLD PAGES
+ *   This file has NO bare element selectors (no body/button/svg/h1 rules) and every class,
+ *   keyframe and custom property is namespaced (t-*, --t-*). Loading it in Unite1_Revision.html
+ *   changes nothing by itself.
+ *   The canonical tokens are --t-*  (every t-* component reads ONLY these, so they are immune to
+ *   the old pages' --ink / --line / --teal / --bg).
+ *   Convenience aliases with the dir-4 names:
+ *     • on :root           --tomato --tomato-d --tomato-l --mustard --mustard-d --mustard-l --blush --blush-d
+ *                          --blush-l --cream --teal-d --teal-l --ink-2 --dress --font-d --font-b --u1..--u5
+ *     • on .t-page/.t-scope --ink --paper --line --teal   (these four COLLIDE with the old pages' tokens
+ *                          — --ink is navy there — so they exist only inside a Troupe subtree)
+ *   .t-page  = put on <body> of a Troupe page (cream dotted background, text colour, font, colour-scheme)
+ *   .t-scope = put on any wrapper inside an old page (lesson overlay…) to get the same tokens/fonts/colour
+ *   .t-dotted = the cream dotted background on any wrapper (already part of .t-page)
+ *
+ * THEMES  light by default; dark when  html[data-theme="dark"]  OR  the OS is dark and the page has
+ *   not chosen light (html:not([data-theme="light"])). The app stores store.theme and sets html[data-theme].
+ *
+ * Z-INDEX  topbar 30 · tabbar 40 · feedback 60 · sheet 80
+ */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700&display=swap");
+
+/* ============ TOKENS — light ============ */
+:root{
+  --t-tomato:#E04A2F;  --t-tomato-d:#A9361F;  --t-tomato-l:#FFE3DB;  --t-tomato-ink:#A9361F;
+  --t-teal:#177A77;    --t-teal-d:#0E5754;    --t-teal-l:#D4EFEA;    --t-teal-ink:#0E5754;
+  --t-mustard:#F3B534; --t-mustard-d:#B97E0A; --t-mustard-l:#FFF0C6; --t-mustard-ink:#7A5200;
+  --t-blush:#F9CBBE;   --t-blush-d:#E3A08E;   --t-blush-l:#FDE9E2;
+  --t-cream:#FFF5E8;   --t-paper:#FFFDF8;     --t-surface:#FFFFFF;
+  --t-line:#EBDCC8;    --t-track:#EADFCF;
+  --t-ink:#2B2230;     --t-ink-2:#675A6B;     --t-ink-3:#A99DA9;
+  --t-rim:#2B2230;     --t-edge:#2B2230;      /* rim = outline colour, edge = hard under-shadow colour */
+  --t-on-accent:#FFFFFF;
+  --t-dress:#D8312B;
+  --t-ok-bg:#CDEFE7;   --t-ok-fg:#0E5754;     --t-bad-bg:#FFD9CF;   --t-bad-fg:#A9361F;
+  --t-disabled-bg:#E9DFD0; --t-disabled-edge:#D3C6B2; --t-disabled-fg:#9A8D96;
+  --t-focus:#177A77;
+  --t-scrim:rgba(43,34,48,.5);
+  --t-dots:rgba(224,74,47,.13);
+  /* the five units (the app's unit colours): accent / edge / tint / text-on-tint */
+  --u1:#F0A01C; --u1-d:#B8760A; --u1-l:#FFEFCB; --u1-ink:#7A4E00;
+  --u2:#63A327; --u2-d:#4A7D1B; --u2-l:#E3F2D2; --u2-ink:#3A6314;
+  --u3:#E0566B; --u3-d:#B03348; --u3-l:#FFDFE4; --u3-ink:#8E2237;
+  --u4:#1B9A94; --u4-d:#137671; --u4-l:#D2F0EE; --u4-ink:#0E5754;
+  --u5:#EA6A10; --u5-d:#B94F08; --u5-l:#FFE2CC; --u5-ink:#8F3C05;
+  --t-font-d:"Bricolage Grotesque","Avenir Next","Trebuchet MS",system-ui,sans-serif;
+  --t-font-b:"Nunito Sans","Avenir Next",ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --t-scheme:light;
+  /* dir-4 names that do not collide with the old pages */
+  --tomato:var(--t-tomato); --tomato-d:var(--t-tomato-d); --tomato-l:var(--t-tomato-l);
+  --mustard:var(--t-mustard); --mustard-d:var(--t-mustard-d); --mustard-l:var(--t-mustard-l);
+  --blush:var(--t-blush); --blush-d:var(--t-blush-d); --blush-l:var(--t-blush-l);
+  --cream:var(--t-cream); --teal-d:var(--t-teal-d); --teal-l:var(--t-teal-l);
+  --ink-2:var(--t-ink-2); --dress:var(--t-dress);
+  --font-d:var(--t-font-d); --font-b:var(--t-font-b);
+}
+
+/* ============ TOKENS — dark ============ */
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]){
+    --t-tomato:#EC5B40;  --t-tomato-d:#A63A24;  --t-tomato-l:#4B2622;  --t-tomato-ink:#FF9A86;
+    --t-teal:#2FA39E;    --t-teal-d:#17706C;    --t-teal-l:#1D3D3C;    --t-teal-ink:#7FE0D6;
+    --t-mustard:#F3B534; --t-mustard-d:#B97E0A; --t-mustard-l:#43361A; --t-mustard-ink:#F6C65A;
+    --t-blush:#5C3B38;   --t-blush-d:#7E524D;   --t-blush-l:#3A2A2D;
+    --t-cream:#171219;   --t-paper:#241D2A;     --t-surface:#2D2534;
+    --t-line:#3F3446;    --t-track:#3A3040;
+    --t-ink:#F5ECE0;     --t-ink-2:#B7A9BA;     --t-ink-3:#7E7185;
+    --t-rim:#5A4C63;     --t-edge:#0C080F;
+    --t-dress:#D8312B;
+    --t-ok-bg:#173C39;   --t-ok-fg:#8FE6DC;     --t-bad-bg:#4A2420;   --t-bad-fg:#FFAA98;
+    --t-disabled-bg:#342B3A; --t-disabled-edge:#261F2B; --t-disabled-fg:#7E7185;
+    --t-focus:#7FE0D6;
+    --t-scrim:rgba(5,3,8,.65);
+    --t-dots:rgba(236,91,64,.08);
+    --u1:#F5B542; --u1-d:#B07508; --u1-l:#3F3217; --u1-ink:#F8CD73;
+    --u2:#8ED15C; --u2-d:#4F9124; --u2-l:#26361A; --u2-ink:#AEE585;
+    --u3:#F0798C; --u3-d:#C0475D; --u3-l:#402229; --u3-ink:#FFA2B1;
+    --u4:#3CC2BB; --u4-d:#1E8E88; --u4-l:#17393A; --u4-ink:#79E0DA;
+    --u5:#FF8C42; --u5-d:#C6560F; --u5-l:#432716; --u5-ink:#FFB27E;
+    --t-scheme:dark;
+  }
+}
+html[data-theme="dark"]{
+    --t-tomato:#EC5B40;  --t-tomato-d:#A63A24;  --t-tomato-l:#4B2622;  --t-tomato-ink:#FF9A86;
+    --t-teal:#2FA39E;    --t-teal-d:#17706C;    --t-teal-l:#1D3D3C;    --t-teal-ink:#7FE0D6;
+    --t-mustard:#F3B534; --t-mustard-d:#B97E0A; --t-mustard-l:#43361A; --t-mustard-ink:#F6C65A;
+    --t-blush:#5C3B38;   --t-blush-d:#7E524D;   --t-blush-l:#3A2A2D;
+    --t-cream:#171219;   --t-paper:#241D2A;     --t-surface:#2D2534;
+    --t-line:#3F3446;    --t-track:#3A3040;
+    --t-ink:#F5ECE0;     --t-ink-2:#B7A9BA;     --t-ink-3:#7E7185;
+    --t-rim:#5A4C63;     --t-edge:#0C080F;
+    --t-dress:#D8312B;
+    --t-ok-bg:#173C39;   --t-ok-fg:#8FE6DC;     --t-bad-bg:#4A2420;   --t-bad-fg:#FFAA98;
+    --t-disabled-bg:#342B3A; --t-disabled-edge:#261F2B; --t-disabled-fg:#7E7185;
+    --t-focus:#7FE0D6;
+    --t-scrim:rgba(5,3,8,.65);
+    --t-dots:rgba(236,91,64,.08);
+    --u1:#F5B542; --u1-d:#B07508; --u1-l:#3F3217; --u1-ink:#F8CD73;
+    --u2:#8ED15C; --u2-d:#4F9124; --u2-l:#26361A; --u2-ink:#AEE585;
+    --u3:#F0798C; --u3-d:#C0475D; --u3-l:#402229; --u3-ink:#FFA2B1;
+    --u4:#3CC2BB; --u4-d:#1E8E88; --u4-l:#17393A; --u4-ink:#79E0DA;
+    --u5:#FF8C42; --u5-d:#C6560F; --u5-l:#432716; --u5-ink:#FFB27E;
+    --t-scheme:dark;
+}
+
+/* ============ SCOPE / PAGE ============ */
+.t-page,.t-scope{
+  /* dir-4 names that DO collide with the old pages: only inside a Troupe subtree */
+  --ink:var(--t-ink); --paper:var(--t-paper); --line:var(--t-line); --teal:var(--t-teal);
+  color:var(--t-ink);font:400 16px/1.55 var(--t-font-b);color-scheme:var(--t-scheme);
+  -webkit-text-size-adjust:100%;
+}
+.t-page{margin:0;min-height:100vh;min-height:100dvh;overflow-x:hidden}
+.t-page,.t-dotted{
+  background-color:var(--t-cream);
+  background-image:radial-gradient(circle at 1px 1px,var(--t-dots) 1.2px,transparent 1.6px);background-size:26px 26px;
+}
+.t-page *,.t-page *::before,.t-page *::after,
+.t-scope *,.t-scope *::before,.t-scope *::after{box-sizing:border-box}
+.t-has-tabbar{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+.t-has-feedback{padding-bottom:calc(210px + env(safe-area-inset-bottom,0px))}
+.t-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.t-icon{width:1.25em;height:1.25em;flex:none}
+
+/* unit accent: put .t-u1 … .t-u5 on any wrapper; children read --t-unit / --t-unit-d / --t-unit-l / --t-unit-ink */
+.t-u1{--t-unit:var(--u1);--t-unit-d:var(--u1-d);--t-unit-l:var(--u1-l);--t-unit-ink:var(--u1-ink)}
+.t-u2{--t-unit:var(--u2);--t-unit-d:var(--u2-d);--t-unit-l:var(--u2-l);--t-unit-ink:var(--u2-ink)}
+.t-u3{--t-unit:var(--u3);--t-unit-d:var(--u3-d);--t-unit-l:var(--u3-l);--t-unit-ink:var(--u3-ink)}
+.t-u4{--t-unit:var(--u4);--t-unit-d:var(--u4-d);--t-unit-l:var(--u4-l);--t-unit-ink:var(--u4-ink)}
+.t-u5{--t-unit:var(--u5);--t-unit-d:var(--u5-d);--t-unit-l:var(--u5-l);--t-unit-ink:var(--u5-ink)}
+
+/* focus rings (no border-radius override: each component keeps its own shape) */
+.t-page :focus-visible,.t-scope :focus-visible,
+.t-btn:focus-visible,.t-iconbtn:focus-visible,.t-tab:focus-visible,.t-mute:focus-visible,.t-choice:focus-visible,.t-card--tap:focus-visible{
+  outline:3px solid var(--t-focus);outline-offset:3px;
+}
+
+/* ============ TYPOGRAPHY ============ */
+.t-h1,.t-h2,.t-h3{font-family:var(--t-font-d);font-weight:800;margin:0;color:var(--t-ink)}
+.t-h1{font-size:clamp(30px,8vw,42px);line-height:1.05;letter-spacing:-.025em}
+.t-h2{font-size:clamp(22px,5.5vw,28px);line-height:1.1;letter-spacing:-.015em}
+.t-h3{font-size:18px;line-height:1.15;letter-spacing:-.005em}
+.t-body{font:400 16px/1.55 var(--t-font-b);color:var(--t-ink);margin:0}
+.t-small{font:600 13.5px/1.4 var(--t-font-b);color:var(--t-ink-2);margin:0}
+.t-label{font:800 12px/1 var(--t-font-d);letter-spacing:.14em;text-transform:uppercase;color:var(--t-tomato-ink)}
+.t-link{color:var(--t-teal-ink);text-underline-offset:3px}
+
+/* ============ BUTTONS — chunky, press down ============ */
+.t-btn{--bg:var(--t-tomato);--edge:var(--t-tomato-d);--fg:var(--t-on-accent);
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  font:800 18px/1 var(--t-font-d);letter-spacing:.01em;color:var(--fg);background:var(--bg);border:0;border-radius:18px;
+  padding:16px 24px;min-height:54px;box-shadow:0 5px 0 var(--edge);cursor:pointer;margin:0 0 5px;text-decoration:none;white-space:nowrap;
+  transition:transform .09s ease,box-shadow .09s ease,filter .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.t-btn:active,.t-btn.is-pressed{transform:translateY(4px) scale(1.01,.97);box-shadow:0 1px 0 var(--edge)}
+.t-btn svg{width:22px;height:22px;flex:none}
+.t-btn--secondary{--bg:var(--t-paper);--edge:var(--t-line);--fg:var(--t-teal-ink);border:2px solid var(--t-line);padding:14px 22px}
+.t-btn--ghost{--bg:transparent;--fg:var(--t-teal-ink);box-shadow:none;border:2px solid transparent;padding:14px 18px}
+.t-btn--ghost:active,.t-btn--ghost.is-pressed{transform:scale(.97);box-shadow:none;background:var(--t-teal-l)}
+.t-btn--teal{--bg:var(--t-teal);--edge:var(--t-teal-d)}
+.t-btn--mustard{--bg:var(--t-mustard);--edge:var(--t-mustard-d);--fg:#2B2230}
+.t-btn--unit{--bg:var(--t-unit,var(--t-tomato));--edge:var(--t-unit-d,var(--t-tomato-d))}
+.t-btn--block{display:flex;width:100%}
+.t-btn--sm{min-height:44px;padding:11px 16px;font-size:15px;border-radius:14px;gap:8px}
+.t-btn--sm.t-btn--secondary{padding:9px 14px}
+.t-btn[disabled],.t-btn[aria-disabled="true"]{--bg:var(--t-disabled-bg);--edge:var(--t-disabled-edge);--fg:var(--t-disabled-fg);cursor:not-allowed;pointer-events:none}
+.t-btn--ghost[disabled]{--bg:transparent}
+
+.t-iconbtn{width:44px;height:44px;flex:none;padding:0;border-radius:14px;border:2px solid var(--t-line);background:var(--t-paper);color:var(--t-ink-2);
+  display:inline-grid;place-items:center;cursor:pointer;margin:0;text-decoration:none;
+  transition:transform .09s,background .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.t-iconbtn svg{width:22px;height:22px}
+.t-iconbtn:active{transform:scale(.92)}
+.t-iconbtn--round{border-radius:50%}
+.t-iconbtn--solid{background:var(--t-mustard);border-color:var(--t-rim);box-shadow:0 4px 0 var(--t-edge);color:#2B2230}
+.t-iconbtn--solid:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-edge)}
+
+/* mute toggle: icon is drawn by CSS, so the markup is just  <button class="t-mute" aria-label="Couper le son"></button>
+   toggle the class .is-muted (or data-muted="true") when Sfx.muted is true */
+.t-mute{width:44px;height:44px;flex:none;padding:0;margin:0;border-radius:50%;border:2px solid var(--t-rim);background:var(--t-mustard);color:#2B2230;
+  box-shadow:0 4px 0 var(--t-edge);display:inline-grid;place-items:center;cursor:pointer;
+  transition:transform .09s,box-shadow .09s,background .2s,color .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.t-mute::before{content:"";width:24px;height:24px;background:currentColor;
+  -webkit-mask:var(--t-ic-sound) center/contain no-repeat;mask:var(--t-ic-sound) center/contain no-repeat}
+.t-mute:active{transform:translateY(3px);box-shadow:0 1px 0 var(--t-edge)}
+.t-mute.is-muted,.t-mute[data-muted="true"]{background:var(--t-paper);color:var(--t-ink-2);border-color:var(--t-line);box-shadow:0 4px 0 var(--t-line)}
+.t-mute.is-muted::before,.t-mute[data-muted="true"]::before{-webkit-mask-image:var(--t-ic-muted);mask-image:var(--t-ic-muted)}
+.t-mute.is-muted:active,.t-mute[data-muted="true"]:active{box-shadow:0 1px 0 var(--t-line)}
+:root{
+  --t-ic-sound:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M3.5 9.2v5.6h3.8l5.2 4.2V5L7.3 9.2z'/><g fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'><path d='M16 8.6a5 5 0 0 1 0 6.8'/><path d='M18.6 5.8a9 9 0 0 1 0 12.4'/></g></svg>");
+  --t-ic-muted:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M3.5 9.2v5.6h3.8l5.2 4.2V5L7.3 9.2z'/><g fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'><path d='M16.5 9.5l5 5M21.5 9.5l-5 5'/></g></svg>");
+}
+
+/* ============ CARDS · CHIPS · PILLS ============ */
+.t-card{display:block;background:var(--t-paper);border:2px solid var(--t-rim);border-radius:24px;box-shadow:0 5px 0 var(--t-edge);padding:16px;color:var(--t-ink);text-align:left;
+  font:inherit;text-decoration:none;min-width:0}
+.t-card--flat{border-color:var(--t-line);box-shadow:none}
+.t-card--unit{box-shadow:0 5px 0 var(--t-unit-d,var(--t-edge));border-color:var(--t-unit-d,var(--t-rim))}
+.t-card--tap{cursor:pointer;transition:transform .09s,box-shadow .09s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none;width:100%}
+.t-card--tap:active{transform:translateY(4px);box-shadow:0 1px 0 var(--t-edge)}
+.t-card--unit.t-card--tap:active{box-shadow:0 1px 0 var(--t-unit-d,var(--t-edge))}
+.t-card--done{background:var(--t-ok-bg);border-color:var(--t-line);box-shadow:none}
+.t-card--locked{opacity:.55;box-shadow:none;border-color:var(--t-line)}
+
+.t-chip{display:inline-flex;align-items:center;gap:6px;font:800 14px/1 var(--t-font-d);padding:7px 11px 7px 8px;border-radius:99px;background:var(--t-paper);
+  border:2px solid var(--t-rim);color:var(--t-ink);white-space:nowrap}
+.t-chip svg{width:18px;height:18px;flex:none}
+.t-chip--fire{background:var(--t-tomato-l)}
+.t-chip--xp{background:var(--t-mustard-l)}
+.t-chip--ok{background:var(--t-teal-l)}
+
+.t-pill{display:inline-block;font:800 11.5px/1 var(--t-font-d);letter-spacing:.04em;padding:5px 9px;border-radius:99px;text-transform:uppercase;white-space:nowrap;
+  background:var(--t-cream);color:var(--t-ink-2)}
+.t-pill--teal{background:var(--t-teal-l);color:var(--t-teal-ink)}
+.t-pill--mustard{background:var(--t-mustard-l);color:var(--t-mustard-ink)}
+.t-pill--blush{background:var(--t-blush);color:var(--t-tomato-ink)}
+.t-pill--tomato{background:var(--t-tomato);color:var(--t-on-accent)}
+.t-pill--unit{background:var(--t-unit-l,var(--t-cream));color:var(--t-unit-ink,var(--t-ink))}
+
+/* ============ TOPBAR + PROGRESS ============ */
+.t-topbar{display:flex;align-items:center;gap:12px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));position:relative;z-index:30}
+.t-topbar--sticky{position:sticky;top:0;background:var(--t-cream);background-image:radial-gradient(circle at 1px 1px,var(--t-dots) 1.2px,transparent 1.6px);background-size:26px 26px}
+.t-topbar .t-progress{flex:1;min-width:0}
+.t-topbar__meta{display:flex;align-items:center;gap:8px;font:800 14px/1 var(--t-font-d);color:var(--t-ink-2);white-space:nowrap}
+.t-topbar__title{flex:1;min-width:0;font:800 17px/1.15 var(--t-font-d);color:var(--t-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.t-progress{--bar:var(--t-tomato);height:16px;border-radius:99px;background:var(--t-track);position:relative;overflow:hidden}
+.t-progress>i,.t-progress__fill{position:absolute;inset:0 auto 0 0;width:var(--v,0%);background:var(--bar);border-radius:99px;transition:width .7s cubic-bezier(.3,1.3,.4,1)}
+.t-progress>i::after,.t-progress__fill::after{content:"";position:absolute;left:8px;right:8px;top:3px;height:4px;border-radius:4px;background:rgba(255,255,255,.4)}
+.t-progress--teal{--bar:var(--t-teal)}
+.t-progress--mustard{--bar:var(--t-mustard)}
+.t-progress--unit{--bar:var(--t-unit,var(--t-tomato))}
+.t-progress--sm{height:10px}
+.t-progress--sm>i::after,.t-progress--sm .t-progress__fill::after{top:2px;height:3px}
+
+/* ============ SPEECH BUBBLE ============ */
+.t-bubble{position:relative;background:var(--t-paper);border:2px solid var(--t-rim);border-radius:22px;padding:12px 14px;box-shadow:0 4px 0 var(--t-edge);color:var(--t-ink);min-width:0}
+.t-bubble::before{content:"";display:none;position:absolute;width:16px;height:16px;background:var(--t-paper);border:2px solid var(--t-rim);transform:rotate(45deg)}
+.t-bubble--l::before,.t-bubble--r::before,.t-bubble--b::before,.t-bubble--t::before{display:block}
+.t-bubble--l::before{left:-9px;top:34px;border-top-color:transparent;border-right-color:transparent}
+.t-bubble--r::before{right:-9px;top:34px;border-bottom-color:transparent;border-left-color:transparent}
+.t-bubble--b::before{bottom:-9px;left:34px;border-top-color:transparent;border-left-color:transparent}
+.t-bubble--t::before{top:-9px;left:34px;border-bottom-color:transparent;border-right-color:transparent}
+.t-bubble p{margin:0}
+.t-bubble p+p{margin-top:4px}
+
+/* ============ FEEDBACK — bottom sheet after an answer ============
+ *  <div class="t-feedback t-feedback--ok" role="status" aria-live="polite"> (add .is-open to show)
+ *    <div class="t-feedback__in">
+ *      <div class="t-feedback__char">[Cast.svg('lea',{crop:'face',mood:'happy'})]</div>
+ *      <div class="t-feedback__body"><div class="t-feedback__title">Bravo !</div><p class="t-feedback__text">…</p></div>
+ *      <button class="t-btn t-btn--block t-feedback__btn">Continuer</button>
+ *    </div></div>
+ */
+.t-feedback{position:fixed;left:0;right:0;bottom:0;z-index:60;border-radius:30px 30px 0 0;border-top:2px solid var(--t-rim);
+  padding:16px 18px calc(18px + env(safe-area-inset-bottom,0px));
+  background:var(--t-ok-bg);color:var(--t-ok-fg);
+  transform:translateY(110%);visibility:hidden;transition:transform .5s cubic-bezier(.2,1.15,.3,1),visibility 0s linear .5s}
+.t-feedback.is-open{transform:none;visibility:visible;transition:transform .5s cubic-bezier(.2,1.15,.3,1),visibility 0s}
+.t-feedback--ok{background:var(--t-ok-bg);color:var(--t-ok-fg)}
+.t-feedback--bad{background:var(--t-bad-bg);color:var(--t-bad-fg)}
+.t-feedback__in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center}
+.t-feedback__char{width:72px;height:72px;border-radius:50%;border:2px solid var(--t-rim);background:var(--t-paper);overflow:hidden;flex:none}
+.t-feedback__char svg{display:block;width:100%;height:100%}
+.t-feedback__body{min-width:0}
+.t-feedback__title{font:800 22px/1.1 var(--t-font-d);letter-spacing:-.01em}
+.t-feedback__text{margin:3px 0 0;font:700 15px/1.3 var(--t-font-b);color:inherit}
+.t-feedback__text em{font-style:normal;font-family:var(--t-font-d);font-weight:800;padding:0 3px;border-radius:6px;background:rgba(255,255,255,.7);color:#2B2230}
+.t-feedback__btn{grid-column:1/-1;margin-top:8px}
+.t-feedback--ok .t-feedback__btn{--bg:var(--t-teal);--edge:var(--t-teal-d)}
+.t-feedback--bad .t-feedback__btn{--bg:var(--t-tomato);--edge:var(--t-tomato-d)}
+
+/* ============ TAB BAR ============
+ *  <nav class="t-tabbar" aria-label="Navigation"><a class="t-tab" aria-current="page" href="/app"><span class="t-tab__ic">[svg]</span>Aujourd'hui</a>…</nav>
+ *  add .t-has-tabbar to the page so content is not hidden behind it */
+.t-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0 auto;max-width:640px;
+  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
+  background:var(--t-paper);border:2px solid var(--t-rim);border-bottom:0;border-radius:26px 26px 0 0;
+  padding:7px 6px calc(10px + env(safe-area-inset-bottom,0px))}
+.t-tab{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;font:800 10.5px/1 var(--t-font-d);letter-spacing:0;color:var(--t-ink-2);background:none;border:0;
+  padding:2px 0;cursor:pointer;text-decoration:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none;margin:0}
+.t-tab__ic{width:48px;height:30px;border-radius:14px;display:grid;place-items:center;transition:transform .12s,background .15s}
+.t-tab__ic svg{width:22px;height:22px}
+.t-tab:active .t-tab__ic{transform:scale(.88,.94)}
+.t-tab[aria-current]{color:var(--t-tomato-ink)}
+.t-tab[aria-current] .t-tab__ic{background:var(--t-tomato);color:var(--t-on-accent);box-shadow:0 3px 0 var(--t-tomato-d)}
+
+/* ============ SHEET (modal bottom sheet) ============
+ *  <div class="t-sheet" [aria-hidden]><div class="t-sheet__scrim"></div>
+ *    <div class="t-sheet__panel" role="dialog" aria-modal="true"><span class="t-sheet__grip"></span>…</div></div>
+ *  add .is-open to show */
+.t-sheet{position:fixed;inset:0;z-index:80;visibility:hidden;transition:visibility 0s linear .4s}
+.t-sheet.is-open{visibility:visible;transition:visibility 0s}
+.t-sheet__scrim{position:absolute;inset:0;background:var(--t-scrim);opacity:0;transition:opacity .3s}
+.t-sheet.is-open .t-sheet__scrim{opacity:1}
+.t-sheet__panel{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:640px;max-height:88vh;max-height:88dvh;overflow:auto;
+  background:var(--t-cream);border:2px solid var(--t-rim);border-bottom:0;border-radius:30px 30px 0 0;
+  padding:12px 18px calc(22px + env(safe-area-inset-bottom,0px));
+  transform:translateY(105%);transition:transform .45s cubic-bezier(.2,1.1,.3,1)}
+.t-sheet.is-open .t-sheet__panel{transform:none}
+.t-sheet__grip{display:block;width:44px;height:5px;border-radius:99px;background:var(--t-line);margin:0 auto 14px}
+
+/* ============ CHOICES + INPUT (answer controls, from dir-4) ============ */
+.t-choice{font:800 22px/1.1 var(--t-font-d);min-height:60px;padding:10px 14px;border-radius:18px;background:var(--t-paper);border:2px solid var(--t-line);box-shadow:0 5px 0 var(--t-line);color:var(--t-ink);cursor:pointer;margin:0 0 5px;
+  transition:transform .09s,box-shadow .09s,background .2s,border-color .2s,opacity .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+.t-choice:active:not([disabled]){transform:translateY(4px);box-shadow:0 1px 0 var(--t-line)}
+.t-choice.is-right{background:var(--t-teal-l);border-color:var(--t-teal);box-shadow:0 5px 0 var(--t-teal);color:var(--t-teal-ink);animation:t-popin .45s cubic-bezier(.3,1.7,.5,1)}
+.t-choice.is-wrong{background:var(--t-tomato-l);border-color:var(--t-tomato);box-shadow:0 5px 0 var(--t-tomato);color:var(--t-tomato-ink);animation:t-shake .45s}
+.t-choice.is-hint{border-color:var(--t-teal);border-style:dashed}
+.t-choice.is-dim{opacity:.45}
+.t-choice[disabled]{cursor:default}
+
+.t-field{display:grid;gap:6px;min-width:0;font:800 13px/1 var(--t-font-d);color:var(--t-ink-2)}
+.t-input{display:block;width:100%;min-width:0;background:var(--t-surface);border:2px solid var(--t-line);border-radius:20px 20px 20px 6px;padding:14px 16px;
+  font:700 17px/1.2 var(--t-font-b);color:var(--t-ink);outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none}
+.t-input::placeholder{color:var(--t-ink-3)}
+.t-input:focus{border-color:var(--t-teal);box-shadow:0 0 0 4px var(--t-teal-l)}
+
+/* ============ CELEBRATION ============ */
+.t-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+.t-confetti i{position:absolute;top:-24px;left:var(--x);width:var(--w,9px);height:var(--h,14px);background:var(--c);border-radius:var(--br,2px);
+  animation:t-fall var(--t) linear var(--d) infinite;opacity:.95}
+
+/* ============ LAYOUT UTILITIES (last, so they win over component display) ============ */
+.t-stack{display:grid;gap:var(--g,12px)}
+.t-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--g,12px)}
+
+/* ============ MOTION ============ */
+.t-pop{animation:t-popin .45s cubic-bezier(.3,1.7,.5,1)}
+.t-shake{animation:t-shake .45s}
+.t-rise{animation:t-rise .6s both}
+.t-pulse{animation:t-pulse 1.8s ease-in-out infinite}
+@keyframes t-pulse{0%,100%{box-shadow:0 0 0 0 rgba(224,74,47,.5)}60%{box-shadow:0 0 0 9px rgba(224,74,47,0)}}
+@keyframes t-popin{0%{transform:scale(.8)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes t-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+@keyframes t-rise{0%{transform:translateY(24px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes t-fall{0%{transform:translate3d(0,-30px,0) rotate(0)}100%{transform:translate3d(var(--dx,0),800px,0) rotate(var(--rot,540deg))}}
+
+@media (prefers-reduced-motion:reduce){
+  .t-page *,.t-scope *,[class^="t-"],[class*=" t-"]{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .t-confetti{display:none}
+}

@@ -1,0 +1,337 @@
+<!--
+  units.html — les leçons, que la page de révision inclut (ligne « @include content/units.html » de Unite1_Revision.html).
+  Une <div class="unit" data-u="N"> par unité, six panneaux (docs, parler, gram, voc, phon, cahier).
+  Une étape du parcours = une .card avec un <h3> (docs, gram, voc, phon) ou un <h2 class="sec"> (parler, cahier).
+  Un exercice = <div class="ex" data-id="…"> (id unique dans tout le cours) contenant :
+    - des cases à remplir   <input class="inp w-s" data-a="réponse|autre réponse acceptée">
+    - des choix             <div class="opts"><button class="opt" data-ok>bonne</button><button class="opt">fausse</button></div>
+    - des paires à relier   <div class="match"><div class="mcol">…<button class="mitem" data-key="k">…</div>…</div>
+    - la barre              <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+  data-en="…" sur n'importe quel élément = sa traduction anglaise (bouton EN).
+  <button class="speak" data-say="…"> = lecture par la voix française du navigateur (aucun fichier audio nécessaire).
+  Tout ce texte est original (écrit pour cet exemple) et sous la même licence que le dépôt.
+-->
+<div class="unit active" data-u="1" id="u1">
+
+<!-- ============================ DOCUMENTS ============================ -->
+<section class="panel" data-p="docs" id="u1-docs">
+
+  <div class="box tip">
+    <h4>Le parcours de cet onglet</h4>
+    <p style="margin:.3em 0" data-en="One short dialogue at a café. Read the lesson, listen, do the activities, then reread what to remember.">Un petit dialogue au café. Lisez <strong>📘 La leçon</strong>, écoutez, faites les activités, puis relisez <strong>✅ Ce qu'il faut retenir</strong>.</p>
+  </div>
+
+  <!-- ---------- A ---------- -->
+  <div class="card">
+    <div class="doc-head"><div class="letter">A</div>
+      <div><h3>Au Café des Amis</h3><div class="meta">Compréhension orale · un dialogue entre Nadia et le serveur</div></div></div>
+
+    <div class="lesson">
+      <h4>📘 La leçon — commander poliment</h4>
+      <p data-en="Nadia sits down at a café. With four short sentences she greets the waiter, orders, asks the price and pays.">Nadia s'assoit dans un café. Avec quatre petites phrases, elle salue le serveur, commande, demande le prix et paie.</p>
+      <span class="kp" data-en="1. GREET — Bonjour (madame / monsieur)."><b>1. SALUER</b> — <em>Bonjour, monsieur !</em> <button class="speak" data-say="Bonjour, monsieur !">🔈</button></span>
+      <span class="kp" data-en="2. ORDER — Je voudrais + a thing + s'il vous plaît."><b>2. COMMANDER</b> — <em>Je voudrais un café, s'il vous plaît.</em> <button class="speak" data-say="Je voudrais un café, s'il vous plaît.">🔈</button></span>
+      <span class="kp" data-en="3. ASK THE PRICE — C'est combien ? / Ça fait combien ?"><b>3. LE PRIX</b> — <em>C'est combien ?</em> <button class="speak" data-say="C'est combien ?">🔈</button></span>
+      <span class="kp" data-en="4. THANK — Merci, au revoir !"><b>4. REMERCIER</b> — <em>Merci, au revoir !</em> <button class="speak" data-say="Merci, au revoir !">🔈</button></span>
+    </div>
+
+    <div class="box tip">
+      <h4>Le dialogue <button class="speak" data-say="Bonjour, madame ! Bonjour, monsieur. Je voudrais un café, s'il vous plaît. Un café. Et avec ça ? Un croissant, s'il vous plaît. C'est combien ? Trois euros cinquante. Voilà. Merci, madame. Bonne journée ! Merci, au revoir !">🔈 Écouter</button></h4>
+      <p data-en="Waiter: Hello, madam!"><b>Le serveur :</b> Bonjour, madame !</p>
+      <p data-en="Nadia: Hello, sir. I would like a coffee, please."><b>Nadia :</b> Bonjour, monsieur. Je voudrais un café, s'il vous plaît.</p>
+      <p data-en="Waiter: A coffee. Anything else?"><b>Le serveur :</b> Un café. Et avec ça ?</p>
+      <p data-en="Nadia: A croissant, please. How much is it?"><b>Nadia :</b> Un croissant, s'il vous plaît. C'est combien ?</p>
+      <p data-en="Waiter: Three euros fifty."><b>Le serveur :</b> Trois euros cinquante.</p>
+      <p data-en="Nadia: Here you are."><b>Nadia :</b> Voilà.</p>
+      <p data-en="Waiter: Thank you, madam. Have a nice day!"><b>Le serveur :</b> Merci, madame. Bonne journée !</p>
+      <p data-en="Nadia: Thank you, goodbye!"><b>Nadia :</b> Merci, au revoir !</p>
+    </div>
+
+    <div class="ex" data-id="u1a1">
+      <p class="qn"><span class="num">1</span> <span data-en="Where are Nadia and the waiter?">Où sont Nadia et le serveur ?</span></p>
+      <div class="opts col">
+        <button class="opt">À la gare</button>
+        <button class="opt" data-ok>Dans un café</button>
+        <button class="opt">Au cinéma</button>
+      </div>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+      <div class="hint">Le titre (« Au Café des Amis »), le serveur, le café et le croissant : c'est un café.</div>
+    </div>
+
+    <div class="ex" data-id="u1a2">
+      <p class="qn"><span class="num">2</span> <span data-en="What does Nadia order?">Qu'est-ce que Nadia commande ?</span></p>
+      <p data-en="Nadia orders a … and a ….">Nadia commande un <input class="inp w-s" data-a="café"> et un <input class="inp w-s" data-a="croissant">.</p>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+      <div class="hint">« Je voudrais un café » puis « Un croissant, s'il vous plaît ».</div>
+    </div>
+
+    <div class="ex" data-id="u1a3">
+      <p class="qn"><span class="num">3</span> <span data-en="Match each sentence to what it is for.">Associez chaque phrase à sa fonction.</span></p>
+      <p class="note">Cliquez une phrase, puis sa fonction. Pour défaire une paire, recliquez dessus.</p>
+      <div class="match">
+        <div class="mcol">
+          <button class="mitem" data-key="saluer">a. Bonjour, monsieur.</button>
+          <button class="mitem" data-key="commander">b. Je voudrais un café.</button>
+          <button class="mitem" data-key="prix">c. C'est combien ?</button>
+        </div>
+        <div class="mcol">
+          <button class="mitem" data-key="prix">1. demander le prix</button>
+          <button class="mitem" data-key="saluer">2. saluer</button>
+          <button class="mitem" data-key="commander">3. commander</button>
+        </div>
+      </div>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+
+    <div class="ex" data-id="u1a4">
+      <p class="qn"><span class="num">4</span> <span data-en="How much does Nadia pay?">Nadia paie combien ?</span></p>
+      <p data-en="She pays … euros fifty.">Elle paie <input class="inp w-s" data-a="trois|3"> euros cinquante.</p>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+
+    <div class="ex dic" data-id="u1dic-1">
+      <p class="qn"><span class="num">✍</span> <span data-en="Listen and write the three sentences.">Écoutez et écrivez les trois phrases.</span></p>
+      <div class="dic-ctl">
+        <button class="btn dic-next" type="button">▶ Phrase 1/3</button>
+        <button class="btn ghost dic-again" type="button">🔁 Réécouter</button>
+        <button class="btn ghost dic-slow" type="button">🐢 Lent</button>
+      </div>
+      <ol class="dic-list">
+        <li><span class="dic-n">1</span><input class="dic-in" type="text" lang="fr" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-label="Phrase 1"></li>
+        <li><span class="dic-n">2</span><input class="dic-in" type="text" lang="fr" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-label="Phrase 2"></li>
+        <li><span class="dic-n">3</span><input class="dic-in" type="text" lang="fr" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Phrase 3"></li>
+      </ol>
+      <div class="exbar"><button class="btn dic-check" type="button">Corriger</button><button class="btn ghost dic-clear" type="button">Effacer</button><span class="score"></span></div>
+      <div class="dic-res" hidden></div>
+    </div>
+
+    <div class="recap">
+      <h4>✅ Ce qu'il faut retenir du document A</h4>
+      <ul>
+        <li data-en="Je voudrais + thing: the polite way to order.">Pour commander poliment : <strong>je voudrais</strong> + la chose.</li>
+        <li data-en="S'il vous plaît = please (to someone you say vous to).">« <strong>S'il vous plaît</strong> » = <em>please</em> (avec <em>vous</em>).</li>
+        <li data-en="C'est combien ? = How much is it?">« <strong>C'est combien ?</strong> » pour demander le prix.</li>
+      </ul>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============================ PARLER ============================ -->
+<section class="panel" data-p="parler" id="u1-parler">
+  <div class="box tip">
+    <h4 data-en="🎤 Speak — say the whole sentence">🎤 À l'oral — dites toute la phrase</h4>
+    <p style="margin:.3em 0" data-en="Each question comes with the words of its answer in a jumble. Put them in order by saying the sentence.">Chaque question arrive avec les mots de sa réponse, mélangés. Remettez-les dans l'ordre en disant la phrase.</p>
+  </div>
+
+  <div class="card spk-progress"></div>
+
+  <h2 class="sec" data-en="1 · Answer with the words">1 · Répondre avec les mots</h2>
+  <div class="card">
+    <div class="ex spk" data-id="u1sp-t1" data-spk="u1-t1" data-n="1"></div>
+    <div class="ex spk" data-id="u1sp-t2" data-spk="u1-t2" data-n="2"></div>
+  </div>
+
+  <h2 class="sec" data-en="2 · Ask the question">2 · Poser la question</h2>
+  <div class="card">
+    <div class="ex spk" data-id="u1sp-f1" data-spk="u1-f1" data-n="1"></div>
+  </div>
+
+  <h2 class="sec" data-en="3 · Listen and repeat">3 · Écouter et répéter</h2>
+  <div class="card">
+    <div class="ex spk" data-id="u1sp-r1" data-spk="u1-r1" data-n="1"></div>
+    <div class="ex spk" data-id="u1sp-r2" data-spk="u1-r2" data-n="2"></div>
+  </div>
+
+  <h2 class="sec" data-en="4 · Say it in French">4 · Dites-le en français</h2>
+  <div class="card">
+    <div class="ex spk" data-id="u1sp-x1" data-spk="u1-x1" data-n="1"></div>
+  </div>
+
+  <h2 class="sec" data-en="5 · Mini-dialogue">5 · Mini-dialogue</h2>
+  <div class="card">
+    <div class="ex spk" data-id="u1sp-dlg" data-spk="u1-dlg"></div>
+  </div>
+
+  <h2 class="sec" data-en="6 · Free challenge — no tiles">6 · Défi libre — sans tuiles</h2>
+  <div class="card">
+    <div class="ex speak-q" data-id="sp1-libre">
+      <p class="qn"><span class="num">★</span> <span data-en="You are at a café: greet the waiter, order a drink and something to eat, and ask the price.">Vous êtes au café : saluez le serveur, commandez une boisson et quelque chose à manger, puis demandez le prix.</span></p>
+      <button class="speak-rec">🎤 Enregistrer</button>
+      <div class="speak-status"></div>
+      <div class="speak-result" hidden>
+        <p class="speak-transcript"></p>
+        <div class="speak-feedback"></div>
+        <button class="speak-redo">🔁 Recommencer</button>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec" data-en="7 · Conversation">7 · Conversation avec le tuteur</h2>
+  <div class="card">
+    <div class="ex conv" data-id="u1cv-1" data-conv="u1-cv1"></div>
+  </div>
+</section>
+
+<!-- ============================ GRAMMAIRE ============================ -->
+<section class="panel" data-p="gram" id="u1-gram">
+  <div class="box tip">
+    <h4>Les deux points de grammaire de l'unité 1</h4>
+    <p style="margin:.3em 0"><strong>1.</strong> <em>Je voudrais…</em> pour demander poliment · <strong>2.</strong> Les articles indéfinis <em>un, une, des</em>.</p>
+  </div>
+
+  <div class="card">
+    <h3>1 · <em>Je voudrais…</em> : demander poliment</h3>
+    <div class="lesson">
+      <h4>📘 La leçon — une forme à apprendre telle quelle</h4>
+      <p data-en="Je voudrais comes from the verb vouloir (to want). For now, learn it as a fixed polite phrase: je voudrais + a noun, or + a verb in the infinitive.">« Je voudrais » vient du verbe <em>vouloir</em>. Pour l'instant, apprenez-le comme une formule de politesse : <strong>je voudrais + un nom</strong>, ou <strong>+ un verbe à l'infinitif</strong>.</p>
+      <span class="kp" data-en="Je voudrais un thé. — I would like a tea."><b>+ UN NOM</b> — <em>Je voudrais un thé.</em> <button class="speak" data-say="Je voudrais un thé.">🔈</button></span>
+      <span class="kp" data-en="Je voudrais payer. — I would like to pay."><b>+ UN INFINITIF</b> — <em>Je voudrais payer.</em> <button class="speak" data-say="Je voudrais payer.">🔈</button></span>
+    </div>
+    <div class="ex" data-id="u1g1">
+      <p class="qn"><span class="num">1</span> <span data-en="Choose the polite sentence.">Choisissez la phrase polie.</span></p>
+      <ol class="items">
+        <li>a. <span class="opts"><button class="opt" data-ok>Je voudrais un jus d'orange, s'il vous plaît.</button><button class="opt">Un jus d'orange !</button></span></li>
+        <li>b. <span class="opts"><button class="opt">Donnez l'addition.</button><button class="opt" data-ok>Je voudrais l'addition, s'il vous plaît.</button></span></li>
+      </ol>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+    <div class="ex" data-id="u1g2">
+      <p class="qn"><span class="num">2</span> <span data-en="Complete.">Complétez.</span></p>
+      <p data-en="I would like a coffee.">Je <input class="inp w-m" data-a="voudrais"> un café.</p>
+      <p data-en="I would like to pay, please.">Je voudrais <input class="inp w-m" data-a="payer">, s'il vous plaît.</p>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>2 · Les articles indéfinis <em>un, une, des</em></h3>
+    <div class="lesson">
+      <h4>📘 La leçon — chaque nom a un genre</h4>
+      <p data-en="Every French noun is masculine or feminine. Learn each noun with its article.">Chaque nom français est <strong>masculin</strong> ou <strong>féminin</strong>. Apprenez toujours le nom avec son article.</p>
+      <span class="kp" data-en="MASCULINE — un café, un thé, un croissant"><b>MASCULIN</b> — <em>un</em> café, <em>un</em> thé, <em>un</em> croissant</span>
+      <span class="kp" data-en="FEMININE — une limonade, une tarte, une table"><b>FÉMININ</b> — <em>une</em> limonade, <em>une</em> tarte, <em>une</em> table</span>
+      <span class="kp" data-en="PLURAL — des cafés, des tartes (des for both genders)"><b>PLURIEL</b> — <em>des</em> cafés, <em>des</em> tartes (le même pour les deux genres)</span>
+    </div>
+    <div class="ex" data-id="u1g3">
+      <p class="qn"><span class="num">3</span> <span data-en="Complete with un, une or des.">Complétez avec <em>un</em>, <em>une</em> ou <em>des</em>.</span></p>
+      <p data-en="a coffee">a. <input class="inp w-s" data-a="un"> café</p>
+      <p data-en="a lemonade">b. <input class="inp w-s" data-a="une"> limonade</p>
+      <p data-en="some croissants">c. <input class="inp w-s" data-a="des"> croissants</p>
+      <p data-en="a pie">d. <input class="inp w-s" data-a="une"> tarte</p>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ VOCABULAIRE ============================ -->
+<section class="panel" data-p="voc" id="u1-voc">
+  <div class="card">
+    <h3>Au café</h3>
+    <div class="grid g2" style="margin:18px 0">
+      <div class="box tip"><h4>Les boissons</h4>
+        <ul class="plain">
+          <li data-en="a coffee">un café</li>
+          <li data-en="a tea">un thé</li>
+          <li data-en="an orange juice">un jus d'orange</li>
+          <li data-en="a lemonade">une limonade</li>
+          <li data-en="a glass of water">un verre d'eau</li>
+        </ul>
+        <button class="speak" data-say="un café, un thé, un jus d'orange, une limonade, un verre d'eau">🔈 Écouter la liste</button>
+      </div>
+      <div class="box tip"><h4>Les mots utiles</h4>
+        <ul class="plain">
+          <li data-en="the waiter">le serveur</li>
+          <li data-en="the bill">l'addition <span class="note">(f.)</span></li>
+          <li data-en="the menu">la carte</li>
+          <li data-en="please">s'il vous plaît</li>
+          <li data-en="thank you">merci</li>
+        </ul>
+        <button class="speak" data-say="le serveur, l'addition, la carte, s'il vous plaît, merci">🔈 Écouter la liste</button>
+      </div>
+    </div>
+    <div class="ex" data-id="u1v1">
+      <p class="qn"><span class="num">1</span> <span data-en="Match the French and the English.">Associez le français et l'anglais.</span></p>
+      <div class="match">
+        <div class="mcol">
+          <button class="mitem" data-key="bill">l'addition</button>
+          <button class="mitem" data-key="menu">la carte</button>
+          <button class="mitem" data-key="water">un verre d'eau</button>
+        </div>
+        <div class="mcol">
+          <button class="mitem" data-key="water">a glass of water</button>
+          <button class="mitem" data-key="bill">the bill</button>
+          <button class="mitem" data-key="menu">the menu</button>
+        </div>
+      </div>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Les nombres de 1 à 10</h3>
+    <p data-en="one, two, three, four, five, six, seven, eight, nine, ten">un, deux, trois, quatre, cinq, six, sept, huit, neuf, dix <button class="speak" data-say="un, deux, trois, quatre, cinq, six, sept, huit, neuf, dix">🔈</button></p>
+    <div class="ex" data-id="u1v2">
+      <p class="qn"><span class="num">2</span> <span data-en="Write the numbers in letters.">Écrivez les nombres en lettres.</span></p>
+      <p>a. 2 € → <input class="inp w-m" data-a="deux"> euros</p>
+      <p>b. 5 € → <input class="inp w-m" data-a="cinq"> euros</p>
+      <p>c. 8 € → <input class="inp w-m" data-a="huit"> euros</p>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PHONÉTIQUE ============================ -->
+<section class="panel" data-p="phon" id="u1-phon">
+  <div class="card">
+    <h3>1 · Les sons [u] et [y] : <em>vous</em> et <em>tu</em></h3>
+    <div class="lesson">
+      <h4>📘 La leçon — deux voyelles différentes</h4>
+      <p data-en="[u] as in vous: round lips, tongue at the back. [y] as in tu: round lips, but the tongue at the front, as if you said 'ee'.">[u] comme dans <em>vous</em> : lèvres rondes, langue en arrière. [y] comme dans <em>tu</em> : lèvres rondes aussi, mais la langue en avant, comme pour dire « i ».</p>
+      <span class="kp"><b>[u]</b> — vous, bonjour, douze <button class="speak" data-say="vous, bonjour, douze">🔈</button></span>
+      <span class="kp"><b>[y]</b> — tu, du, jus <button class="speak" data-say="tu, du, jus">🔈</button></span>
+    </div>
+    <div class="ex" data-id="u1p1">
+      <p class="qn"><span class="num">1</span> <span data-en="Listen (🔈) and choose the sound you hear.">Écoutez (🔈) et choisissez le son entendu.</span></p>
+      <ol class="items">
+        <li>a. <button class="speak" data-say="jus">🔈</button> <span class="opts"><button class="opt">[u]</button><button class="opt" data-ok>[y]</button></span></li>
+        <li>b. <button class="speak" data-say="pour">🔈</button> <span class="opts"><button class="opt" data-ok>[u]</button><button class="opt">[y]</button></span></li>
+        <li>c. <button class="speak" data-say="sucre">🔈</button> <span class="opts"><button class="opt">[u]</button><button class="opt" data-ok>[y]</button></span></li>
+      </ol>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ CAHIER ============================ -->
+<section class="panel" data-p="cahier" id="u1-cahier">
+  <div class="box tip"><h4>À propos de cet onglet</h4>
+    <p style="margin:.3em 0" data-en="Extra practice on the whole unit.">Des exercices en plus, sur toute l'unité.</p>
+  </div>
+
+  <h2 class="sec">Exercices — au café</h2>
+  <div class="card">
+    <div class="ex" data-id="c1-1">
+      <p class="qn"><span class="num">1</span> <span data-en="Put the dialogue in order (1 to 4).">Remettez le dialogue dans l'ordre (de 1 à 4).</span></p>
+      <p data-en="Thank you, goodbye!">Merci, au revoir ! <input class="inp w-s" data-a="4"></p>
+      <p data-en="Hello, sir!">Bonjour, monsieur ! <input class="inp w-s" data-a="1"></p>
+      <p data-en="How much is it?">C'est combien ? <input class="inp w-s" data-a="3"></p>
+      <p data-en="I would like a tea, please.">Je voudrais un thé, s'il vous plaît. <input class="inp w-s" data-a="2"></p>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+    <div class="ex" data-id="c1-2">
+      <p class="qn"><span class="num">2</span> <span data-en="True or false?">Vrai ou faux ?</span></p>
+      <ol class="items">
+        <li data-en="'L'addition' is what you pay at the end.">a. L'addition, c'est ce qu'on paie à la fin. <span class="opts"><button class="opt" data-ok>Vrai</button><button class="opt">Faux</button></span></li>
+        <li data-en="'Une café' is correct.">b. On dit « une café ». <span class="opts"><button class="opt">Vrai</button><button class="opt" data-ok>Faux</button></span></li>
+      </ol>
+      <div class="exbar"><button class="btn check">Vérifier</button><button class="btn ghost reveal">Réponses</button><span class="score"></span></div>
+    </div>
+  </div>
+
+  <div class="card" style="text-align:center; color:var(--muted)">
+    <p style="margin:0" data-en="That's the whole sample unit!">Voilà toute l'unité d'exemple !</p>
+  </div>
+</section>
+
+</div><!-- /unité 1 -->
